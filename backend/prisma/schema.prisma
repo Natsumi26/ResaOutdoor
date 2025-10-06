@@ -75,7 +75,7 @@ model Product {
 model Session {
   id                String      @id @default(uuid())
   date              DateTime
-  timeSlot          String      // "matin" ou "après-midi"
+  timeSlot          String      // "matin", "après-midi" ou "journée"
   startTime         String      // "09:00"
   isMagicRotation   Boolean     @default(false)
   magicRotationProducts Json?   // Liste des produits dans la rotation magique
