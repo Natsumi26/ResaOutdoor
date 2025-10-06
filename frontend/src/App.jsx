@@ -1,0 +1,59 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Calendar from './pages/Calendar';
+import Users from './pages/Users';
+import Categories from './pages/Categories';
+import Products from './pages/Products';
+import GiftVouchers from './pages/GiftVouchers';
+
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Chargement...</div>;
+  }
+
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+      />
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        }
+      >
+        <Route index element={<Calendar />} />
+        <Route path="users" element={<Users />} />
+        <Route path="categories" element={<Categories />} />
+        <Route path="products" element={<Products />} />
+        <Route path="gift-vouchers" element={<GiftVouchers />} />
+      </Route>
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
+
+export default App;

@@ -1,0 +1,59 @@
+.container {
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  color: var(--gray-800);
+  font-size: 28px;
+  margin: 0;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.calendarContainer {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 500px;
+}
+
+.placeholder {
+  color: var(--gray-600);
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.featureList {
+  max-width: 600px;
+  margin: 20px auto;
+  text-align: left;
+  color: var(--gray-700);
+  line-height: 2;
+}
+
+.featureList li {
+  padding: 4px 0;
+}

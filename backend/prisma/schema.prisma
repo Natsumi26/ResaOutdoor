@@ -1,0 +1,170 @@
+// Schéma Prisma pour le logiciel de réservation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Utilisateurs/Guides
+model User {
+  id            String    @id @default(uuid())
+  login         String    @unique
+  password      String
+  email         String?
+  stripeAccount String?   // Compte Stripe associé
+  role          String    @default("guide") // "admin" ou "guide"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  products      Product[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+// Catégories d'activités
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+// Produits/Activités (modèles de canyon)
+model Product {
+  id                    String   @id @default(uuid())
+  name                  String
+  shortDescription      String?
+  longDescription       String?
+  priceIndividual       Float
+  priceGroup            Json?    // Règles de prix groupe: {min: 5, price: 45}
+  duration              Int      // Durée en minutes
+  color                 String   // Code couleur hex
+  level                 String   // "découverte", "aventure", "sportif"
+  maxCapacity           Int
+  autoCloseHoursBefore  Int?     // Fermeture auto X heures avant
+  postBookingMessage    String?
+  wazeLink              String?
+  googleMapsLink        String?
+  images                String[] // URLs des images
+
+  guideId               String
+  guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  categoryId            String
+  category              Category @relation(fields: [categoryId], references: [id])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  sessions              Session[]
+
+  @@map("products")
+}
+
+// Sessions (créneaux planifiés)
+model Session {
+  id                String      @id @default(uuid())
+  date              DateTime
+  timeSlot          String      // "matin" ou "après-midi"
+  startTime         String      // "09:00"
+  isMagicRotation   Boolean     @default(false)
+  magicRotationProducts Json?   // Liste des produits dans la rotation magique
+  status            String      @default("open") // "open", "full", "closed"
+
+  productId         String?
+  product           Product?    @relation(fields: [productId], references: [id])
+
+  guideId           String
+  guide             User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  bookings          Booking[]
+
+  @@map("sessions")
+}
+
+// Réservations
+model Booking {
+  id                String      @id @default(uuid())
+
+  // Client
+  clientFirstName   String
+  clientLastName    String
+  clientEmail       String
+  clientPhone       String
+  clientNationality String?
+
+  // Réservation
+  numberOfPeople    Int
+  totalPrice        Float
+  amountPaid        Float       @default(0)
+  status            String      @default("pending") // "pending", "confirmed", "cancelled"
+
+  sessionId         String
+  session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  payments          Payment[]
+  history           BookingHistory[]
+
+  @@map("bookings")
+}
+
+// Paiements
+model Payment {
+  id            String   @id @default(uuid())
+  amount        Float
+  method        String   // "CB", "virement", "espèces", "stripe"
+  stripeId      String?  // ID transaction Stripe
+  notes         String?
+
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+
+  @@map("payments")
+}
+
+// Historique des modifications de réservation
+model BookingHistory {
+  id          String   @id @default(uuid())
+  action      String   // "created", "modified", "payment", "cancelled"
+  details     String?
+
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@map("booking_history")
+}
+
+// Bons cadeaux
+model GiftVoucher {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  amount        Float
+  isUsed        Boolean  @default(false)
+  usedAt        DateTime?
+  usedBy        String?  // Email ou nom du client
+
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime?
+
+  @@map("gift_vouchers")
+}
