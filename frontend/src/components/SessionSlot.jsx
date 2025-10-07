@@ -1,9 +1,8 @@
-import React from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick }) => {
+const SessionSlot = ({ session, onClick, onBookingClick }) => {
   const { bookings = [], product, startTime } = session;
 
   // Calculer le taux de remplissage
@@ -68,6 +67,7 @@ const SessionSlot = ({ session, onClick }) => {
                 key={booking.id}
                 booking={booking}
                 index={index}
+                onClick={onBookingClick}
               />
             ))}
           </div>

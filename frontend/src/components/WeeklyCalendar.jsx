@@ -5,7 +5,7 @@ import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
 
-const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick }) => {
+const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [filters, setFilters] = useState({
     reservations: true,
@@ -164,6 +164,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick }) => {
                             key={session.id}
                             session={session}
                             onClick={() => onSessionClick(session)}
+                            onBookingClick={onBookingClick}
                           />
                         ))
                       ) : (
@@ -182,6 +183,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick }) => {
                             key={session.id}
                             session={session}
                             onClick={() => onSessionClick(session)}
+                            onBookingClick={onBookingClick}
                           />
                         ))
                       ) : (
@@ -201,6 +203,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick }) => {
                           key={session.id}
                           session={session}
                           onClick={() => onSessionClick(session)}
+                          onBookingClick={onBookingClick}
                         />
                       ))
                     ) : (

@@ -1,8 +1,7 @@
-import React from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
-const BookingBadge = ({ booking, index }) => {
+const BookingBadge = ({ booking, index, onClick }) => {
   const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, payments = [] } = booking;
 
   // Déterminer la couleur du badge selon le statut de paiement
@@ -30,6 +29,11 @@ const BookingBadge = ({ booking, index }) => {
   // Format du nom
   const displayName = `${clientFirstName} ${clientLastName.charAt(0)}.`;
 
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onClick?.(booking.id);
+  };
+
   return (
     <Draggable draggableId={booking.id} index={index}>
       {(provided, snapshot) => (
@@ -43,6 +47,7 @@ const BookingBadge = ({ booking, index }) => {
             backgroundColor: getBookingColor(),
           }}
           title={`${displayName} - ${numberOfPeople} pers. - ${amountPaid}€ / ${totalPrice}€`}
+          onClick={handleClick}
         >
           <span className={styles.numberOfPeople}>{numberOfPeople}</span>
           <span className={styles.icon}>{getIcon()}</span>

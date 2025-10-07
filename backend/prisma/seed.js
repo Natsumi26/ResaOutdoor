@@ -170,8 +170,105 @@ async function main() {
     }
   }
 
-  await Promise.all(sessions);
+  const createdSessions = await Promise.all(sessions);
   console.log('✅ Sessions créées:', sessions.length);
+
+  // Créer quelques réservations de test
+  const bookings = [];
+
+  // Ajouter 2-3 réservations sur les premières sessions
+  for (let i = 0; i < Math.min(5, createdSessions.length); i++) {
+    const session = createdSessions[i];
+
+    // Réservation 1 - Payée complètement
+    bookings.push(
+      prisma.booking.create({
+        data: {
+          clientFirstName: 'Jean',
+          clientLastName: 'Dupont',
+          clientEmail: 'jean.dupont@example.com',
+          clientPhone: '0612345678',
+          clientNationality: 'Française',
+          numberOfPeople: 2,
+          totalPrice: 100,
+          amountPaid: 100,
+          status: 'confirmed',
+          sessionId: session.id
+        }
+      }).then(async (booking) => {
+        // Ajouter un paiement
+        await prisma.payment.create({
+          data: {
+            amount: 100,
+            method: 'CB',
+            bookingId: booking.id
+          }
+        });
+        // Ajouter l'historique
+        await prisma.bookingHistory.create({
+          data: {
+            action: 'created',
+            details: 'Réservation créée pour 2 personne(s)',
+            bookingId: booking.id
+          }
+        });
+        await prisma.bookingHistory.create({
+          data: {
+            action: 'payment',
+            details: 'Paiement de 100€ via CB',
+            bookingId: booking.id
+          }
+        });
+        return booking;
+      })
+    );
+
+    // Réservation 2 - Partiellement payée
+    if (i < 3) {
+      bookings.push(
+        prisma.booking.create({
+          data: {
+            clientFirstName: 'Marie',
+            clientLastName: 'Martin',
+            clientEmail: 'marie.martin@example.com',
+            clientPhone: '0623456789',
+            numberOfPeople: 3,
+            totalPrice: 150,
+            amountPaid: 50,
+            status: 'pending',
+            sessionId: session.id
+          }
+        }).then(async (booking) => {
+          await prisma.payment.create({
+            data: {
+              amount: 50,
+              method: 'espèces',
+              notes: 'Acompte',
+              bookingId: booking.id
+            }
+          });
+          await prisma.bookingHistory.create({
+            data: {
+              action: 'created',
+              details: 'Réservation créée pour 3 personne(s)',
+              bookingId: booking.id
+            }
+          });
+          await prisma.bookingHistory.create({
+            data: {
+              action: 'payment',
+              details: 'Paiement de 50€ via espèces',
+              bookingId: booking.id
+            }
+          });
+          return booking;
+        })
+      );
+    }
+  }
+
+  await Promise.all(bookings);
+  console.log('✅ Réservations créées:', bookings.length);
 
   console.log('🎉 Seeding terminé avec succès!');
 }

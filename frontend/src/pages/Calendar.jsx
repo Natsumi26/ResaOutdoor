@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import WeeklyCalendar from '../components/WeeklyCalendar';
+import BookingModal from '../components/BookingModal';
 import { sessionsAPI, bookingsAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
@@ -9,6 +10,7 @@ const Calendar = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   // Charger les sessions de la semaine
   const loadSessions = async () => {
@@ -52,6 +54,20 @@ const Calendar = () => {
   const handleSessionClick = (session) => {
     console.log('Session cliquée:', session);
     // TODO: Ouvrir une modale de détails de session
+  };
+
+  // Gérer le clic sur une réservation
+  const handleBookingClick = (bookingId) => {
+    setSelectedBookingId(bookingId);
+  };
+
+  // Fermer la modale et recharger les données
+  const handleCloseModal = () => {
+    setSelectedBookingId(null);
+  };
+
+  const handleBookingUpdate = () => {
+    loadSessions(); // Recharger pour voir les changements
   };
 
   const handleNewSession = () => {
@@ -98,7 +114,17 @@ const Calendar = () => {
         sessions={sessions}
         onMoveBooking={handleMoveBooking}
         onSessionClick={handleSessionClick}
+        onBookingClick={handleBookingClick}
       />
+
+      {/* Modale de détails de réservation */}
+      {selectedBookingId && (
+        <BookingModal
+          bookingId={selectedBookingId}
+          onClose={handleCloseModal}
+          onUpdate={handleBookingUpdate}
+        />
+      )}
     </div>
   );
 };
