@@ -12,6 +12,8 @@ import bookingRoutes from './routes/booking.routes.js';
 import giftVoucherRoutes from './routes/giftVoucher.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import availabilityRoutes from './routes/availability.routes.js';
+import emailRoutes from './routes/email.routes.js';
+import stripeRoutes from './routes/stripe.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -24,13 +26,20 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
+
+// IMPORTANT: Le webhook Stripe doit recevoir le raw body AVANT express.json()
+// On monte la route webhook AVANT les middlewares JSON
+import stripeWebhookRoute from './routes/stripe.routes.js';
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRoute);
+
+// Maintenant on peut parser JSON pour toutes les autres routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Servir les fichiers statiques du dossier uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
+// Routes (sauf webhook qui est déjà monté)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -40,6 +49,9 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/gift-vouchers', giftVoucherRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/availability', availabilityRoutes);
+app.use('/api/email', emailRoutes);
+// On remonte les autres routes Stripe (sauf webhook)
+app.use('/api/stripe', stripeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

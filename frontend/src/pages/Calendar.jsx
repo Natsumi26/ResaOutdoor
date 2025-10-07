@@ -3,19 +3,25 @@ import { format, startOfWeek, endOfWeek } from 'date-fns';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import BookingModal from '../components/BookingModal';
 import SessionForm from '../components/SessionForm';
-import { sessionsAPI, bookingsAPI, productsAPI } from '../services/api';
+import BookingForm from '../components/BookingForm';
+import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
 const Calendar = () => {
   const [sessions, setSessions] = useState([]);
   const [products, setProducts] = useState([]);
+  const [guides, setGuides] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [bookingSessionId, setBookingSessionId] = useState(null);
   const [sessionFormDate, setSessionFormDate] = useState(null);
+  const [selectedGuideFilter, setSelectedGuideFilter] = useState(''); // Filtre par guide
 
   // Charger les sessions de la semaine
   const loadSessions = async () => {
@@ -24,10 +30,17 @@ const Calendar = () => {
       const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
 
-      const response = await sessionsAPI.getAll({
+      const params = {
         startDate: format(weekStart, 'yyyy-MM-dd'),
         endDate: format(weekEnd, 'yyyy-MM-dd')
-      });
+      };
+
+      // Si un filtre guide est sélectionné, l'ajouter
+      if (selectedGuideFilter) {
+        params.guideId = selectedGuideFilter;
+      }
+
+      const response = await sessionsAPI.getAll(params);
 
       setSessions(response.data.sessions || []);
       setError(null);
@@ -39,10 +52,19 @@ const Calendar = () => {
     }
   };
 
+  // Charger l'utilisateur au montage
   useEffect(() => {
-    loadSessions();
-    loadProducts();
-  }, [currentWeek]);
+    loadCurrentUser();
+  }, []);
+
+  // Charger les données quand la semaine ou le filtre change
+  useEffect(() => {
+    if (currentUser) {
+      loadSessions();
+      loadProducts();
+      loadGuides();
+    }
+  }, [currentWeek, selectedGuideFilter, currentUser]);
 
   const loadProducts = async () => {
     try {
@@ -50,6 +72,27 @@ const Calendar = () => {
       setProducts(response.data.products || []);
     } catch (err) {
       console.error('Erreur chargement produits:', err);
+    }
+  };
+
+  const loadGuides = async () => {
+    // Charger les guides uniquement si admin
+    if (currentUser?.role === 'admin') {
+      try {
+        const response = await usersAPI.getAll();
+        setGuides(response.data.users || []);
+      } catch (err) {
+        console.error('Erreur chargement guides:', err);
+      }
+    }
+  };
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      setCurrentUser(response.data.user);
+    } catch (err) {
+      console.error('Erreur chargement utilisateur:', err);
     }
   };
 
@@ -65,10 +108,16 @@ const Calendar = () => {
     }
   };
 
-  // Gérer le clic sur une session
+  // Gérer le clic sur une session (modifier)
   const handleSessionClick = (session) => {
     setEditingSession(session);
     setShowSessionForm(true);
+  };
+
+  // Créer une réservation sur une session
+  const handleCreateBooking = (session) => {
+    setBookingSessionId(session.id);
+    setShowBookingForm(true);
   };
 
   // Gérer le clic sur une réservation
@@ -114,6 +163,23 @@ const Calendar = () => {
     setSessionFormDate(null);
   };
 
+  const handleBookingSubmit = async (data) => {
+    try {
+      await bookingsAPI.create(data);
+      await loadSessions();
+      setShowBookingForm(false);
+      setBookingSessionId(null);
+    } catch (err) {
+      console.error('Erreur création réservation:', err);
+      alert('Erreur lors de la création: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleBookingCancel = () => {
+    setShowBookingForm(false);
+    setBookingSessionId(null);
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -143,8 +209,30 @@ const Calendar = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>📅 Calendrier Hebdomadaire</h1>
-        {!showSessionForm && (
+        <div className={styles.headerLeft}>
+          <h1>📅 Calendrier Hebdomadaire</h1>
+
+          {/* Filtre par guide (admin uniquement) */}
+          {currentUser?.role === 'admin' && !showSessionForm && !showBookingForm && (
+            <div className={styles.guideFilter}>
+              <label>Filtrer par guide :</label>
+              <select
+                value={selectedGuideFilter}
+                onChange={(e) => setSelectedGuideFilter(e.target.value)}
+                className={styles.guideSelect}
+              >
+                <option value="">Tous les guides</option>
+                {guides.map(guide => (
+                  <option key={guide.id} value={guide.id}>
+                    {guide.login}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {!showSessionForm && !showBookingForm && (
           <button className={styles.btnPrimary} onClick={() => handleNewSession()}>
             + Nouvelle Session
           </button>
@@ -156,9 +244,19 @@ const Calendar = () => {
           <SessionForm
             session={editingSession}
             products={products}
+            guides={guides}
+            currentUser={currentUser}
             initialDate={sessionFormDate}
             onSubmit={handleSessionSubmit}
             onCancel={handleSessionCancel}
+          />
+        </div>
+      ) : showBookingForm ? (
+        <div className={styles.formWrapper}>
+          <BookingForm
+            session={sessions.find(s => s.id === bookingSessionId)}
+            onSubmit={handleBookingSubmit}
+            onCancel={handleBookingCancel}
           />
         </div>
       ) : (
@@ -167,6 +265,7 @@ const Calendar = () => {
           onMoveBooking={handleMoveBooking}
           onSessionClick={handleSessionClick}
           onBookingClick={handleBookingClick}
+          onCreateBooking={handleCreateBooking}
         />
       )}
 

@@ -84,12 +84,20 @@ export const createProduct = async (req, res, next) => {
       wazeLink,
       googleMapsLink,
       images,
-      guideId,
+      guideId: bodyGuideId,
       categoryId
     } = req.body;
 
-    if (!name || !priceIndividual || !duration || !level || !maxCapacity || !guideId || !categoryId) {
+    if (!name || !priceIndividual || !duration || !level || !maxCapacity || !categoryId) {
       throw new AppError('Champs requis manquants', 400);
+    }
+
+    // Si admin fournit un guideId, l'utiliser; sinon utiliser l'utilisateur connecté
+    let guideId;
+    if (req.user.role === 'admin' && bodyGuideId) {
+      guideId = bodyGuideId;
+    } else {
+      guideId = req.user.userId;
     }
 
     const product = await prisma.product.create({
@@ -137,6 +145,20 @@ export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+
+    // Vérifier que le produit existe et appartient au guide (sauf si admin)
+    const existingProduct = await prisma.product.findUnique({
+      where: { id }
+    });
+
+    if (!existingProduct) {
+      throw new AppError('Produit non trouvé', 404);
+    }
+
+    // Seul l'admin ou le guide propriétaire peut modifier
+    if (req.user.role !== 'admin' && existingProduct.guideId !== req.user.userId) {
+      throw new AppError('Vous ne pouvez modifier que vos propres produits', 403);
+    }
 
     // Supprimer les champs qui ne doivent pas être modifiés
     delete updateData.id;
@@ -191,6 +213,20 @@ export const updateProduct = async (req, res, next) => {
 export const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Vérifier que le produit existe et appartient au guide (sauf si admin)
+    const existingProduct = await prisma.product.findUnique({
+      where: { id }
+    });
+
+    if (!existingProduct) {
+      throw new AppError('Produit non trouvé', 404);
+    }
+
+    // Seul l'admin ou le guide propriétaire peut supprimer
+    if (req.user.role !== 'admin' && existingProduct.guideId !== req.user.userId) {
+      throw new AppError('Vous ne pouvez supprimer que vos propres produits', 403);
+    }
 
     await prisma.product.delete({
       where: { id }

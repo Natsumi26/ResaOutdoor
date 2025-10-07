@@ -23,29 +23,29 @@ async function main() {
 
   console.log('✅ Utilisateur admin créé:', admin.login);
 
-  // Créer quelques catégories d'exemple
-  const categories = await Promise.all([
-    prisma.category.upsert({
-      where: { id: '1' },
-      update: {},
-      create: {
-        id: '1',
-        name: 'Canyoning',
-        description: 'Activités de descente de canyon'
-      }
-    }),
-    prisma.category.upsert({
-      where: { id: '2' },
-      update: {},
-      create: {
-        id: '2',
-        name: 'Via Ferrata',
-        description: 'Parcours en via ferrata'
-      }
-    })
-  ]);
+  // // Créer quelques catégories d'exemple
+  // const categories = await Promise.all([
+  //   prisma.category.upsert({
+  //     where: { id: '1' },
+  //     update: {},
+  //     create: {
+  //       id: '1',
+  //       name: 'Canyoning',
+  //       description: 'Activités de descente de canyon'
+  //     }
+  //   }),
+  //   prisma.category.upsert({
+  //     where: { id: '2' },
+  //     update: {},
+  //     create: {
+  //       id: '2',
+  //       name: 'Via Ferrata',
+  //       description: 'Parcours en via ferrata'
+  //     }
+  //   })
+  // ]);
 
-  console.log('✅ Catégories créées:', categories.length);
+  // console.log('✅ Catégories créées:', categories.length);
 
   // Créer des produits d'exemple
   // const products = await Promise.all([

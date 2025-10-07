@@ -8,6 +8,8 @@ import Users from './pages/Users';
 import Categories from './pages/Categories';
 import Products from './pages/Products';
 import GiftVouchers from './pages/GiftVouchers';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancel from './pages/PaymentCancel';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -28,6 +30,11 @@ const AppRoutes = () => {
         path="/login"
         element={isAuthenticated ? <Navigate to="/" /> : <Login />}
       />
+
+      {/* Pages de paiement - accessibles sans authentification */}
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
+
       <Route
         path="/"
         element={

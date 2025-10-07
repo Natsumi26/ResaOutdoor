@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { sendBookingConfirmation } from '../services/email.service.js';
 
 // Lister toutes les réservations
 export const getAllBookings = async (req, res, next) => {
@@ -239,6 +240,12 @@ export const createBooking = async (req, res, next) => {
       }
 
       return newBooking;
+    });
+
+    // Envoyer l'email de confirmation (asynchrone, ne bloque pas la réponse)
+    sendBookingConfirmation(booking).catch(err => {
+      console.error('Erreur envoi email de confirmation:', err);
+      // L'email échoue mais la réservation est créée
     });
 
     res.status(201).json({

@@ -15,15 +15,9 @@ export const getAllSessions = async (req, res, next) => {
       };
     }
 
-    // Si un guideId est fourni dans la query, l'utiliser
     if (guideId) {
       where.guideId = guideId;
     }
-    // Sinon, si l'utilisateur n'est pas admin, ne montrer que ses sessions
-    else if (req.user && req.user.role !== 'admin') {
-      where.guideId = req.user.userId;
-    }
-    // Si admin et pas de guideId, montrer toutes les sessions
 
     const sessions = await prisma.session.findMany({
       where,
@@ -121,23 +115,11 @@ export const createSession = async (req, res, next) => {
       startTime,
       isMagicRotation,
       productIds, // Array de produits pour la rotation magique
-      status,
-      guideId: bodyGuideId  // Optionnel : fourni par l'admin
+      status
     } = req.body;
 
     // Récupérer le guideId depuis le user authentifié
-    if (!req.user || !req.user.userId) {
-      throw new AppError('Utilisateur non authentifié. Veuillez vous reconnecter.', 401);
-    }
-
-    // Si l'utilisateur est admin et fournit un guideId, on l'utilise
-    // Sinon, on utilise l'ID du user connecté
-    let guideId;
-    if (req.user.role === 'admin' && bodyGuideId) {
-      guideId = bodyGuideId;
-    } else {
-      guideId = req.user.userId;
-    }
+    const guideId = req.user.id;
 
     if (!date || !timeSlot || !startTime) {
       throw new AppError('Champs requis manquants (date, timeSlot, startTime)', 400);

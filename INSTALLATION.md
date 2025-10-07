@@ -187,9 +187,20 @@ GiftVoucher (bons cadeaux)
 - [ ] Configuration horaires
 
 ### Priorité 5 - Intégrations
-- [ ] Upload images (stockage local ou cloud)
-- [ ] Intégration Stripe pour paiements
-- [ ] Envoi emails (nodemailer)
+- [x] Upload images (stockage local ou cloud) ✅
+- [x] Intégration Stripe pour paiements ✅
+  - Paiement en ligne sécurisé via Stripe Checkout
+  - Bouton "Payer avec Stripe" dans BookingModal
+  - Webhook automatique pour confirmation de paiement
+  - Support paiements partiels (solde restant)
+  - Cartes de test disponibles
+  - Voir [STRIPE_SETUP.md](STRIPE_SETUP.md) pour la configuration
+- [x] Envoi emails (nodemailer) ✅
+  - Email de confirmation automatique à chaque réservation
+  - Bouton "Envoyer email" dans BookingModal
+  - API pour emails de rappel et emails personnalisés
+  - Templates HTML responsive
+  - Voir [EMAIL_SETUP.md](EMAIL_SETUP.md) pour la configuration
 - [ ] Notifications temps réel (socket.io)
 
 ### Priorité 6 - Dashboard & Stats

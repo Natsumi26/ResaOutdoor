@@ -96,4 +96,17 @@ export const giftVouchersAPI = {
   delete: (id) => api.delete(`/gift-vouchers/${id}`)
 };
 
+// Email
+export const emailAPI = {
+  sendBookingConfirmation: (bookingId) => api.post(`/email/booking-confirmation/${bookingId}`),
+  sendBookingReminder: (bookingId) => api.post(`/email/booking-reminder/${bookingId}`),
+  sendCustomEmail: (data) => api.post('/email/custom', data)
+};
+
+// Stripe
+export const stripeAPI = {
+  createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),
+  verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`)
+};
+
 export default api;

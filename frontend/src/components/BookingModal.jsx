@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI } from '../services/api';
+import { bookingsAPI, emailAPI, stripeAPI } from '../services/api';
 import styles from './BookingModal.module.css';
 
 const BookingModal = ({ bookingId, onClose, onUpdate }) => {
@@ -60,9 +60,37 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     }
   };
 
-  const handleSendEmail = () => {
-    alert('Fonctionnalité envoi email à implémenter');
-    // TODO: Intégrer l'envoi d'email
+  const handleSendEmail = async () => {
+    try {
+      await emailAPI.sendBookingConfirmation(bookingId);
+      alert('Email de confirmation envoyé avec succès !');
+    } catch (error) {
+      console.error('Erreur envoi email:', error);
+      alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handlePayWithStripe = async () => {
+    try {
+      const remainingAmount = booking.totalPrice - booking.amountPaid;
+
+      if (remainingAmount <= 0) {
+        alert('Cette réservation est déjà entièrement payée !');
+        return;
+      }
+
+      // Créer une session Stripe
+      const response = await stripeAPI.createCheckoutSession({
+        bookingId: booking.id,
+        amount: remainingAmount
+      });
+
+      // Rediriger vers Stripe Checkout
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error('Erreur création session Stripe:', error);
+      alert('Impossible de créer la session de paiement: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   if (loading) {
@@ -156,7 +184,11 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
                 <div className={styles.infoGrid}>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Activité</span>
-                    <span className={styles.value}>{session.product?.name}</span>
+                    <span className={styles.value}>{booking.product?.name || 'N/A'}</span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Catégorie</span>
+                    <span className={styles.value}>{booking.product?.category?.name || 'N/A'}</span>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Date</span>
@@ -345,9 +377,16 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
 
         {/* Footer Actions */}
         <div className={styles.footer}>
-          <button className={styles.btnEmail} onClick={handleSendEmail}>
-            📧 Envoyer email
-          </button>
+          <div className={styles.footerLeft}>
+            <button className={styles.btnEmail} onClick={handleSendEmail}>
+              📧 Envoyer email
+            </button>
+            {remainingAmount > 0 && booking.status !== 'cancelled' && (
+              <button className={styles.btnPay} onClick={handlePayWithStripe}>
+                💳 Payer {remainingAmount}€ avec Stripe
+              </button>
+            )}
+          </div>
           <div className={styles.footerActions}>
             <button
               className={styles.btnCancel}

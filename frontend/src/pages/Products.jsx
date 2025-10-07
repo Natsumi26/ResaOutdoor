@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI, categoriesAPI, usersAPI } from '../services/api';
+import { productsAPI, categoriesAPI, usersAPI, authAPI } from '../services/api';
 import ProductForm from '../components/ProductForm';
 import styles from './Common.module.css';
 import modalStyles from '../components/ProductForm.module.css';
@@ -8,6 +8,7 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -18,14 +19,28 @@ const Products = () => {
 
   const loadData = async () => {
     try {
-      const [productsRes, categoriesRes, usersRes] = await Promise.all([
+      // Charger l'utilisateur actuel
+      const currentUserRes = await authAPI.getCurrentUser();
+      setCurrentUser(currentUserRes.data.user);
+
+      // Charger les produits et catégories
+      const [productsRes, categoriesRes] = await Promise.all([
         productsAPI.getAll(),
-        categoriesAPI.getAll(),
-        usersAPI.getAll()
+        categoriesAPI.getAll()
       ]);
+
       setProducts(productsRes.data.products);
       setCategories(categoriesRes.data.categories);
-      setUsers(usersRes.data.users);
+
+      // Charger les utilisateurs uniquement si admin
+      if (currentUserRes.data.user.role === 'admin') {
+        try {
+          const usersRes = await usersAPI.getAll();
+          setUsers(usersRes.data.users);
+        } catch (error) {
+          console.log('Non-admin user, skipping users list');
+        }
+      }
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
@@ -95,6 +110,7 @@ const Products = () => {
             product={editingProduct}
             categories={categories}
             users={users}
+            currentUser={currentUser}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />

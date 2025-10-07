@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import styles from './SessionForm.module.css';
 
-const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => {
+const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCancel, initialDate }) => {
   const [formData, setFormData] = useState({
     date: initialDate ? format(new Date(initialDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     timeSlot: 'matin',
     startTime: '09:00',
     isMagicRotation: false,
     productIds: [],  // Array de produits sélectionnés
+    guideId: '',  // Guide assigné (pour admin)
     status: 'open'
   });
 
@@ -25,10 +26,14 @@ const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => 
         startTime: session.startTime,
         isMagicRotation: session.isMagicRotation,
         productIds,
+        guideId: session.guideId || '',
         status: session.status
       });
+    } else if (currentUser && !formData.guideId) {
+      // Par défaut, le guide connecté
+      setFormData(prev => ({ ...prev, guideId: currentUser.id }));
     }
-  }, [session]);
+  }, [session, currentUser]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -98,6 +103,10 @@ const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => 
       newErrors.products = 'Sélectionnez au moins un produit';
     }
 
+    if (!formData.guideId) {
+      newErrors.guideId = 'Sélectionnez un guide';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -113,7 +122,8 @@ const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => 
       startTime: formData.startTime,
       isMagicRotation: formData.isMagicRotation,
       status: formData.status,
-      productIds: formData.productIds
+      productIds: formData.productIds,
+      guideId: formData.guideId
     };
 
     onSubmit(submitData);
@@ -188,6 +198,27 @@ const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => 
             <option value="closed">Fermé</option>
           </select>
         </div>
+
+        {/* Sélection du guide (pour admin) */}
+        {currentUser?.role === 'admin' && guides && guides.length > 0 && (
+          <div className={styles.formGroup}>
+            <label>Guide assigné *</label>
+            <select
+              name="guideId"
+              value={formData.guideId}
+              onChange={handleChange}
+              className={errors.guideId ? styles.error : ''}
+            >
+              <option value="">Sélectionner un guide...</option>
+              {guides.map(guide => (
+                <option key={guide.id} value={guide.id}>
+                  {guide.login} {guide.email && `(${guide.email})`}
+                </option>
+              ))}
+            </select>
+            {errors.guideId && <span className={styles.errorMsg}>{errors.guideId}</span>}
+          </div>
+        )}
       </div>
 
       {/* Mode de session */}

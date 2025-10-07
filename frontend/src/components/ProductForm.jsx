@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
 import styles from './ProductForm.module.css';
 
-const ProductForm = ({ product, categories, users, onSubmit, onCancel }) => {
+const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     shortDescription: '',
@@ -115,7 +115,9 @@ const ProductForm = ({ product, categories, users, onSubmit, onCancel }) => {
       newErrors.maxCapacity = 'Capacité requise';
     if (!formData.categoryId)
       newErrors.categoryId = 'Catégorie requise';
-    if (!formData.guideId)
+
+    // Valider le guideId uniquement pour les admins
+    if (currentUser?.role === 'admin' && !formData.guideId)
       newErrors.guideId = 'Guide requis';
 
     if (formData.priceGroup.enabled) {
@@ -149,6 +151,11 @@ const ProductForm = ({ product, categories, users, onSubmit, onCancel }) => {
           }
         : null
     };
+
+    // Ne pas envoyer guideId si l'utilisateur n'est pas admin (sera auto-assigné côté serveur)
+    if (currentUser?.role !== 'admin') {
+      delete submitData.guideId;
+    }
 
     onSubmit(submitData);
   };
@@ -212,20 +219,24 @@ const ProductForm = ({ product, categories, users, onSubmit, onCancel }) => {
               {errors.categoryId && <span className={styles.errorMsg}>{errors.categoryId}</span>}
             </div>
 
-            <div className={styles.formGroup}>
-              <label>Guide *</label>
-              <select
-                name="guideId"
-                value={formData.guideId}
-                onChange={handleChange}
-                className={errors.guideId ? styles.error : ''}
-              >
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.login}</option>
-                ))}
-              </select>
-              {errors.guideId && <span className={styles.errorMsg}>{errors.guideId}</span>}
-            </div>
+            {/* Afficher le sélecteur de guide uniquement pour les admins */}
+            {currentUser?.role === 'admin' && users && users.length > 0 && (
+              <div className={styles.formGroup}>
+                <label>Guide *</label>
+                <select
+                  name="guideId"
+                  value={formData.guideId}
+                  onChange={handleChange}
+                  className={errors.guideId ? styles.error : ''}
+                >
+                  <option value="">Sélectionner...</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>{user.login}</option>
+                  ))}
+                </select>
+                {errors.guideId && <span className={styles.errorMsg}>{errors.guideId}</span>}
+              </div>
+            )}
           </div>
 
           <div className={styles.formRow}>

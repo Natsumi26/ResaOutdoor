@@ -2,7 +2,7 @@ import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick }) => {
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking }) => {
   const { bookings = [], product, startTime } = session;
 
   // Calculer le taux de remplissage
@@ -71,6 +71,19 @@ const SessionSlot = ({ session, onClick, onBookingClick }) => {
               />
             ))}
           </div>
+
+          {/* Bouton Réserver */}
+          {onCreateBooking && (
+            <button
+              className={styles.reserveBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateBooking(session);
+              }}
+            >
+              + Réserver
+            </button>
+          )}
 
           {provided.placeholder}
         </div>
