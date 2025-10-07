@@ -138,6 +138,13 @@ export const updateProduct = async (req, res, next) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
+    // Supprimer les champs qui ne doivent pas être modifiés
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.guide;
+    delete updateData.category;
+
     // Convertir les types si nécessaire
     if (updateData.priceIndividual) {
       updateData.priceIndividual = parseFloat(updateData.priceIndividual);

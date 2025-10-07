@@ -1,0 +1,297 @@
+import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import styles from './SessionForm.module.css';
+
+const SessionForm = ({ session, products, onSubmit, onCancel, initialDate }) => {
+  const [formData, setFormData] = useState({
+    date: initialDate ? format(new Date(initialDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    timeSlot: 'matin',
+    startTime: '09:00',
+    isMagicRotation: false,
+    productId: '',
+    magicRotationProducts: [],
+    status: 'open'
+  });
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (session) {
+      setFormData({
+        date: format(new Date(session.date), 'yyyy-MM-dd'),
+        timeSlot: session.timeSlot,
+        startTime: session.startTime,
+        isMagicRotation: session.isMagicRotation,
+        productId: session.productId || '',
+        magicRotationProducts: session.magicRotationProducts || [],
+        status: session.status
+      });
+    }
+  }, [session]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (name === 'isMagicRotation') {
+      setFormData(prev => ({
+        ...prev,
+        isMagicRotation: checked,
+        productId: checked ? '' : prev.productId,
+        magicRotationProducts: checked ? [] : prev.magicRotationProducts
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
+  };
+
+  const handleTimeSlotChange = (slot) => {
+    let defaultTime = '09:00';
+    if (slot === 'après-midi') defaultTime = '14:00';
+    if (slot === 'journée') defaultTime = '09:00';
+
+    setFormData(prev => ({
+      ...prev,
+      timeSlot: slot,
+      startTime: defaultTime
+    }));
+  };
+
+  const handleProductToggle = (productId) => {
+    if (formData.isMagicRotation) {
+      // Mode Rotation Magique: sélection multiple
+      setFormData(prev => {
+        const isSelected = prev.magicRotationProducts.includes(productId);
+        return {
+          ...prev,
+          magicRotationProducts: isSelected
+            ? prev.magicRotationProducts.filter(id => id !== productId)
+            : [...prev.magicRotationProducts, productId]
+        };
+      });
+    } else {
+      // Mode normal: sélection unique
+      setFormData(prev => ({
+        ...prev,
+        productId: productId
+      }));
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.date) {
+      newErrors.date = 'Date requise';
+    }
+
+    if (!formData.startTime) {
+      newErrors.startTime = 'Heure de début requise';
+    }
+
+    if (formData.isMagicRotation) {
+      if (formData.magicRotationProducts.length === 0) {
+        newErrors.products = 'Sélectionnez au moins un produit pour la rotation magique';
+      }
+    } else {
+      if (!formData.productId) {
+        newErrors.productId = 'Sélectionnez un produit';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!validate()) return;
+
+    const submitData = {
+      date: new Date(formData.date).toISOString(),
+      timeSlot: formData.timeSlot,
+      startTime: formData.startTime,
+      isMagicRotation: formData.isMagicRotation,
+      status: formData.status,
+      productId: formData.isMagicRotation ? null : formData.productId,
+      magicRotationProducts: formData.isMagicRotation ? formData.magicRotationProducts : null
+    };
+
+    onSubmit(submitData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <h2>{session ? 'Modifier la session' : 'Nouvelle session'}</h2>
+
+      {/* Date et horaires */}
+      <div className={styles.section}>
+        <h3>📅 Date et horaires</h3>
+
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label>Date *</label>
+            <input
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              className={errors.date ? styles.error : ''}
+            />
+            {errors.date && <span className={styles.errorMsg}>{errors.date}</span>}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Heure de début *</label>
+            <input
+              type="time"
+              name="startTime"
+              value={formData.startTime}
+              onChange={handleChange}
+              className={errors.startTime ? styles.error : ''}
+            />
+            {errors.startTime && <span className={styles.errorMsg}>{errors.startTime}</span>}
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Créneau</label>
+          <div className={styles.timeSlotButtons}>
+            <button
+              type="button"
+              className={formData.timeSlot === 'matin' ? styles.active : ''}
+              onClick={() => handleTimeSlotChange('matin')}
+            >
+              🌅 Matin
+            </button>
+            <button
+              type="button"
+              className={formData.timeSlot === 'après-midi' ? styles.active : ''}
+              onClick={() => handleTimeSlotChange('après-midi')}
+            >
+              ☀️ Après-midi
+            </button>
+            <button
+              type="button"
+              className={formData.timeSlot === 'journée' ? styles.active : ''}
+              onClick={() => handleTimeSlotChange('journée')}
+            >
+              🌞 Journée
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Statut</label>
+          <select name="status" value={formData.status} onChange={handleChange}>
+            <option value="open">Ouvert</option>
+            <option value="full">Complet</option>
+            <option value="closed">Fermé</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Mode de session */}
+      <div className={styles.section}>
+        <h3>🎯 Type de session</h3>
+
+        <div className={styles.formGroup}>
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              name="isMagicRotation"
+              checked={formData.isMagicRotation}
+              onChange={handleChange}
+            />
+            <div>
+              <strong>Mode Rotation Magique</strong>
+              <p className={styles.helpText}>
+                Le produit sera déterminé automatiquement lors de la réservation en fonction du nombre de participants
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {formData.isMagicRotation ? (
+          <div className={styles.magicRotationInfo}>
+            <p className={styles.infoBox}>
+              ℹ️ En mode rotation magique, sélectionnez plusieurs produits. Le système choisira automatiquement
+              le meilleur produit en fonction du nombre de personnes de la réservation.
+            </p>
+          </div>
+        ) : (
+          <div className={styles.normalModeInfo}>
+            <p className={styles.infoBox}>
+              ℹ️ Mode standard : sélectionnez un seul produit pour cette session.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Sélection de produits */}
+      <div className={styles.section}>
+        <h3>
+          {formData.isMagicRotation ? '🎲 Produits de la rotation' : '🏞️ Produit'}
+        </h3>
+
+        {errors.products && <span className={styles.errorMsg}>{errors.products}</span>}
+        {errors.productId && <span className={styles.errorMsg}>{errors.productId}</span>}
+
+        <div className={styles.productGrid}>
+          {products.map((product) => {
+            const isSelected = formData.isMagicRotation
+              ? formData.magicRotationProducts.includes(product.id)
+              : formData.productId === product.id;
+
+            return (
+              <div
+                key={product.id}
+                className={`${styles.productCard} ${isSelected ? styles.selected : ''}`}
+                onClick={() => handleProductToggle(product.id)}
+              >
+                <div
+                  className={styles.productColorBar}
+                  style={{ backgroundColor: product.color }}
+                />
+                <div className={styles.productCardContent}>
+                  <h4>{product.name}</h4>
+                  <div className={styles.productDetails}>
+                    <span>💰 {product.priceIndividual}€</span>
+                    <span>⏱️ {product.duration}min</span>
+                    <span>👥 {product.maxCapacity}</span>
+                  </div>
+                  <span className={styles.productLevel}>{product.level}</span>
+                </div>
+                {isSelected && (
+                  <div className={styles.selectedBadge}>
+                    ✓
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {products.length === 0 && (
+            <p className={styles.emptyState}>
+              Aucun produit disponible. Créez d'abord des produits.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.formActions}>
+        <button type="button" onClick={onCancel} className={styles.btnCancel}>
+          Annuler
+        </button>
+        <button type="submit" className={styles.btnSubmit}>
+          {session ? 'Modifier' : 'Créer'} la session
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default SessionForm;

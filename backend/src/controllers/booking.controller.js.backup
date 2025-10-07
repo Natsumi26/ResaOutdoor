@@ -15,17 +15,7 @@ export const getAllBookings = async (req, res, next) => {
       include: {
         session: {
           include: {
-            guide: {
-              select: {
-                id: true,
-                login: true
-              }
-            }
-          }
-        },
-        product: {
-          include: {
-            category: true
+            product: true
           }
         },
         payments: true,
@@ -55,11 +45,7 @@ export const getBookingById = async (req, res, next) => {
       include: {
         session: {
           include: {
-            products: {
-              include: {
-                product: true
-              }
-            },
+            product: true,
             guide: {
               select: {
                 id: true,
@@ -67,11 +53,6 @@ export const getBookingById = async (req, res, next) => {
                 email: true
               }
             }
-          }
-        },
-        product: {
-          include: {
-            category: true
           }
         },
         payments: {
@@ -109,29 +90,19 @@ export const createBooking = async (req, res, next) => {
       totalPrice,
       amountPaid,
       status,
-      sessionId,
-      productId  // Le client choisit un produit spécifique
+      sessionId
     } = req.body;
 
-    if (!clientFirstName || !clientLastName || !clientEmail || !clientPhone ||
-        !numberOfPeople || !totalPrice || !sessionId || !productId) {
+    if (!clientFirstName || !clientLastName || !clientEmail || !clientPhone || !numberOfPeople || !totalPrice || !sessionId) {
       throw new AppError('Champs requis manquants', 400);
     }
 
-    // Vérifier la session
+    // Vérifier la capacité de la session
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       include: {
-        products: {
-          include: {
-            product: true
-          }
-        },
-        bookings: {
-          include: {
-            product: true
-          }
-        }
+        product: true,
+        bookings: true
       }
     });
 
@@ -139,45 +110,10 @@ export const createBooking = async (req, res, next) => {
       throw new AppError('Session non trouvée', 404);
     }
 
-    // Vérifier que le produit fait partie de cette session
-    const sessionProduct = session.products.find(sp => sp.productId === productId);
-    if (!sessionProduct) {
-      throw new AppError('Ce produit n\'est pas disponible pour cette session', 400);
-    }
+    const currentOccupancy = session.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
 
-    const product = sessionProduct.product;
-
-    // LOGIQUE DE ROTATION MAGIQUE
-    if (session.isMagicRotation) {
-      // Vérifier si le guide a déjà une réservation sur ce créneau
-      const hasBooking = session.bookings.length > 0;
-
-      if (hasBooking) {
-        // Il y a déjà une réservation, vérifier si c'est pour le même produit
-        const existingProductId = session.bookings[0].productId;
-
-        if (existingProductId !== productId) {
-          throw new AppError('Ce créneau est déjà réservé pour un autre canyon. Le guide n\'est plus disponible.', 409);
-        }
-
-        // C'est le même produit, vérifier la capacité
-        const currentOccupancy = session.bookings
-          .filter(b => b.productId === productId)
-          .reduce((sum, b) => sum + b.numberOfPeople, 0);
-
-        if (currentOccupancy + numberOfPeople > product.maxCapacity) {
-          throw new AppError(`Capacité maximale atteinte pour ${product.name} (${product.maxCapacity} places)`, 409);
-        }
-      }
-    } else {
-      // Mode normal : vérifier simplement la capacité du produit
-      const currentOccupancy = session.bookings
-        .filter(b => b.productId === productId)
-        .reduce((sum, b) => sum + b.numberOfPeople, 0);
-
-      if (currentOccupancy + numberOfPeople > product.maxCapacity) {
-        throw new AppError(`Capacité maximale atteinte pour ${product.name} (${product.maxCapacity} places)`, 409);
-      }
+    if (session.product && currentOccupancy + numberOfPeople > session.product.maxCapacity) {
+      throw new AppError('Capacité maximale dépassée', 409);
     }
 
     // Créer la réservation avec transaction
@@ -193,18 +129,12 @@ export const createBooking = async (req, res, next) => {
           totalPrice: parseFloat(totalPrice),
           amountPaid: amountPaid ? parseFloat(amountPaid) : 0,
           status: status || 'pending',
-          sessionId,
-          productId
+          sessionId
         },
         include: {
           session: {
             include: {
-              guide: true
-            }
-          },
-          product: {
-            include: {
-              category: true
+              product: true
             }
           }
         }
@@ -214,7 +144,7 @@ export const createBooking = async (req, res, next) => {
       await tx.bookingHistory.create({
         data: {
           action: 'created',
-          details: `Réservation créée pour ${numberOfPeople} personne(s) - ${product.name}`,
+          details: `Réservation créée pour ${numberOfPeople} personne(s)`,
           bookingId: newBooking.id
         }
       });
@@ -256,15 +186,6 @@ export const updateBooking = async (req, res, next) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    // Supprimer les champs non modifiables
-    delete updateData.id;
-    delete updateData.createdAt;
-    delete updateData.updatedAt;
-    delete updateData.session;
-    delete updateData.product;
-    delete updateData.payments;
-    delete updateData.history;
-
     // Convertir les types si nécessaire
     if (updateData.numberOfPeople) {
       updateData.numberOfPeople = parseInt(updateData.numberOfPeople);
@@ -272,7 +193,7 @@ export const updateBooking = async (req, res, next) => {
     if (updateData.totalPrice) {
       updateData.totalPrice = parseFloat(updateData.totalPrice);
     }
-    if (updateData.amountPaid !== undefined) {
+    if (updateData.amountPaid) {
       updateData.amountPaid = parseFloat(updateData.amountPaid);
     }
 
@@ -283,20 +204,14 @@ export const updateBooking = async (req, res, next) => {
         include: {
           session: {
             include: {
-              guide: true
+              product: true
             }
           },
-          product: {
-            include: {
-              category: true
-            }
-          },
-          payments: true,
-          history: true
+          payments: true
         }
       });
 
-      // Ajouter à l'historique
+      // Créer l'entrée historique
       await tx.bookingHistory.create({
         data: {
           action: 'modified',
@@ -321,46 +236,53 @@ export const updateBooking = async (req, res, next) => {
   }
 };
 
-// Ajouter un paiement
+// Ajouter un paiement à une réservation
 export const addPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { amount, method, notes } = req.body;
+    const { amount, method, stripeId, notes } = req.body;
 
     if (!amount || !method) {
-      throw new AppError('Montant et méthode requis', 400);
-    }
-
-    const booking = await prisma.booking.findUnique({
-      where: { id }
-    });
-
-    if (!booking) {
-      throw new AppError('Réservation non trouvée', 404);
+      throw new AppError('Montant et méthode de paiement requis', 400);
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Créer le paiement
+      const booking = await tx.booking.findUnique({
+        where: { id }
+      });
+
+      if (!booking) {
+        throw new AppError('Réservation non trouvée', 404);
+      }
+
       const payment = await tx.payment.create({
         data: {
           amount: parseFloat(amount),
           method,
+          stripeId,
           notes,
           bookingId: id
         }
       });
 
-      // Mettre à jour le montant payé
       const newAmountPaid = booking.amountPaid + parseFloat(amount);
-      await tx.booking.update({
+
+      const updatedBooking = await tx.booking.update({
         where: { id },
         data: {
           amountPaid: newAmountPaid,
-          status: newAmountPaid >= booking.totalPrice ? 'confirmed' : 'pending'
+          status: newAmountPaid >= booking.totalPrice ? 'confirmed' : booking.status
+        },
+        include: {
+          payments: true,
+          session: {
+            include: {
+              product: true
+            }
+          }
         }
       });
 
-      // Ajouter à l'historique
       await tx.bookingHistory.create({
         data: {
           action: 'payment',
@@ -369,12 +291,13 @@ export const addPayment = async (req, res, next) => {
         }
       });
 
-      return payment;
+      return { payment, booking: updatedBooking };
     });
 
-    res.status(201).json({
+    res.json({
       success: true,
-      payment: result
+      payment: result.payment,
+      booking: result.booking
     });
   } catch (error) {
     next(error);
@@ -391,8 +314,11 @@ export const cancelBooking = async (req, res, next) => {
         where: { id },
         data: { status: 'cancelled' },
         include: {
-          session: true,
-          product: true,
+          session: {
+            include: {
+              product: true
+            }
+          },
           payments: true
         }
       });
@@ -431,56 +357,41 @@ export const moveBooking = async (req, res, next) => {
       throw new AppError('ID de la nouvelle session requis', 400);
     }
 
-    const booking = await prisma.booking.findUnique({
-      where: { id },
-      include: {
-        product: true
+    const booking = await prisma.$transaction(async (tx) => {
+      // Vérifier la nouvelle session
+      const newSession = await tx.session.findUnique({
+        where: { id: newSessionId },
+        include: {
+          product: true,
+          bookings: true
+        }
+      });
+
+      if (!newSession) {
+        throw new AppError('Nouvelle session non trouvée', 404);
       }
-    });
 
-    if (!booking) {
-      throw new AppError('Réservation non trouvée', 404);
-    }
+      // Vérifier la capacité
+      const currentBooking = await tx.booking.findUnique({
+        where: { id }
+      });
 
-    // Vérifier la nouvelle session
-    const newSession = await prisma.session.findUnique({
-      where: { id: newSessionId },
-      include: {
-        products: {
-          include: {
-            product: true
-          }
-        },
-        bookings: true
+      const currentOccupancy = newSession.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+      if (newSession.product && currentOccupancy + currentBooking.numberOfPeople > newSession.product.maxCapacity) {
+        throw new AppError('Capacité maximale dépassée pour la nouvelle session', 409);
       }
-    });
 
-    if (!newSession) {
-      throw new AppError('Nouvelle session non trouvée', 404);
-    }
-
-    // Vérifier que le produit est disponible dans la nouvelle session
-    const productAvailable = newSession.products.some(sp => sp.productId === booking.productId);
-    if (!productAvailable) {
-      throw new AppError('Ce produit n\'est pas disponible dans la nouvelle session', 400);
-    }
-
-    // Vérifier la capacité
-    const currentOccupancy = newSession.bookings
-      .filter(b => b.productId === booking.productId)
-      .reduce((sum, b) => sum + b.numberOfPeople, 0);
-
-    if (currentOccupancy + booking.numberOfPeople > booking.product.maxCapacity) {
-      throw new AppError('Capacité maximale atteinte dans la nouvelle session', 409);
-    }
-
-    const movedBooking = await prisma.$transaction(async (tx) => {
-      const updated = await tx.booking.update({
+      const movedBooking = await tx.booking.update({
         where: { id },
         data: { sessionId: newSessionId },
         include: {
-          session: true,
-          product: true
+          session: {
+            include: {
+              product: true
+            }
+          },
+          payments: true
         }
       });
 
@@ -492,14 +403,18 @@ export const moveBooking = async (req, res, next) => {
         }
       });
 
-      return updated;
+      return movedBooking;
     });
 
     res.json({
       success: true,
-      booking: movedBooking
+      booking
     });
   } catch (error) {
-    next(error);
+    if (error.code === 'P2025') {
+      next(new AppError('Réservation non trouvée', 404));
+    } else {
+      next(error);
+    }
   }
 };

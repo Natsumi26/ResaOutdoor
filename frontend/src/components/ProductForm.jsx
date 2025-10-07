@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
 import styles from './ProductForm.module.css';
 
@@ -72,7 +72,8 @@ const ProductForm = ({ product, categories, users, onSubmit, onCancel }) => {
         formDataUpload.append('images', file);
       });
 
-      const response = await fetch('/api/upload/images', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/upload/images`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

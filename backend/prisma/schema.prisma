@@ -66,7 +66,8 @@ model Product {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  sessions              Session[]
+  sessionProducts       SessionProduct[]
+  bookings              Booking[]
 
   @@map("products")
 }
@@ -78,11 +79,7 @@ model Session {
   timeSlot          String      // "matin", "après-midi" ou "journée"
   startTime         String      // "09:00"
   isMagicRotation   Boolean     @default(false)
-  magicRotationProducts Json?   // Liste des produits dans la rotation magique
   status            String      @default("open") // "open", "full", "closed"
-
-  productId         String?
-  product           Product?    @relation(fields: [productId], references: [id])
 
   guideId           String
   guide             User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
@@ -90,9 +87,28 @@ model Session {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
+  // Relations
+  products          SessionProduct[]  // Produits disponibles dans cette session
   bookings          Booking[]
 
   @@map("sessions")
+}
+
+// Table de jonction : Produits disponibles dans une session
+// Permet la rotation magique (plusieurs produits par session)
+model SessionProduct {
+  id        String   @id @default(uuid())
+
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, productId])
+  @@map("session_products")
 }
 
 // Réservations
@@ -112,8 +128,12 @@ model Booking {
   amountPaid        Float       @default(0)
   status            String      @default("pending") // "pending", "confirmed", "cancelled"
 
+  // Relations : Le client réserve pour UN produit (canyon) spécifique
   sessionId         String
   session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  productId         String
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt

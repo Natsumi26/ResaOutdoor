@@ -11,6 +11,7 @@ import sessionRoutes from './routes/session.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import giftVoucherRoutes from './routes/giftVoucher.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
+import availabilityRoutes from './routes/availability.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/gift-vouchers', giftVoucherRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/availability', availabilityRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

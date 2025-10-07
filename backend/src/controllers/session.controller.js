@@ -22,7 +22,15 @@ export const getAllSessions = async (req, res, next) => {
     const sessions = await prisma.session.findMany({
       where,
       include: {
-        product: true,
+        products: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          }
+        },
         guide: {
           select: {
             id: true,
@@ -31,6 +39,7 @@ export const getAllSessions = async (req, res, next) => {
         },
         bookings: {
           include: {
+            product: true,
             payments: true
           }
         }
@@ -58,15 +67,25 @@ export const getSessionById = async (req, res, next) => {
     const session = await prisma.session.findUnique({
       where: { id },
       include: {
-        product: true,
+        products: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          }
+        },
         guide: {
           select: {
             id: true,
-            login: true
+            login: true,
+            email: true
           }
         },
         bookings: {
           include: {
+            product: true,
             payments: true,
             history: true
           }
@@ -95,39 +114,77 @@ export const createSession = async (req, res, next) => {
       timeSlot,
       startTime,
       isMagicRotation,
-      magicRotationProducts,
-      productId,
-      guideId
+      productIds, // Array de produits pour la rotation magique
+      status
     } = req.body;
 
-    if (!date || !timeSlot || !startTime || !guideId) {
-      throw new AppError('Champs requis manquants', 400);
+    // Récupérer le guideId depuis le user authentifié
+    const guideId = req.user.id;
+
+    if (!date || !timeSlot || !startTime) {
+      throw new AppError('Champs requis manquants (date, timeSlot, startTime)', 400);
     }
 
-    if (!isMagicRotation && !productId) {
-      throw new AppError('ProductId requis si ce n\'est pas une rotation magique', 400);
+    if (!productIds || productIds.length === 0) {
+      throw new AppError('Au moins un produit doit être sélectionné', 400);
     }
 
-    const session = await prisma.session.create({
-      data: {
-        date: new Date(date),
-        timeSlot,
-        startTime,
-        isMagicRotation: isMagicRotation || false,
-        magicRotationProducts: magicRotationProducts || null,
-        productId: productId || null,
+    // Vérifier que le guide n'a pas déjà une session sur ce créneau
+    const existingSession = await prisma.session.findFirst({
+      where: {
         guideId,
-        status: 'open'
-      },
-      include: {
-        product: true,
-        guide: {
-          select: {
-            id: true,
-            login: true
+        date: new Date(date),
+        timeSlot
+      }
+    });
+
+    if (existingSession) {
+      throw new AppError('Vous avez déjà une session sur ce créneau', 409);
+    }
+
+    // Créer la session avec les produits en transaction
+    const session = await prisma.$transaction(async (tx) => {
+      // Créer la session
+      const newSession = await tx.session.create({
+        data: {
+          date: new Date(date),
+          timeSlot,
+          startTime,
+          isMagicRotation: isMagicRotation || false,
+          guideId,
+          status: status || 'open'
+        }
+      });
+
+      // Lier les produits à la session
+      await tx.sessionProduct.createMany({
+        data: productIds.map(productId => ({
+          sessionId: newSession.id,
+          productId
+        }))
+      });
+
+      // Retourner la session complète
+      return tx.session.findUnique({
+        where: { id: newSession.id },
+        include: {
+          products: {
+            include: {
+              product: {
+                include: {
+                  category: true
+                }
+              }
+            }
+          },
+          guide: {
+            select: {
+              id: true,
+              login: true
+            }
           }
         }
-      }
+      });
     });
 
     res.status(201).json({
@@ -143,25 +200,75 @@ export const createSession = async (req, res, next) => {
 export const updateSession = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+    const {
+      date,
+      timeSlot,
+      startTime,
+      isMagicRotation,
+      productIds,
+      status
+    } = req.body;
 
-    if (updateData.date) {
-      updateData.date = new Date(updateData.date);
-    }
+    const updateData = {};
 
-    const session = await prisma.session.update({
-      where: { id },
-      data: updateData,
-      include: {
-        product: true,
-        guide: {
-          select: {
-            id: true,
-            login: true
-          }
-        },
-        bookings: true
+    if (date) updateData.date = new Date(date);
+    if (timeSlot) updateData.timeSlot = timeSlot;
+    if (startTime) updateData.startTime = startTime;
+    if (typeof isMagicRotation === 'boolean') updateData.isMagicRotation = isMagicRotation;
+    if (status) updateData.status = status;
+
+    // Mettre à jour en transaction
+    const session = await prisma.$transaction(async (tx) => {
+      // Mettre à jour la session
+      const updatedSession = await tx.session.update({
+        where: { id },
+        data: updateData
+      });
+
+      // Si les produits sont fournis, mettre à jour les liens
+      if (productIds && Array.isArray(productIds)) {
+        // Supprimer les anciens liens
+        await tx.sessionProduct.deleteMany({
+          where: { sessionId: id }
+        });
+
+        // Créer les nouveaux liens
+        if (productIds.length > 0) {
+          await tx.sessionProduct.createMany({
+            data: productIds.map(productId => ({
+              sessionId: id,
+              productId
+            }))
+          });
+        }
       }
+
+      // Retourner la session complète
+      return tx.session.findUnique({
+        where: { id },
+        include: {
+          products: {
+            include: {
+              product: {
+                include: {
+                  category: true
+                }
+              }
+            }
+          },
+          guide: {
+            select: {
+              id: true,
+              login: true
+            }
+          },
+          bookings: {
+            include: {
+              product: true
+            }
+          }
+        }
+      });
     });
 
     res.json({
@@ -196,6 +303,7 @@ export const deleteSession = async (req, res, next) => {
       throw new AppError('Impossible de supprimer une session avec des réservations', 409);
     }
 
+    // Supprimer la session (cascade supprime les SessionProduct)
     await prisma.session.delete({
       where: { id }
     });

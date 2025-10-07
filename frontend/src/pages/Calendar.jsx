@@ -2,15 +2,20 @@ import { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import BookingModal from '../components/BookingModal';
-import { sessionsAPI, bookingsAPI } from '../services/api';
+import SessionForm from '../components/SessionForm';
+import { sessionsAPI, bookingsAPI, productsAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
 const Calendar = () => {
   const [sessions, setSessions] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
+  const [sessionFormDate, setSessionFormDate] = useState(null);
 
   // Charger les sessions de la semaine
   const loadSessions = async () => {
@@ -36,7 +41,17 @@ const Calendar = () => {
 
   useEffect(() => {
     loadSessions();
+    loadProducts();
   }, [currentWeek]);
+
+  const loadProducts = async () => {
+    try {
+      const response = await productsAPI.getAll();
+      setProducts(response.data.products || []);
+    } catch (err) {
+      console.error('Erreur chargement produits:', err);
+    }
+  };
 
   // Gérer le déplacement d'une réservation
   const handleMoveBooking = async (bookingId, newSessionId) => {
@@ -52,8 +67,8 @@ const Calendar = () => {
 
   // Gérer le clic sur une session
   const handleSessionClick = (session) => {
-    console.log('Session cliquée:', session);
-    // TODO: Ouvrir une modale de détails de session
+    setEditingSession(session);
+    setShowSessionForm(true);
   };
 
   // Gérer le clic sur une réservation
@@ -70,9 +85,33 @@ const Calendar = () => {
     loadSessions(); // Recharger pour voir les changements
   };
 
-  const handleNewSession = () => {
-    console.log('Créer nouvelle session');
-    // TODO: Ouvrir une modale de création de session
+  const handleNewSession = (date = null) => {
+    setEditingSession(null);
+    setSessionFormDate(date);
+    setShowSessionForm(true);
+  };
+
+  const handleSessionSubmit = async (data) => {
+    try {
+      if (editingSession) {
+        await sessionsAPI.update(editingSession.id, data);
+      } else {
+        await sessionsAPI.create(data);
+      }
+      await loadSessions();
+      setShowSessionForm(false);
+      setEditingSession(null);
+      setSessionFormDate(null);
+    } catch (err) {
+      console.error('Erreur sauvegarde session:', err);
+      alert('Erreur lors de la sauvegarde: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleSessionCancel = () => {
+    setShowSessionForm(false);
+    setEditingSession(null);
+    setSessionFormDate(null);
   };
 
   if (loading) {
@@ -105,17 +144,31 @@ const Calendar = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>📅 Calendrier Hebdomadaire</h1>
-        <button className={styles.btnPrimary} onClick={handleNewSession}>
-          + Nouvelle Session
-        </button>
+        {!showSessionForm && (
+          <button className={styles.btnPrimary} onClick={() => handleNewSession()}>
+            + Nouvelle Session
+          </button>
+        )}
       </div>
 
-      <WeeklyCalendar
-        sessions={sessions}
-        onMoveBooking={handleMoveBooking}
-        onSessionClick={handleSessionClick}
-        onBookingClick={handleBookingClick}
-      />
+      {showSessionForm ? (
+        <div className={styles.formWrapper}>
+          <SessionForm
+            session={editingSession}
+            products={products}
+            initialDate={sessionFormDate}
+            onSubmit={handleSessionSubmit}
+            onCancel={handleSessionCancel}
+          />
+        </div>
+      ) : (
+        <WeeklyCalendar
+          sessions={sessions}
+          onMoveBooking={handleMoveBooking}
+          onSessionClick={handleSessionClick}
+          onBookingClick={handleBookingClick}
+        />
+      )}
 
       {/* Modale de détails de réservation */}
       {selectedBookingId && (
