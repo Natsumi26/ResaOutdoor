@@ -3,7 +3,7 @@ import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false }, isDragging }) => {
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const { bookings = [], product, startTime } = session;
 
@@ -71,24 +71,21 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
         />
       </div>
 
-      {/* Zone droppable pour les réservations */}
+      {/* Zone droppable pour les réservations - TOUJOURS rendue pour le drag & drop */}
       <Droppable droppableId={`session-${session.id}`} type="booking">
         {(provided, snapshot) => (
           <div
-            ref={(el) => {
-              provided.innerRef(el);
-              console.log('Droppable mounted', el);
-            }}
+            ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`${styles.bookingsContainer} ${!filters.reservations ? styles.hidden : ''} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
+            className={`${styles.bookingsContainer} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
           >
-            {bookings
-              .map((booking, index) => (
+            {bookings.map((booking, index) => (
               <BookingBadge
                 key={booking.id}
                 booking={booking}
                 index={index}
                 onClick={onBookingClick}
+                isVisible={filters.reservations}
               />
             ))}
             {provided.placeholder}
@@ -118,45 +115,46 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
             </div>
           )}
 
-          {/* Bouton + avec dropdown */}
-          {onCreateBooking && (
-            <div className={styles.actionButtonContainer}>
+      {/* Bouton + avec dropdown */}
+      {onCreateBooking && (
+        <div className={styles.actionButtonContainer}>
+          <button
+            className={styles.actionBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
+          >
+            +
+          </button>
+          {showDropdown && (
+            <div className={styles.dropdown}>
               <button
-                className={styles.actionBtn}
+                className={styles.dropdownItem}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowDropdown(!showDropdown);
+                  onClick(session);
+                  setShowDropdown(false);
                 }}
               >
-                +
+                ✏️ Modifier la session
               </button>
-              {showDropdown && (
-                <div className={styles.dropdown}>
-                  <button
-                    className={styles.dropdownItem}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClick(session);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    ✏️ Modifier la session
-                  </button>
-                  <button
-                    className={styles.dropdownItem}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCreateBooking(session);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    📝 Ajouter une réservation
-                  </button>
-                </div>
-              )}
+              <button
+                className={styles.dropdownItem}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateBooking(session);
+                  setShowDropdown(false);
+                }}
+              >
+                📝 Ajouter une réservation
+              </button>
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+};
 
 export default SessionSlot;

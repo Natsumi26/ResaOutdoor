@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
-const BookingBadge = ({ booking, index, onClick }) => {
+const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, payments = [] } = booking;
   const isDraggingRef = useRef(false);
 
@@ -41,7 +41,7 @@ const BookingBadge = ({ booking, index, onClick }) => {
 console.log('Booking ID:', booking.id, typeof booking.id);
 
   return (
-    <Draggable draggableId={String(booking.id)} index={index}>
+    <Draggable draggableId={booking.id} index={index}>
       {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -51,9 +51,10 @@ console.log('Booking ID:', booking.id, typeof booking.id);
             style={{
               ...provided.draggableProps.style,
               backgroundColor: getBookingColor(),
+              opacity: isVisible ? 1 : 0,
+              pointerEvents: isVisible ? 'auto' : 'none',
             }}
             title={`${displayName} - ${numberOfPeople} pers. - ${amountPaid}€ / ${totalPrice}€`}
-            // onMouseDown={handleMouseDown}
             onClick={(e) => {
               e.stopPropagation();
               if (!snapshot.isDragging) {

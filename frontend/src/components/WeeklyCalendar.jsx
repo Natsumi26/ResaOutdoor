@@ -55,22 +55,20 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
     setCurrentWeek(new Date());
   };
 
-  const [isDragging, setIsDragging] = useState(false);
-
-const handleBeforeCapture = () => {
-  setIsDragging(true);
-};
-
-const handleDragEnd = (result) => {
+  const handleDragEnd = (result) => {
   const { source, destination, draggableId } = result;
 
   if (!destination) return;
 
-  // Attendre que le drag soit complètement terminé
-  setTimeout(() => {
-    // Ta logique ici : déplacer la réservation
-    onMoveBooking(draggableId, source.droppableId, destination.droppableId);
-  }, 0);
+  if (source.droppableId === destination.droppableId) return;
+
+  // Extraire l'ID de session en enlevant le préfixe "session-"
+  const newSessionId = destination.droppableId.replace('session-', '');
+
+  console.log('Moving booking:', draggableId, 'to session:', newSessionId);
+
+  // Déplacer la réservation
+  onMoveBooking(draggableId, newSessionId);
 };
 
   return (
@@ -160,8 +158,6 @@ const handleDragEnd = (result) => {
                             onClick={() => onSessionClick(session)}
                             onBookingClick={onBookingClick}
                             onCreateBooking={onCreateBooking}
-                            filters={filters}
-                            isDragging={isDragging}
                           />
                         ))
                       ) : (
