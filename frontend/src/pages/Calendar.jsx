@@ -266,6 +266,7 @@ const Calendar = () => {
           onSessionClick={handleSessionClick}
           onBookingClick={handleBookingClick}
           onCreateBooking={handleCreateBooking}
+          onCreateSession={handleNewSession}
         />
       )}
 

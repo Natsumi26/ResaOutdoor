@@ -127,6 +127,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
 
     onSubmit(submitData);
   };
+const filteredProducts = products.filter(product => product.guideId === formData.guideId);
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -258,10 +259,11 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         </h3>
 
         {errors.products && <span className={styles.errorMsg}>{errors.products}</span>}
-
+        
         <div className={styles.productGrid}>
-          {products.map((product) => {
+          {filteredProducts.map((product) => {
             const isSelected = formData.productIds.includes(product.id);
+            
 
             return (
               <div
@@ -277,7 +279,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
                   <h4>{product.name}</h4>
                   <div className={styles.productDetails}>
                     <span>💰 {product.priceIndividual}€</span>
-                    <span>⏱️ {product.duration}min</span>
+                    <span>⏱️ {product.duration/60}h</span>
                     <span>👥 {product.maxCapacity}</span>
                   </div>
                   <span className={styles.productLevel}>{product.level}</span>

@@ -7,7 +7,15 @@ export const getAllProducts = async (req, res, next) => {
     const { guideId, categoryId } = req.query;
 
     const where = {};
-    if (guideId) where.guideId = guideId;
+
+    // Si non-admin, filtrer automatiquement par guide connecté
+    if (req.user.role !== 'admin') {
+      where.guideId = req.user.userId;
+    } else if (guideId) {
+      // Si admin et guideId fourni en query, filtrer par ce guide
+      where.guideId = guideId;
+    }
+
     if (categoryId) where.categoryId = categoryId;
 
     const products = await prisma.product.findMany({

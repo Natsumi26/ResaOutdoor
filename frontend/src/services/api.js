@@ -110,11 +110,5 @@ export const stripeAPI = {
   verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`)
 };
 
-// Stats
-export const statsAPI = {
-  getGlobalStats: (params) => api.get('/stats/global', { params }),
-  getDailyStats: () => api.get('/stats/daily'),
-  getRecentBookings: (params) => api.get('/stats/recent-bookings', { params })
-};
 
 export default api;

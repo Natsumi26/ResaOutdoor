@@ -74,18 +74,15 @@
   position: relative;
 }
 
-.actionBtn {
-  width: 100%;
-  height: auto;
-  padding: 0.1rem;
-  background-color: #10b981;
+.btnPrimary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .actionBtn:hover {

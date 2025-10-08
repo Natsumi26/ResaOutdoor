@@ -222,7 +222,6 @@ Les pages React suivantes sont à développer :
 - [ ] Gestion des images produits (upload)
 - [ ] Intégration Stripe
 - [ ] Notifications email
-- [ ] Statistiques et rapports
 - [ ] Export PDF/Excel
 - [ ] Interface client (future phase)
 

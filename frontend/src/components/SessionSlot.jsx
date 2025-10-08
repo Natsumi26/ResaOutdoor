@@ -55,6 +55,44 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
         <div className={styles.sessionName}>
           {product?.name || 'Session'}
         </div>
+        {/* Bouton + avec dropdown */}
+      {onCreateBooking && (
+        <div className={styles.actionButtonContainer}>
+          <button
+            className={styles.btnPrimary}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
+          >
+            +
+          </button>
+          {showDropdown && (
+            <div className={styles.dropdown}>
+              <button
+                className={styles.dropdownItem}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick(session);
+                  setShowDropdown(false);
+                }}
+              >
+                ✏️ Modifier la session
+              </button>
+              <button
+                className={styles.dropdownItem}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateBooking(session);
+                  setShowDropdown(false);
+                }}
+              >
+                📝 Ajouter une réservation
+              </button>
+            </div>
+          )}
+        </div>
+      )}
         <div className={styles.sessionCapacity}>
           {totalPeople} / {maxCapacity}
         </div>
@@ -115,44 +153,7 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
             </div>
           )}
 
-      {/* Bouton + avec dropdown */}
-      {onCreateBooking && (
-        <div className={styles.actionButtonContainer}>
-          <button
-            className={styles.actionBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDropdown(!showDropdown);
-            }}
-          >
-            +
-          </button>
-          {showDropdown && (
-            <div className={styles.dropdown}>
-              <button
-                className={styles.dropdownItem}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick(session);
-                  setShowDropdown(false);
-                }}
-              >
-                ✏️ Modifier la session
-              </button>
-              <button
-                className={styles.dropdownItem}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCreateBooking(session);
-                  setShowDropdown(false);
-                }}
-              >
-                📝 Ajouter une réservation
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      
     </div>
   );
 };

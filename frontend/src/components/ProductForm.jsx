@@ -30,6 +30,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
     if (product) {
       setFormData({
         ...product,
+        duration: product.duration ? product.duration / 60 : '', // Convertir minutes en heures
         priceGroup: product.priceGroup
           ? { enabled: true, ...product.priceGroup }
           : { enabled: false, min: '', price: '' }
@@ -139,7 +140,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
     const submitData = {
       ...formData,
       priceIndividual: parseFloat(formData.priceIndividual),
-      duration: parseInt(formData.duration),
+      duration: parseInt(formData.duration) * 60, // Convertir heures en minutes
       maxCapacity: parseInt(formData.maxCapacity),
       autoCloseHoursBefore: formData.autoCloseHoursBefore
         ? parseInt(formData.autoCloseHoursBefore)
@@ -328,16 +329,19 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
           )}
 
           <div className={styles.formGroup}>
-            <label>Durée (minutes) *</label>
+            <label>Durée (heures) *</label>
             <input
               type="number"
               name="duration"
               value={formData.duration}
               onChange={handleChange}
               className={errors.duration ? styles.error : ''}
-              min="1"
+              min="0.5"
+              step="0.5"
+              placeholder="Ex: 3.5"
             />
             {errors.duration && <span className={styles.errorMsg}>{errors.duration}</span>}
+            <small>Vous pouvez utiliser des demi-heures (ex: 2.5 pour 2h30)</small>
           </div>
         </div>
 

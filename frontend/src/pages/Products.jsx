@@ -134,7 +134,7 @@ const Products = () => {
               <p>{product.shortDescription || 'Aucune description'}</p>
               <div className={styles.productInfo}>
                 <span>💰 {product.priceIndividual}€</span>
-                <span>⏱️ {product.duration}min</span>
+                <span>⏱️ {product.duration / 60}h</span>
                 <span>👥 Max: {product.maxCapacity}</span>
               </div>
               <div className={styles.cardFooter}>

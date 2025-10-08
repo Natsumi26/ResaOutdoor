@@ -203,11 +203,6 @@ GiftVoucher (bons cadeaux)
   - Voir [EMAIL_SETUP.md](EMAIL_SETUP.md) pour la configuration
 - [ ] Notifications temps réel (socket.io)
 
-### Priorité 6 - Dashboard & Stats
-- [ ] Statistiques journalières/hebdomadaires
-- [ ] Revenus et réservations
-- [ ] Graphiques (Chart.js ou Recharts)
-- [ ] Export PDF/Excel
 
 ## 🛠️ Commandes Utiles
 

@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
-import Stats from './pages/Stats';
 import Users from './pages/Users';
 import Categories from './pages/Categories';
 import Products from './pages/Products';
@@ -45,7 +44,6 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<Calendar />} />
-        <Route path="stats" element={<Stats />} />
         <Route path="users" element={<Users />} />
         <Route path="categories" element={<Categories />} />
         <Route path="products" element={<Products />} />

@@ -5,7 +5,7 @@ import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
 
-const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking }) => {
+const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [filters, setFilters] = useState({
     paiements: false,
@@ -136,12 +136,26 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
               <div key={dateKey} className={styles.dayRow}>
                 {/* En-tête du jour */}
                 <div className={styles.dayRowHeader}>
-                  <span className={styles.dayRowName}>
-                    {format(day, 'EEEE', { locale: fr })}
-                  </span>
-                  <span className={styles.dayRowDate}>
-                    {format(day, 'dd/MM')}
-                  </span>
+                  <div className={styles.dayRowInfo}>
+                    <span className={styles.dayRowName}>
+                      {format(day, 'EEEE', { locale: fr })}
+                    </span>
+                    <span className={styles.dayRowDate}>
+                      {format(day, 'dd/MM')}
+                    </span>
+                  </div>
+                  {onCreateSession && (
+                    <button
+                      className={styles.btnPrimary}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateSession(day);
+                      }}
+                      title="Ajouter une session"
+                    >
+                      +
+                    </button>
+                  )}
                 </div>
 
                 {/* Deux colonnes: Matin et Après-midi */}
