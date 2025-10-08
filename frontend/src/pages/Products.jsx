@@ -12,6 +12,7 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -93,80 +94,130 @@ const Products = () => {
 
   if (loading) return <div className={styles.loading}>Chargement...</div>;
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>🏞️ Gestion des Produits</h1>
-        {!showForm && (
-          <button className={styles.btnPrimary} onClick={handleCreate}>
-            + Nouveau Produit
-          </button>
-        )}
-      </div>
+const categoryGroups = [
+  {
+    label: 'Chartreuse & Vercors',
+    categoryNames: ['Chartreuse', 'Vercors']
+  },
+  {
+    label: 'Annecy & Chambéry',
+    categoryNames: ['Annecy', 'Chambéry']
+  }
+];
 
-      {showForm ? (
-        <div className={modalStyles.formWrapper}>
-          <ProductForm
-            product={editingProduct}
-            categories={categories}
-            users={users}
-            currentUser={currentUser}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        </div>
-      ) : (
-        <div className={styles.grid}>
-          {products.map((product) => (
-            <div key={product.id} className={styles.card}>
-              <div
-                className={styles.cardColorBar}
-                style={{ backgroundColor: product.color }}
-              />
-              {product.images && product.images.length > 0 && (
-                <img
-                  src={`http://localhost:5000${product.images[0]}`}
-                  alt={product.name}
-                  className={styles.productImage}
-                />
-              )}
-              <h3>{product.name}</h3>
-              <p>{product.shortDescription || 'Aucune description'}</p>
-              <div className={styles.productInfo}>
-                <span>💰 {product.priceIndividual}€</span>
-                <span>⏱️ {product.duration / 60}h</span>
-                <span>👥 Max: {product.maxCapacity}</span>
-              </div>
-              <div className={styles.cardFooter}>
-                <span className={styles.badgeInfo}>{product.category.name}</span>
-                <span className={styles.badgeLevel}>{product.level}</span>
-              </div>
-              <div className={styles.cardActions}>
-                <button
-                  onClick={() => handleEdit(product)}
-                  className={styles.btnEdit}
-                >
-                  ✏️ Modifier
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className={styles.btnDelete}
-                >
-                  🗑️ Supprimer
-                </button>
-              </div>
-            </div>
-          ))}
+const productsByGroup = categoryGroups.map(group => {
+  const groupCategories = categories.filter(c =>
+    group.categoryNames.includes(c.name)
+  );
 
-          {products.length === 0 && (
-            <div className={styles.emptyState}>
-              <p>Aucun produit créé</p>
-            </div>
-          )}
-        </div>
+  const groupProducts = products.filter(p =>
+    groupCategories.some(c => c.id === p.category.id)
+  );
+
+  return {
+    label: group.label,
+    products: groupProducts
+  };
+});
+
+return (
+  <div className={styles.container}>
+    <div className={styles.header}>
+      <h1>🏞️ Gestion des Produits</h1>
+      <select
+        value={selectedCategoryId || ''}
+        onChange={(e) => setSelectedCategoryId(e.target.value || null)}
+        className={styles.categoryFilter}
+      >
+        <option value="">Toutes les catégories</option>
+        {categories.map(c => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      {selectedCategoryId && (
+        <button
+          className={styles.btnReset}
+          onClick={() => setSelectedCategoryId(null)}
+        >
+          Réinitialiser le filtre
+        </button>
+      )}
+      {!showForm && (
+        <button className={styles.btnPrimary} onClick={handleCreate}>
+          + Nouveau Produit
+        </button>
       )}
     </div>
-  );
-};
+
+    {showForm ? (
+      <div className={modalStyles.formWrapper}>
+        <ProductForm
+          product={editingProduct}
+          categories={categories}
+          users={users}
+          currentUser={currentUser}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+      </div>
+    ) : (
+      <div className={styles.groupGrid}>
+        {productsByGroup.map(({ label, products }, index) => (
+          <div key={label} className={styles.groupRow}>
+            <h2 className={styles.groupTitle}>📍 {label}</h2>
+            <hr />
+
+            {products.length > 0 ? (
+              <div className={styles.groupGrid}>
+                {products.map(product => (
+                  <div key={product.id} className={styles.card} style={{width: '300px'}}>
+                    <div
+                      className={styles.cardColorBar}
+                      style={{ backgroundColor: product.color }}
+                    />
+                    {product.images?.[0] && (
+                      <img
+                        src={`http://localhost:5000${product.images[0]}`}
+                        alt={product.name}
+                        className={styles.productImage}
+                      />
+                    )}
+                    <h3>{product.name}</h3>
+                    <p>{product.shortDescription || 'Aucune description'}</p>
+                    <div className={styles.productInfo}>
+                      <span>💰 {product.priceIndividual}€</span>
+                      <span>⏱️ {product.duration / 60}h</span>
+                      <span>👥 Max: {product.maxCapacity}</span>
+                    </div>
+                    <div className={styles.cardFooter}>
+                      <span className={styles.badgeLevel}>{product.level}</span>
+                    </div>
+                    <div className={styles.cardActions}>
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className={styles.btnEdit}
+                      >
+                        ✏️ Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className={styles.btnDelete}
+                      >
+                        🗑️ Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>Aucun produit dans ce groupe</p>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+}
 
 export default Products;

@@ -118,8 +118,8 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
       newErrors.categoryId = 'Catégorie requise';
 
     // Valider le guideId uniquement pour les admins
-    if (currentUser?.role === 'admin' && !formData.guideId)
-      newErrors.guideId = 'Guide requis';
+    // if (currentUser?.role === 'admin' && !formData.guideId)
+    //   newErrors.guideId = 'Guide requis';
 
     if (formData.priceGroup.enabled) {
       if (!formData.priceGroup.min || formData.priceGroup.min <= 0)
@@ -219,25 +219,6 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
               </select>
               {errors.categoryId && <span className={styles.errorMsg}>{errors.categoryId}</span>}
             </div>
-
-            {/* Afficher le sélecteur de guide uniquement pour les admins */}
-            {currentUser?.role === 'admin' && users && users.length > 0 && (
-              <div className={styles.formGroup}>
-                <label>Guide *</label>
-                <select
-                  name="guideId"
-                  value={formData.guideId}
-                  onChange={handleChange}
-                  className={errors.guideId ? styles.error : ''}
-                >
-                  <option value="">Sélectionner...</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>{user.login}</option>
-                  ))}
-                </select>
-                {errors.guideId && <span className={styles.errorMsg}>{errors.guideId}</span>}
-              </div>
-            )}
           </div>
 
           <div className={styles.formRow}>
