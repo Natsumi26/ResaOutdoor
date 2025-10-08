@@ -70,24 +70,93 @@
   margin-bottom: 0.5rem;
 }
 
-.reserveBtn {
+.actionButtonContainer {
+  position: relative;
+}
+
+.actionBtn {
   width: 100%;
-  padding: 0.5rem;
+  height: auto;
+  padding: 0.1rem;
   background-color: #10b981;
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s;
-  margin-top: 0.5rem;
 }
 
-.reserveBtn:hover {
+.actionBtn:hover {
   background-color: #059669;
 }
 
-.reserveBtn:active {
+.actionBtn:active {
   background-color: #047857;
+}
+
+.dropdown {
+  width: 250px;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.dropdownItem {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: none;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: block;
+}
+
+.dropdownItem:hover {
+  background-color: #f1f5f9;
+}
+
+.dropdownItem:not(:last-child) {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.paymentWarning {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.capacityInfo {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.capacityAvailable {
+  color: #059669;
+}
+
+.capacityFull {
+  color: #dc2626;
 }

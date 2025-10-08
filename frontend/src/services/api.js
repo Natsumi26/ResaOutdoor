@@ -84,7 +84,8 @@ export const bookingsAPI = {
   update: (id, data) => api.put(`/bookings/${id}`, data),
   addPayment: (id, data) => api.post(`/bookings/${id}/payment`, data),
   cancel: (id) => api.post(`/bookings/${id}/cancel`),
-  move: (id, data) => api.post(`/bookings/${id}/move`, data)
+  move: (id, data) => api.post(`/bookings/${id}/move`, data),
+  delete: (id) => api.delete(`/bookings/${id}`)
 };
 
 // Gift Vouchers

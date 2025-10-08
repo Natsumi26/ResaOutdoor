@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking }) => {
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
   const { bookings = [], product, startTime } = session;
 
   // Calculer le taux de remplissage
@@ -11,6 +13,13 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking }) => {
   );
   const maxCapacity = product?.maxCapacity || 12;
   const fillPercentage = (totalPeople / maxCapacity) * 100;
+  const remainingCapacity = maxCapacity - totalPeople;
+
+  // Calculer les statistiques de paiements
+  const bookingsWithPaymentIssues = bookings.filter(b => {
+    if (b.status === 'cancelled') return false;
+    return b.amountPaid < b.totalPrice;
+  });
 
   // Déterminer la couleur de la barre latérale selon le produit
   const getProductColor = () => {
@@ -44,6 +53,44 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking }) => {
             <div className={styles.sessionName}>
               {product?.name || 'Session'}
             </div>
+                      {/* Bouton + avec dropdown */}
+          {onCreateBooking && (
+            <div className={styles.actionButtonContainer}>
+              <button
+                className={styles.actionBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+              >
+                +
+              </button>
+              {showDropdown && (
+                <div className={styles.dropdown}>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClick(session);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    ✏️ Modifier la session
+                  </button>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCreateBooking(session);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    📝 Ajouter une réservation
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
             <div className={styles.sessionCapacity}>
               {totalPeople} / {maxCapacity}
             </div>
@@ -60,30 +107,43 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking }) => {
             />
           </div>
 
-          {/* Badges de réservations */}
-          <div className={styles.bookingsContainer}>
-            {bookings.map((booking, index) => (
-              <BookingBadge
-                key={booking.id}
-                booking={booking}
-                index={index}
-                onClick={onBookingClick}
-              />
-            ))}
-          </div>
-
-          {/* Bouton Réserver */}
-          {onCreateBooking && (
-            <button
-              className={styles.reserveBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateBooking(session);
-              }}
-            >
-              + Réserver
-            </button>
+          {/* Badges de réservations - visible si filtre Réservations activé */}
+          {filters.reservations && (
+            <div className={styles.bookingsContainer}>
+              {bookings.map((booking, index) => (
+                <BookingBadge
+                  key={booking.id}
+                  booking={booking}
+                  index={index}
+                  onClick={onBookingClick}
+                />
+              ))}
+            </div>
           )}
+
+          {/* Indicateur de paiements - visible si filtre Paiements activé */}
+          {filters.paiements && bookingsWithPaymentIssues.length > 0 && (
+            <div className={styles.paymentWarning}>
+              ⚠️ {bookingsWithPaymentIssues.length} réservation{bookingsWithPaymentIssues.length > 1 ? 's' : ''} non payée{bookingsWithPaymentIssues.length > 1 ? 's' : ''}
+            </div>
+          )}
+
+          {/* Indicateur de capacité restante - visible si filtre Capacité activé */}
+          {filters.stocks && (
+            <div className={styles.capacityInfo}>
+              {remainingCapacity > 0 ? (
+                <span className={styles.capacityAvailable}>
+                  📊 {remainingCapacity} place{remainingCapacity > 1 ? 's' : ''} disponible{remainingCapacity > 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className={styles.capacityFull}>
+                  🔴 Complet
+                </span>
+              )}
+            </div>
+          )}
+
+
 
           {provided.placeholder}
         </div>

@@ -25,8 +25,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
       const dateKey = format(day, 'yyyy-MM-dd');
       organized[dateKey] = {
         matin: [],
-        'après-midi': [],
-        'journée': []
+        'après-midi': []
       };
     });
 
@@ -123,12 +122,9 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             className={`${styles.filterBtn} ${filters.stocks ? styles.active : ''}`}
             onClick={() => setFilters({...filters, stocks: !filters.stocks})}
           >
-            <span className={styles.dotGray}></span> Stocks
+            <span className={styles.dotGray}></span> Capacité
           </button>
         </div>
-        <button className={styles.btnReorganize}>
-          Réorganiser
-        </button>
       </div>
 
       {/* Calendrier en liste verticale */}
@@ -138,7 +134,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             const dateKey = format(day, 'yyyy-MM-dd');
             const morningSessions = sessionsByDay[dateKey]?.matin || [];
             const afternoonSessions = sessionsByDay[dateKey]?.['après-midi'] || [];
-            const fullDaySessions = sessionsByDay[dateKey]?.['journée'] || [];
 
             return (
               <div key={dateKey} className={styles.dayRow}>
@@ -166,6 +161,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                             onClick={() => onSessionClick(session)}
                             onBookingClick={onBookingClick}
                             onCreateBooking={onCreateBooking}
+                            filters={filters}
                           />
                         ))
                       ) : (
@@ -186,32 +182,13 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                             onClick={() => onSessionClick(session)}
                             onBookingClick={onBookingClick}
                             onCreateBooking={onCreateBooking}
+                            filters={filters}
                           />
                         ))
                       ) : (
                         <div className={styles.emptySlot}>Aucune session</div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Ligne Journée complète */}
-                <div className={styles.fullDayRow}>
-                  <div className={styles.timeSlotColumnHeader}>Journée</div>
-                  <div className={styles.sessionsContainer}>
-                    {fullDaySessions.length > 0 ? (
-                      fullDaySessions.map(session => (
-                        <SessionSlot
-                          key={session.id}
-                          session={session}
-                          onClick={() => onSessionClick(session)}
-                          onBookingClick={onBookingClick}
-                          onCreateBooking={onCreateBooking}
-                        />
-                      ))
-                    ) : (
-                      <div className={styles.emptySlot}>Aucune session</div>
-                    )}
                   </div>
                 </div>
               </div>

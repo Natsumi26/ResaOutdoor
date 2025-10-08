@@ -54,7 +54,6 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
   const handleTimeSlotChange = (slot) => {
     let defaultTime = '09:00';
     if (slot === 'après-midi') defaultTime = '14:00';
-    if (slot === 'journée') defaultTime = '09:00';
 
     setFormData(prev => ({
       ...prev,
@@ -179,13 +178,6 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               onClick={() => handleTimeSlotChange('après-midi')}
             >
               ☀️ Après-midi
-            </button>
-            <button
-              type="button"
-              className={formData.timeSlot === 'journée' ? styles.active : ''}
-              onClick={() => handleTimeSlotChange('journée')}
-            >
-              🌞 Journée
             </button>
           </div>
         </div>

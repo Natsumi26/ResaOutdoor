@@ -46,17 +46,17 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     }
   };
 
-  const handleCancelBooking = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) return;
+  const handleDeleteBooking = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette réservation ? Cette action est irréversible.')) return;
 
     try {
-      await bookingsAPI.cancel(bookingId);
-      loadBooking();
+      await bookingsAPI.delete(bookingId);
       onUpdate?.();
-      alert('Réservation annulée avec succès');
+      onClose();
+      alert('Réservation supprimée avec succès');
     } catch (error) {
-      console.error('Erreur annulation:', error);
-      alert('Impossible d\'annuler la réservation');
+      console.error('Erreur suppression:', error);
+      alert('Impossible de supprimer la réservation: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -389,11 +389,10 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
           </div>
           <div className={styles.footerActions}>
             <button
-              className={styles.btnCancel}
-              onClick={handleCancelBooking}
-              disabled={booking.status === 'cancelled'}
+              className={styles.btnDelete}
+              onClick={handleDeleteBooking}
             >
-              ❌ Annuler réservation
+              🗑️ Supprimer réservation
             </button>
             <button className={styles.btnSecondary} onClick={onClose}>
               Fermer

@@ -458,7 +458,7 @@
   transform: translateY(-1px);
 }
 
-.btnCancel {
+.btnDelete {
   padding: 0.75rem 1.5rem;
   background-color: #ef4444;
   color: white;
@@ -470,14 +470,9 @@
   transition: all 0.2s;
 }
 
-.btnCancel:hover:not(:disabled) {
+.btnDelete:hover {
   background-color: #dc2626;
   transform: translateY(-1px);
-}
-
-.btnCancel:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .footerLeft {

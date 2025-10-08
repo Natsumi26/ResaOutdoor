@@ -510,3 +510,34 @@ export const moveBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+// Supprimer une réservation
+export const deleteBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id }
+    });
+
+    if (!booking) {
+      throw new AppError('Réservation non trouvée', 404);
+    }
+
+    // Supprimer la réservation et toutes ses dépendances (cascade)
+    await prisma.booking.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Réservation supprimée avec succès'
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      next(new AppError('Réservation non trouvée', 404));
+    } else {
+      next(error);
+    }
+  }
+};
