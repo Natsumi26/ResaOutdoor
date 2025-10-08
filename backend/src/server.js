@@ -14,6 +14,7 @@ import uploadRoutes from './routes/upload.routes.js';
 import availabilityRoutes from './routes/availability.routes.js';
 import emailRoutes from './routes/email.routes.js';
 import stripeRoutes from './routes/stripe.routes.js';
+import statsRoutes from './routes/stats.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use('/api/gift-vouchers', giftVoucherRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/stats', statsRoutes);
 // On remonte les autres routes Stripe (sauf webhook)
 app.use('/api/stripe', stripeRoutes);
 

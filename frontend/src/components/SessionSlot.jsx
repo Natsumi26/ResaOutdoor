@@ -3,7 +3,7 @@ import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false }, isDragging }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const { bookings = [], product, startTime } = session;
 
@@ -36,24 +36,89 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
 
     return colorMap[product.name] || '#94a3b8';
   };
+console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id));
 
   return (
-    <Droppable droppableId={`session-${session.id}`}>
-      {(provided, snapshot) => (
+    <div
+      className={`${styles.sessionSlot}`}
+      onClick={(e) => {
+        // Ne pas déclencher onClick si on clique sur un enfant draggable
+        if (e.target === e.currentTarget || !e.target.closest('[data-rbd-draggable-id]')) {
+          onClick();
+        }
+      }}
+      style={{ borderLeftColor: getProductColor() }}
+    >
+      {/* En-tête de la session */}
+      <div className={styles.sessionHeader}>
+        <div className={styles.sessionTime}>{startTime}</div>
+        <div className={styles.sessionName}>
+          {product?.name || 'Session'}
+        </div>
+        <div className={styles.sessionCapacity}>
+          {totalPeople} / {maxCapacity}
+        </div>
+      </div>
+
+      {/* Barre de progression */}
+      <div className={styles.progressBar}>
         <div
-          ref={provided.innerRef}
-          {...provided.droppableProps}
-          className={`${styles.sessionSlot} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
-          onClick={onClick}
-          style={{ borderLeftColor: getProductColor() }}
-        >
-          {/* En-tête de la session */}
-          <div className={styles.sessionHeader}>
-            <div className={styles.sessionTime}>{startTime}</div>
-            <div className={styles.sessionName}>
-              {product?.name || 'Session'}
+          className={styles.progressFill}
+          style={{
+            width: `${fillPercentage}%`,
+            backgroundColor: fillPercentage >= 100 ? '#ef4444' : fillPercentage >= 80 ? '#f59e0b' : '#10b981'
+          }}
+        />
+      </div>
+
+      {/* Zone droppable pour les réservations */}
+      <Droppable droppableId={`session-${session.id}`} type="booking">
+        {(provided, snapshot) => (
+          <div
+            ref={(el) => {
+              provided.innerRef(el);
+              console.log('Droppable mounted', el);
+            }}
+            {...provided.droppableProps}
+            className={`${styles.bookingsContainer} ${!filters.reservations ? styles.hidden : ''} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
+          >
+            {bookings
+              .map((booking, index) => (
+              <BookingBadge
+                key={booking.id}
+                booking={booking}
+                index={index}
+                onClick={onBookingClick}
+              />
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+
+          {/* Indicateur de paiements - visible si filtre Paiements activé */}
+          {filters.paiements && bookingsWithPaymentIssues.length > 0 && (
+            <div className={styles.paymentWarning}>
+              ⚠️ {bookingsWithPaymentIssues.length} réservation{bookingsWithPaymentIssues.length > 1 ? 's' : ''} non payée{bookingsWithPaymentIssues.length > 1 ? 's' : ''}
             </div>
-                      {/* Bouton + avec dropdown */}
+          )}
+
+          {/* Indicateur de capacité restante - visible si filtre Capacité activé */}
+          {filters.stocks && (
+            <div className={styles.capacityInfo}>
+              {remainingCapacity > 0 ? (
+                <span className={styles.capacityAvailable}>
+                  📊 {remainingCapacity} place{remainingCapacity > 1 ? 's' : ''} disponible{remainingCapacity > 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className={styles.capacityFull}>
+                  🔴 Complet
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Bouton + avec dropdown */}
           {onCreateBooking && (
             <div className={styles.actionButtonContainer}>
               <button
@@ -91,65 +156,7 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
               )}
             </div>
           )}
-            <div className={styles.sessionCapacity}>
-              {totalPeople} / {maxCapacity}
-            </div>
-          </div>
-
-          {/* Barre de progression */}
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{
-                width: `${fillPercentage}%`,
-                backgroundColor: fillPercentage >= 100 ? '#ef4444' : fillPercentage >= 80 ? '#f59e0b' : '#10b981'
-              }}
-            />
-          </div>
-
-          {/* Badges de réservations - visible si filtre Réservations activé */}
-          {filters.reservations && (
-            <div className={styles.bookingsContainer}>
-              {bookings.map((booking, index) => (
-                <BookingBadge
-                  key={booking.id}
-                  booking={booking}
-                  index={index}
-                  onClick={onBookingClick}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Indicateur de paiements - visible si filtre Paiements activé */}
-          {filters.paiements && bookingsWithPaymentIssues.length > 0 && (
-            <div className={styles.paymentWarning}>
-              ⚠️ {bookingsWithPaymentIssues.length} réservation{bookingsWithPaymentIssues.length > 1 ? 's' : ''} non payée{bookingsWithPaymentIssues.length > 1 ? 's' : ''}
-            </div>
-          )}
-
-          {/* Indicateur de capacité restante - visible si filtre Capacité activé */}
-          {filters.stocks && (
-            <div className={styles.capacityInfo}>
-              {remainingCapacity > 0 ? (
-                <span className={styles.capacityAvailable}>
-                  📊 {remainingCapacity} place{remainingCapacity > 1 ? 's' : ''} disponible{remainingCapacity > 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span className={styles.capacityFull}>
-                  🔴 Complet
-                </span>
-              )}
-            </div>
-          )}
-
-
-
-          {provided.placeholder}
         </div>
       )}
-    </Droppable>
-  );
-};
 
 export default SessionSlot;

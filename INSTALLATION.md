@@ -158,33 +158,33 @@ GiftVoucher (bons cadeaux)
 ## 🎯 Prochaines Fonctionnalités à Développer
 
 ### Priorité 1 - Calendrier Hebdomadaire
-- [ ] Vue semaine (7 jours, colonnes matin/après-midi)
-- [ ] Affichage des sessions et créneaux
-- [ ] Visualisation des réservations (rectangles colorés)
-- [ ] Barre de progression du remplissage
+- [x] Vue semaine (7 jours, colonnes matin/après-midi)
+- [x] Affichage des sessions et créneaux
+- [x] Visualisation des réservations (rectangles colorés)
+- [x] Barre de progression du remplissage
 - [ ] Drag & drop des réservations
-- [ ] Navigation semaine précédente/suivante
-- [ ] Bouton "Aujourd'hui"
+- [x] Navigation semaine précédente/suivante
+- [x] Bouton "Aujourd'hui"
 
 ### Priorité 2 - Popup Détaillée Réservation
-- [ ] Affichage informations client
-- [ ] Détails activité et session
-- [ ] Historique des modifications
-- [ ] Gestion des paiements
+- [x] Affichage informations client
+- [x] Détails activité et session
+- [x] Historique des modifications
+- [x] Gestion des paiements
 - [ ] Actions (modifier, annuler, déplacer)
-- [ ] Envoi email
+- [x] Envoi email
 
 ### Priorité 3 - Formulaire Produit Complet
-- [ ] Upload d'images (multipart/form-data)
-- [ ] Sélecteur de couleur (react-color)
-- [ ] Configuration prix groupe
-- [ ] Tous les champs du schéma
+- [x] Upload d'images (multipart/form-data)
+- [x] Sélecteur de couleur (react-color)
+- [x] Configuration prix groupe
+- [x] Tous les champs du schéma
 
 ### Priorité 4 - Formulaire Session Complet
-- [ ] Création depuis un produit type
-- [ ] Mode "Rotation Magique"
-- [ ] Sélection multi-produits
-- [ ] Configuration horaires
+- [x] Création depuis un produit type
+- [x] Mode "Rotation Magique"
+- [x] Sélection multi-produits
+- [x] Configuration horaires
 
 ### Priorité 5 - Intégrations
 - [x] Upload images (stockage local ou cloud) ✅

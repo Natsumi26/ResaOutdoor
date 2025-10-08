@@ -39,6 +39,16 @@ const Dashboard = () => {
             {sidebarOpen && <span>Calendrier</span>}
           </NavLink>
 
+          <NavLink
+            to="/stats"
+            className={({ isActive }) =>
+              `${styles.navItem} ${isActive ? styles.active : ''}`
+            }
+          >
+            <span className={styles.icon}>📊</span>
+            {sidebarOpen && <span>Statistiques</span>}
+          </NavLink>
+
           {isAdmin && (
             <NavLink
               to="/users"

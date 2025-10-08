@@ -8,7 +8,6 @@ import SessionSlot from './SessionSlot';
 const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [filters, setFilters] = useState({
-    reservations: true,
     paiements: false,
     stocks: false
   });
@@ -44,20 +43,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
 
   const sessionsByDay = organizeSessionsByDay();
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const { draggableId, source, destination } = result;
-
-    if (source.droppableId === destination.droppableId) return;
-
-    // Extraire l'ID de la réservation et de la nouvelle session
-    const bookingId = draggableId;
-    const newSessionId = destination.droppableId.split('-')[2];
-
-    onMoveBooking(bookingId, newSessionId);
-  };
-
   const goToPreviousWeek = () => {
     setCurrentWeek(prev => addDays(prev, -7));
   };
@@ -69,6 +54,24 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   const goToToday = () => {
     setCurrentWeek(new Date());
   };
+
+  const [isDragging, setIsDragging] = useState(false);
+
+const handleBeforeCapture = () => {
+  setIsDragging(true);
+};
+
+const handleDragEnd = (result) => {
+  const { source, destination, draggableId } = result;
+
+  if (!destination) return;
+
+  // Attendre que le drag soit complètement terminé
+  setTimeout(() => {
+    // Ta logique ici : déplacer la réservation
+    onMoveBooking(draggableId, source.droppableId, destination.droppableId);
+  }, 0);
+};
 
   return (
     <div className={styles.container}>
@@ -107,12 +110,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
         <div className={styles.filtersLabel}>▸ Filtres</div>
         <div className={styles.filters}>
           <button
-            className={`${styles.filterBtn} ${filters.reservations ? styles.active : ''}`}
-            onClick={() => setFilters({...filters, reservations: !filters.reservations})}
-          >
-            <span className={styles.dotGreen}></span> Réservations
-          </button>
-          <button
             className={`${styles.filterBtn} ${filters.paiements ? styles.active : ''}`}
             onClick={() => setFilters({...filters, paiements: !filters.paiements})}
           >
@@ -128,7 +125,9 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
       </div>
 
       {/* Calendrier en liste verticale */}
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropContext 
+          onBeforeCapture={(start) => console.log('Drag starting:', start.draggableId)}
+          onDragEnd={handleDragEnd}>
         <div className={styles.calendarList}>
           {weekDays.map(day => {
             const dateKey = format(day, 'yyyy-MM-dd');
@@ -162,6 +161,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                             onBookingClick={onBookingClick}
                             onCreateBooking={onCreateBooking}
                             filters={filters}
+                            isDragging={isDragging}
                           />
                         ))
                       ) : (
