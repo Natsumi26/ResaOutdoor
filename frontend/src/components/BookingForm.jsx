@@ -18,7 +18,6 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [errors, setErrors] = useState({});
-
   useEffect(() => {
     if (session) {
       // Calculer les produits disponibles avec leurs places restantes
@@ -156,6 +155,34 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   if (!session) {
     return <div className={styles.error}>Session non trouvée</div>;
   }
+
+  // gestion de la nationalité
+  const countries = [
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italie' },
+  { code: 'ES', name: 'Espagne' },
+  { code: 'DE', name: 'Allemagne' },
+  { code: 'DK', name: 'Danemark' },
+  { code: 'IE', name: 'Irlande' },
+  { code: 'EL', name: 'Grèce' },
+  { code: 'LU', name: 'Luxembourg' },
+  { code: 'NL', name: 'Pays-Bas' },
+  { code: 'BG', name: 'Bulgarie' },
+  { code: 'US', name: 'États-Unis' },
+  { code: 'GB', name: 'Royaume-Uni' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'MA', name: 'Maroc' },
+  { code: 'BE', name: 'Belgique' },
+  { code: 'CH', name: 'Suisse' },
+];
+
+const getFlagEmoji = (countryCode) => {
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
+};
+
+
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -295,12 +322,23 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
 
           <div className={styles.formGroup}>
             <label>Nationalité</label>
-            <input
-              type="text"
-              name="clientNationality"
-              value={formData.clientNationality}
-              onChange={handleChange}
-            />
+             <div className={styles.nationalityWrapper}>
+              <span className={styles.flag}>
+                {getFlagEmoji(formData.clientNationality)}
+              </span>
+              <select
+                name="clientNationality"
+                value={formData.clientNationality}
+                onChange={handleChange}
+              >
+                <option value="">-- Sélectionner --</option>
+                {countries.map(({ code, name }) => (
+                  <option key={code} value={code}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

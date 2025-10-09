@@ -65,7 +65,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   // Extraire l'ID de session en enlevant le préfixe "session-"
   const newSessionId = destination.droppableId.replace('session-', '');
 
-  console.log('Moving booking:', draggableId, 'to session:', newSessionId);
 
   // Déplacer la réservation
   onMoveBooking(draggableId, newSessionId);
@@ -124,7 +123,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
 
       {/* Calendrier en liste verticale */}
       <DragDropContext 
-          onBeforeCapture={(start) => console.log('Drag starting:', start.draggableId)}
           onDragEnd={handleDragEnd}>
         <div className={styles.calendarList}>
           {weekDays.map(day => {

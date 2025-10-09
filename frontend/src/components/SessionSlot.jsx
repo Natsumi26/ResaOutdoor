@@ -2,17 +2,43 @@ import { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
+import { productsAPI } from '../services/api';
 
 const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const { bookings = [], product, startTime } = session;
-
   // Calculer le taux de remplissage
+  const getMaxCapacity = () => {
+    if (session.products?.length === 1) {
+      return session.products[0]?.product?.maxCapacity || 10;
+    }
+    if (bookings?.length > 0) {
+      return bookings[0]?.product?.maxCapacity || 10;
+    }
+    return 12;
+  };
+
+  const maxCapacity = getMaxCapacity();
   const totalPeople = bookings.reduce((sum, booking) =>
-    booking.status !== 'cancelled' ? sum + booking.numberOfPeople : sum, 0
+    booking.status !== 'cancelled' ? sum + (booking.numberOfPeople || 0) : sum, 0
   );
-  const maxCapacity = product?.maxCapacity || 12;
-  const fillPercentage = (totalPeople / maxCapacity) * 100;
+  // Séparer les réservations confirmées et incomplètes
+  const confirmedPeople = bookings.reduce((sum, b) =>
+    b.status !== 'cancelled' && b.amountPaid >= b.totalPrice
+      ? sum + (b.numberOfPeople || 0)
+      : sum, 0
+  );
+
+  const incompletePeople = bookings.reduce((sum, b) =>
+    b.status !== 'cancelled' && b.amountPaid < b.totalPrice
+      ? sum + (b.numberOfPeople || 0)
+      : sum, 0
+  );
+
+  const confirmedPercentage = (confirmedPeople / maxCapacity) * 100;
+  const incompletePercentage = (incompletePeople / maxCapacity) * 100;
+  console.log(confirmedPercentage)
+  console.log(incompletePercentage)
   const remainingCapacity = maxCapacity - totalPeople;
 
   // Calculer les statistiques de paiements
@@ -23,20 +49,19 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
 
   // Déterminer la couleur de la barre latérale selon le produit
   const getProductColor = () => {
-    if (!product) return '#94a3b8';
-
-    // Couleurs basées sur le type de produit
-    const colorMap = {
-      'Raft intégral': '#f97316',
-      'Raft découverte': '#ef4444',
-      'Zoïcu': '#3b82f6',
-      'Zoïcu sportif': '#0ea5e9',
-      'Baptême': '#8b5cf6'
-    };
-
-    return colorMap[product.name] || '#94a3b8';
+      // Si la session contient un seul produit avec une couleur définie
+      if (session.products?.length === 1 && session.products[0]?.product?.color) {
+        return session.products[0].product.color;
+      }
+      // Cas 2 : au moins une réservation avec un produit
+      if (bookings?.length > 0 && bookings[0]?.product?.color) {
+        return bookings[0].product.color;
+      }
+        // Couleur par défaut
+        return '#94a3b8';
   };
-console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id));
+
+console.log('Session', session, "products:", session.products.map(p=>p.product.color));
 
   return (
     <div
@@ -53,7 +78,11 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
       <div className={styles.sessionHeader}>
         <div className={styles.sessionTime}>{startTime}</div>
         <div className={styles.sessionName}>
-          {product?.name || 'Session'}
+          {session.products?.length === 1
+            ? session.products[0]?.product?.name
+            : bookings?.length > 0
+              ? bookings[0]?.product?.name || 'Session'
+              : 'Session'}
         </div>
         {/* Bouton + avec dropdown */}
       {onCreateBooking && (
@@ -103,8 +132,15 @@ console.log('Session', session.id, 'Bookings:', session.bookings.map(b => b.id))
         <div
           className={styles.progressFill}
           style={{
-            width: `${fillPercentage}%`,
-            backgroundColor: fillPercentage >= 100 ? '#ef4444' : fillPercentage >= 80 ? '#f59e0b' : '#10b981'
+            width: `${confirmedPercentage}%`,
+            backgroundColor: '#10b981' // vert
+          }}
+        />
+        <div
+          className={styles.progressFill}
+          style={{
+            width: `${incompletePercentage}%`,
+            backgroundColor: '#f59e0b' // orange
           }}
         />
       </div>

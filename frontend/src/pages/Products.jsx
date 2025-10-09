@@ -12,7 +12,6 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -124,24 +123,6 @@ return (
   <div className={styles.container}>
     <div className={styles.header}>
       <h1>🏞️ Gestion des Produits</h1>
-      <select
-        value={selectedCategoryId || ''}
-        onChange={(e) => setSelectedCategoryId(e.target.value || null)}
-        className={styles.categoryFilter}
-      >
-        <option value="">Toutes les catégories</option>
-        {categories.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-      {selectedCategoryId && (
-        <button
-          className={styles.btnReset}
-          onClick={() => setSelectedCategoryId(null)}
-        >
-          Réinitialiser le filtre
-        </button>
-      )}
       {!showForm && (
         <button className={styles.btnPrimary} onClick={handleCreate}>
           + Nouveau Produit
@@ -165,7 +146,7 @@ return (
         {productsByGroup.map(({ label, products }, index) => (
           <div key={label} className={styles.groupRow}>
             <h2 className={styles.groupTitle}>📍 {label}</h2>
-            <hr />
+            <hr/>
 
             {products.length > 0 ? (
               <div className={styles.groupGrid}>

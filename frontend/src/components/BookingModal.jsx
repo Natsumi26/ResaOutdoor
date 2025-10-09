@@ -14,6 +14,10 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     method: 'CB',
     notes: ''
   });
+  const [showClientRequest, setShowClientRequest] = useState(false);
+  const [clientRequestText, setClientRequestText] = useState('');
+  const [showActivityEmail, setShowActivityEmail] = useState(false);
+  const [activityEmailText, setActivityEmailText] = useState('');
 
   useEffect(() => {
     loadBooking();
@@ -93,6 +97,63 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     }
   };
 
+  const handleSendClientRequest = async () => {
+    if (!clientRequestText.trim()) {
+      alert('Veuillez entrer un message à envoyer au client');
+      return;
+    }
+
+    try {
+      await emailAPI.sendCustomEmail({
+        bookingId: bookingId,
+        to: booking.clientEmail,
+        subject: 'Demande d\'information - Votre réservation',
+        message: clientRequestText
+      });
+      alert('Email envoyé avec succès au client !');
+      setShowClientRequest(false);
+      setClientRequestText('');
+    } catch (error) {
+      console.error('Erreur envoi email client:', error);
+      alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleSendActivityEmail = async () => {
+    try {
+      await emailAPI.sendCustomEmail({
+        bookingId: bookingId,
+        to: booking.clientEmail,
+        subject: 'Informations sur votre activité',
+        message: activityEmailText
+      });
+      alert('Email envoyé avec succès au client !');
+      setShowActivityEmail(false);
+    } catch (error) {
+      console.error('Erreur envoi email activité:', error);
+      alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const generateActivityEmailTemplate = () => {
+    const unitPrice = booking.totalPrice / booking.numberOfPeople;
+    return `Bonjour ${booking.clientFirstName} ${booking.clientLastName},
+
+Voici les informations concernant votre activité :
+
+Activité : ${booking.product?.name || 'N/A'}
+Date : ${format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr })}
+Horaire : ${session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1)} - ${session.startTime}
+Nombre de personnes : ${booking.numberOfPeople}
+Prix unitaire : ${unitPrice.toFixed(2)}€ par personne
+Prix total : ${booking.totalPrice}€
+
+Nous vous attendons avec plaisir !
+
+Cordialement,
+L'équipe`;
+  };
+
   if (loading) {
     return (
       <div className={styles.modalOverlay} onClick={onClose}>
@@ -153,7 +214,15 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
             <div className={styles.infoTab}>
               {/* Client */}
               <div className={styles.section}>
-                <h3>👤 Informations Client</h3>
+                <div className={styles.sectionHeader}>
+                  <h3>👤 Informations Client</h3>
+                  <button
+                    className={styles.btnSecondary}
+                    onClick={() => setShowClientRequest(!showClientRequest)}
+                  >
+                    ✉️ Demande au client
+                  </button>
+                </div>
                 <div className={styles.infoGrid}>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Nom complet</span>
@@ -176,11 +245,50 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Formulaire demande client */}
+                {showClientRequest && (
+                  <div className={styles.emailForm}>
+                    <label>Message à envoyer au client</label>
+                    <textarea
+                      className={styles.textarea}
+                      value={clientRequestText}
+                      onChange={(e) => setClientRequestText(e.target.value)}
+                      placeholder="Entrez votre message ici..."
+                      rows={5}
+                    />
+                    <div className={styles.formActions}>
+                      <button className={styles.btnPrimary} onClick={handleSendClientRequest}>
+                        📧 Envoyer
+                      </button>
+                      <button
+                        className={styles.btnSecondary}
+                        onClick={() => {
+                          setShowClientRequest(false);
+                          setClientRequestText('');
+                        }}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Session & Activité */}
               <div className={styles.section}>
-                <h3>🏔️ Activité & Session</h3>
+                <div className={styles.sectionHeader}>
+                  <h3>🏔️ Activité & Session</h3>
+                  <button
+                    className={styles.btnSecondary}
+                    onClick={() => {
+                      setActivityEmailText(generateActivityEmailTemplate());
+                      setShowActivityEmail(!showActivityEmail);
+                    }}
+                  >
+                    📧 Envoyer au client
+                  </button>
+                </div>
                 <div className={styles.infoGrid}>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Activité</span>
@@ -206,7 +314,37 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
                     <span className={styles.label}>Guide</span>
                     <span className={styles.value}>{session.guide?.login}</span>
                   </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Prix unitaire</span>
+                    <span className={styles.value}>
+                      {(booking.totalPrice / booking.numberOfPeople).toFixed(2)}€ / pers.
+                    </span>
+                  </div>
                 </div>
+
+                {/* Formulaire email activité */}
+                {showActivityEmail && (
+                  <div className={styles.emailForm}>
+                    <label>Email à envoyer au client (modifiable)</label>
+                    <textarea
+                      className={styles.textarea}
+                      value={activityEmailText}
+                      onChange={(e) => setActivityEmailText(e.target.value)}
+                      rows={12}
+                    />
+                    <div className={styles.formActions}>
+                      <button className={styles.btnPrimary} onClick={handleSendActivityEmail}>
+                        📧 Envoyer
+                      </button>
+                      <button
+                        className={styles.btnSecondary}
+                        onClick={() => setShowActivityEmail(false)}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Détails réservation */}

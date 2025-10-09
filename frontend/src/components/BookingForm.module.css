@@ -38,6 +38,16 @@
   margin-left: 1rem;
 }
 
+.nationalityWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flag {
+  font-size: 1.5rem;
+}
+
 .formGrid {
   display: grid;
   grid-template-columns: 1fr;

@@ -4,7 +4,6 @@ import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, payments = [] } = booking;
-  const isDraggingRef = useRef(false);
 
   // Déterminer la couleur du badge selon le statut de paiement
   const getBookingColor = () => {
@@ -31,14 +30,13 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   // Format du nom
   const displayName = `${clientFirstName} ${clientLastName.charAt(0)}.`;
 
-  // const handleMouseDown = () => {
-  //   isDraggingRef.current = false;
-  // };
-
-//   const handleDragStart = () => {
-//     isDraggingRef.current = true;
-//   };
-console.log('Booking ID:', booking.id, typeof booking.id);
+  // gestion nationalité
+  const getFlagEmoji = (countryCode) => {
+      if (!countryCode) return '';
+      return countryCode
+        .toUpperCase()
+        .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
+    };
 
   return (
     <Draggable draggableId={booking.id} index={index}>
@@ -54,7 +52,7 @@ console.log('Booking ID:', booking.id, typeof booking.id);
               opacity: isVisible ? 1 : 0,
               pointerEvents: isVisible ? 'auto' : 'none',
             }}
-            title={`${displayName} - ${numberOfPeople} pers. - ${amountPaid}€ / ${totalPrice}€`}
+            title={`${displayName} - ${numberOfPeople} pers. - ${amountPaid}€ / ${totalPrice}€- ${getFlagEmoji(booking.clientNationality)} ${booking.clientPhone}`}
             onClick={(e) => {
               e.stopPropagation();
               if (!snapshot.isDragging) {
