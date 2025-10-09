@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, payments = [] } = booking;
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Déterminer la couleur du badge selon le statut de paiement
   const getBookingColor = () => {
@@ -38,9 +39,12 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
         .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
     };
 
+  const paidPercentage = (amountPaid / totalPrice) * 100;
+
   return (
     <Draggable draggableId={booking.id} index={index}>
       {(provided, snapshot) => (
+        <div className={styles.bookingBadgeWrapper}>
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
@@ -52,7 +56,8 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
               opacity: isVisible ? 1 : 0,
               pointerEvents: isVisible ? 'auto' : 'none',
             }}
-            title={`${displayName} - ${numberOfPeople} pers. - ${amountPaid}€ / ${totalPrice}€- ${getFlagEmoji(booking.clientNationality)} ${booking.clientPhone}`}
+            onMouseEnter={() => !snapshot.isDragging && setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
             onClick={(e) => {
               e.stopPropagation();
               if (!snapshot.isDragging) {
@@ -64,9 +69,34 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
             <span className={styles.icon}>{getIcon()}</span>
             <span className={styles.clientName}>{displayName}</span>
           </div>
-        )}
+
+          {/* Tooltip personnalisé */}
+          {showTooltip && !snapshot.isDragging && (
+            <div className={styles.tooltip}>
+              <div className={styles.tooltipContent}>
+                <div className={styles.tooltipMainRow}>
+                  <div>
+                    <span className={styles.tooltipParticipants}>{numberOfPeople}</span>
+                  </div>
+                  <span className={styles.tooltipClientName}>
+                    {clientLastName} <br />
+                    {getFlagEmoji(booking.clientNationality)}  {booking.clientPhone}
+                  </span>
+                </div>
+                
+                <div className={styles.tooltipPayment}>
+                  <span className={styles.tooltipPaid}>Encaissé : <br />{amountPaid}€</span>
+                  <span className={styles.tooltipRemaining}>
+                    Reste: <br /> {(totalPrice - amountPaid).toFixed(2)}€
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </Draggable>
   );
-}
+};
 
-export default BookingBadge
+export default BookingBadge;
