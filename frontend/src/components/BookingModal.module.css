@@ -182,6 +182,9 @@
   font-weight: 600;
 }
 
+.emailForm{
+  margin-top: 1rem;
+}
 /* Payment Progress */
 .paymentProgress {
   margin-top: 1.5rem;
@@ -328,6 +331,10 @@
   white-space: nowrap;
 }
 
+.textarea{
+  margin: 1rem;
+  width: 100%;
+}
 /* History Tab */
 .timeline {
   position: relative;

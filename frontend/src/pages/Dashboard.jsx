@@ -72,6 +72,16 @@ const Dashboard = () => {
           </NavLink>
 
           <NavLink
+            to="/reservations"
+            className={({ isActive }) =>
+              `${styles.navItem} ${isActive ? styles.active : ''}`
+            }
+          >
+            <span className={styles.icon}>📋</span>
+            {sidebarOpen && <span>Réservations</span>}
+          </NavLink>
+
+          <NavLink
             to="/gift-vouchers"
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.active : ''}`

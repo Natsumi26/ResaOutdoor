@@ -249,7 +249,7 @@ L'équipe`;
                 {/* Formulaire demande client */}
                 {showClientRequest && (
                   <div className={styles.emailForm}>
-                    <label>Message à envoyer au client</label>
+                    <label className={styles.label}>Message à envoyer au client</label>
                     <textarea
                       className={styles.textarea}
                       value={clientRequestText}
@@ -325,7 +325,7 @@ L'équipe`;
                 {/* Formulaire email activité */}
                 {showActivityEmail && (
                   <div className={styles.emailForm}>
-                    <label>Email à envoyer au client (modifiable)</label>
+                    <label className={styles.label}>Email à envoyer au client (modifiable)</label>
                     <textarea
                       className={styles.textarea}
                       value={activityEmailText}
@@ -530,7 +530,7 @@ L'équipe`;
               className={styles.btnDelete}
               onClick={handleDeleteBooking}
             >
-              🗑️ Supprimer réservation
+              🗑️ Supprimer
             </button>
             <button className={styles.btnSecondary} onClick={onClose}>
               Fermer
