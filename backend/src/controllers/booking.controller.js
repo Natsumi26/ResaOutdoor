@@ -432,7 +432,9 @@ export const cancelBooking = async (req, res, next) => {
 export const moveBooking = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { newSessionId } = req.body;
+    const { newSessionId, selectedProductId } = req.body;
+
+    console.log('🔄 Move booking:', { bookingId: id, newSessionId, selectedProductId });
 
     if (!newSessionId) {
       throw new AppError('ID de la nouvelle session requis', 400);
@@ -449,6 +451,13 @@ export const moveBooking = async (req, res, next) => {
       throw new AppError('Réservation non trouvée', 404);
     }
 
+    console.log('📦 Current booking:', {
+      bookingId: booking.id,
+      currentProductId: booking.productId,
+      currentProductName: booking.product.name,
+      currentSessionId: booking.sessionId
+    });
+
     // Vérifier la nouvelle session
     const newSession = await prisma.session.findUnique({
       where: { id: newSessionId },
@@ -458,7 +467,14 @@ export const moveBooking = async (req, res, next) => {
             product: true
           }
         },
-        bookings: true
+        bookings: {
+          where: {
+            id: { not: id } // Exclure la réservation actuelle
+          },
+          include: {
+            product: true
+          }
+        }
       }
     });
 
@@ -466,35 +482,156 @@ export const moveBooking = async (req, res, next) => {
       throw new AppError('Nouvelle session non trouvée', 404);
     }
 
-    // Vérifier que le produit est disponible dans la nouvelle session
-    const productAvailable = newSession.products.some(sp => sp.productId === booking.productId);
-    if (!productAvailable) {
-      throw new AppError('Ce produit n\'est pas disponible dans la nouvelle session', 400);
+    console.log('🎯 New session:', {
+      sessionId: newSession.id,
+      availableProducts: newSession.products.map(sp => ({
+        id: sp.productId,
+        name: sp.product.name
+      })),
+      existingBookings: newSession.bookings.length
+    });
+
+    // Déterminer le produit à utiliser
+    let newProductId;
+    let productChanged = false;
+
+    // LOGIQUE 1: Si la session a déjà des réservations, utiliser le produit dominant
+    if (newSession.bookings.length > 0) {
+      // Trouver le produit le plus utilisé dans la session
+      const productCounts = {};
+      newSession.bookings.forEach(b => {
+        productCounts[b.productId] = (productCounts[b.productId] || 0) + 1;
+      });
+
+      const dominantProductId = Object.keys(productCounts).reduce((a, b) =>
+        productCounts[a] > productCounts[b] ? a : b
+      );
+
+      console.log('📊 Session has existing bookings. Dominant product:', dominantProductId);
+
+      // Vérifier que ce produit est disponible dans la session
+      const isDominantProductAvailable = newSession.products.some(sp => sp.productId === dominantProductId);
+
+      if (!isDominantProductAvailable) {
+        throw new AppError('Le produit dominant de la session n\'est plus disponible', 400);
+      }
+
+      newProductId = dominantProductId;
+      productChanged = newProductId !== booking.productId;
+
+      console.log('✅ Using dominant product from existing bookings:', {
+        productId: newProductId,
+        productName: newSession.bookings.find(b => b.productId === newProductId)?.product.name,
+        changed: productChanged
+      });
+    }
+    // LOGIQUE 2: Si la session est vide et qu'un produit est sélectionné, l'utiliser
+    else if (selectedProductId) {
+      // Vérifier que le produit sélectionné est disponible
+      const isSelectedProductAvailable = newSession.products.some(sp => sp.productId === selectedProductId);
+
+      if (!isSelectedProductAvailable) {
+        throw new AppError('Le produit sélectionné n\'est pas disponible dans cette session', 400);
+      }
+
+      newProductId = selectedProductId;
+      productChanged = newProductId !== booking.productId;
+
+      console.log('✅ Using user-selected product:', {
+        productId: newProductId,
+        changed: productChanged
+      });
+    }
+    // LOGIQUE 3: Session vide et pas de sélection -> TOUJOURS demander le choix
+    else {
+      if (newSession.products.length === 0) {
+        throw new AppError('Aucun produit disponible dans cette session', 400);
+      }
+
+      if (newSession.products.length === 1) {
+        // Un seul produit disponible, l'utiliser automatiquement
+        newProductId = newSession.products[0].productId;
+        productChanged = newProductId !== booking.productId;
+        console.log('✅ Using only available product:', newProductId);
+      } else {
+        // Plusieurs produits disponibles, demander à l'utilisateur de choisir
+        console.log('🤔 Multiple products available, asking user to choose');
+        return res.status(200).json({
+          success: false,
+          needsProductSelection: true,
+          availableProducts: newSession.products.map(sp => ({
+            id: sp.productId,
+            name: sp.product.name,
+            price: sp.product.priceIndividual
+          }))
+        });
+      }
     }
 
-    // Vérifier la capacité
+    // Récupérer le nouveau produit pour vérifier la capacité
+    const newProduct = await prisma.product.findUnique({
+      where: { id: newProductId }
+    });
+
+    console.log('📊 New product:', { id: newProduct.id, name: newProduct.name, price: newProduct.priceIndividual });
+
+    // Vérifier la capacité pour le produit (ancien ou nouveau)
     const currentOccupancy = newSession.bookings
-      .filter(b => b.productId === booking.productId)
+      .filter(b => b.productId === newProductId)
       .reduce((sum, b) => sum + b.numberOfPeople, 0);
 
-    if (currentOccupancy + booking.numberOfPeople > booking.product.maxCapacity) {
+    if (currentOccupancy + booking.numberOfPeople > newProduct.maxCapacity) {
       throw new AppError('Capacité maximale atteinte dans la nouvelle session', 409);
     }
+
+    // Recalculer le prix si le produit change
+    let newTotalPrice = booking.totalPrice;
+    if (productChanged) {
+      newTotalPrice = newProduct.priceIndividual * booking.numberOfPeople;
+      console.log('💰 Price changed from', booking.totalPrice, 'to', newTotalPrice);
+    }
+
+    console.log('💾 Updating booking with:', {
+      sessionId: newSessionId,
+      productId: newProductId,
+      totalPrice: newTotalPrice,
+      productChanged
+    });
 
     const movedBooking = await prisma.$transaction(async (tx) => {
       const updated = await tx.booking.update({
         where: { id },
-        data: { sessionId: newSessionId },
+        data: {
+          session: {
+            connect: { id: newSessionId }
+          },
+          product: {
+            connect: { id: newProductId }
+          },
+          totalPrice: newTotalPrice
+        },
         include: {
           session: true,
           product: true
         }
       });
 
+      console.log('✅ Booking updated:', {
+        id: updated.id,
+        newProductId: updated.productId,
+        newProductName: updated.product.name,
+        newSessionId: updated.sessionId,
+        newTotalPrice: updated.totalPrice
+      });
+
+      const historyDetails = productChanged
+        ? `Réservation déplacée vers une nouvelle session. Produit changé de "${booking.product.name}" vers "${newProduct.name}". Prix mis à jour: ${newTotalPrice}€`
+        : `Réservation déplacée vers une nouvelle session`;
+
       await tx.bookingHistory.create({
         data: {
           action: 'modified',
-          details: `Réservation déplacée vers une nouvelle session`,
+          details: historyDetails,
           bookingId: id
         }
       });
@@ -507,6 +644,7 @@ export const moveBooking = async (req, res, next) => {
       booking: movedBooking
     });
   } catch (error) {
+    console.error('❌ Error in moveBooking:', error);
     next(error);
   }
 };

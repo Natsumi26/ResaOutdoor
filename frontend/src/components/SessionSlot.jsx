@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
-import { productsAPI } from '../services/api';
 
 const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -15,7 +14,7 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
     if (bookings?.length > 0) {
       return bookings[0]?.product?.maxCapacity || 10;
     }
-    return 12;
+    return 10;
   };
 
   const maxCapacity = getMaxCapacity();
@@ -37,8 +36,6 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
 
   const confirmedPercentage = (confirmedPeople / maxCapacity) * 100;
   const incompletePercentage = (incompletePeople / maxCapacity) * 100;
-  console.log(confirmedPercentage)
-  console.log(incompletePercentage)
   const remainingCapacity = maxCapacity - totalPeople;
 
   // Calculer les statistiques de paiements
@@ -61,7 +58,6 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
         return '#94a3b8';
   };
 
-console.log('Session', session, "products:", session.products.map(p=>p.product.color));
 
   return (
     <div

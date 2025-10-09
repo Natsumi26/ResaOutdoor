@@ -97,10 +97,41 @@ const Calendar = () => {
   };
 
   // Gérer le déplacement d'une réservation
-  const handleMoveBooking = async (bookingId, newSessionId) => {
+  const handleMoveBooking = async (bookingId, newSessionId, selectedProductId = null) => {
     try {
-      await bookingsAPI.move(bookingId, { newSessionId });
-      // Recharger les sessions après le déplacement
+      const response = await bookingsAPI.move(bookingId, {
+        newSessionId,
+        selectedProductId
+      });
+
+      // Si le backend demande une sélection de produit
+      if (response.data.needsProductSelection) {
+        const availableProducts = response.data.availableProducts;
+
+        // Créer une liste des produits pour l'utilisateur
+        const productList = availableProducts
+          .map((p, i) => `${i + 1}. ${p.name} (${p.price}€)`)
+          .join('\n');
+
+        const choice = prompt(
+          `Plusieurs produits disponibles. Choisissez un numéro :\n\n${productList}`
+        );
+
+        if (choice) {
+          const index = parseInt(choice) - 1;
+          if (index >= 0 && index < availableProducts.length) {
+            const selectedProduct = availableProducts[index];
+            // Relancer le déplacement avec le produit sélectionné
+            await handleMoveBooking(bookingId, newSessionId, selectedProduct.id);
+            return;
+          }
+        }
+
+        alert('Déplacement annulé : aucun produit sélectionné');
+        return;
+      }
+
+      // Déplacement réussi, recharger les sessions
       loadSessions();
     } catch (err) {
       console.error('Erreur déplacement réservation:', err);

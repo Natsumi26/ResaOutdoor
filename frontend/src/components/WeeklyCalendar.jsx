@@ -11,7 +11,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
     paiements: false,
     stocks: false
   });
-
+  
   // Générer les 7 jours de la semaine
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lundi
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -170,6 +170,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                             onClick={() => onSessionClick(session)}
                             onBookingClick={onBookingClick}
                             onCreateBooking={onCreateBooking}
+                            filters={filters}
                           />
                         ))
                       ) : (
