@@ -42,106 +42,53 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDele
     if (bookings?.length > 0 && bookings[0]?.product?.color) {
       return bookings[0].product.color;
     }
-    return '#94a3b8';
+    return '#3498db';
   };
 
   return (
-    <div className={styles.sessionSlot}>
-      {/* En-tête avec heure et nom */}
-      <div className={styles.sessionInfo}>
+    <div className={styles.sessionRow}>
+      {/* Informations à gauche avec liseré coloré */}
+      <div className={styles.sessionInfoLeft} style={{ borderLeftColor: getProductColor() }}>
         <div className={styles.sessionTime}>{startTime}</div>
         <div className={styles.sessionName}>{getSessionName()}</div>
-        <div className={styles.sessionGuide}>
-          {session.guide?.login || 'Guide'}
-        </div>
-
-        {/* Bouton + avec dropdown */}
-        {onCreateBooking && (
-          <div className={styles.actionButtonContainer}>
-            <button
-              className={styles.btnAction}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDropdown(!showDropdown);
-              }}
-            >
-              +
-            </button>
-            {showDropdown && (
-              <div className={styles.dropdown}>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClick(session);
-                    setShowDropdown(false);
-                  }}
-                >
-                  ✏️ Modifier la session
-                </button>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCreateBooking(session);
-                    setShowDropdown(false);
-                  }}
-                >
-                  📝 Ajouter une réservation
-                </button>
-                {onDeleteSession && (
-                  <button
-                    className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm(`Êtes-vous sûr de vouloir supprimer cette session ?\n\nSession : ${startTime}\nRéservations : ${bookings.length}`)) {
-                        onDeleteSession(session.id);
-                        setShowDropdown(false);
-                      }
-                    }}
-                  >
-                    🗑️ Supprimer la session
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className={styles.sessionCapacity}>
-          {totalPeople} <span className={styles.capacitySeparator}>/</span>{maxCapacity}
-        </div>
+        <div className={styles.sessionGuide}>{session.guide?.login || ''}</div>
       </div>
 
-      {/* Barre de progression horizontale avec badges */}
-      <div className={styles.progressBarContainer}>
-        {/* Barre de fond grise */}
-        <div
-          className={styles.progressBarBackground}
-          style={{ borderLeftColor: getProductColor() }}
-        >
-          {/* Zone droppable pour les réservations */}
-          <Droppable droppableId={`session-${session.id}`} type="booking" direction="horizontal">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={`${styles.bookingsZone} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
-              >
-                {bookings.map((booking, index) => (
-                  <BookingBadge
+      {/* Barre de progression avec badges proportionnels */}
+      <div className={styles.progressContainer}>
+        <Droppable droppableId={`session-${session.id}`} type="booking" direction="horizontal">
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={`${styles.progressBar} ${snapshot.isDraggingOver ? styles.draggingOver : ''}`}
+            >
+              {bookings.map((booking, index) => {
+                const percentage = ((booking.numberOfPeople || 0) / maxCapacity) * 100;
+                return (
+                  <div
                     key={booking.id}
-                    booking={booking}
-                    index={index}
-                    onClick={onBookingClick}
-                    isVisible={filters.reservations}
-                  />
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </div>
+                    className={styles.badgeWrapper}
+                    style={{ width: `${percentage}%` }}
+                  >
+                    <BookingBadge
+                      booking={booking}
+                      index={index}
+                      onClick={onBookingClick}
+                      isVisible={filters.reservations}
+                    />
+                  </div>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </div>
+
+      {/* Capacité à droite */}
+      <div className={styles.sessionCapacity}>
+        {totalPeople} <span className={styles.capacitySeparator}>/</span>{maxCapacity}
       </div>
     </div>
   );

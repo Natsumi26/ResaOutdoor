@@ -22,9 +22,9 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
 
     const paidPercentage = (amountPaid / totalPrice) * 100;
 
-    if (paidPercentage >= 100) return '#10b981'; // Vert - Payé
+    if (paidPercentage >= 100) return '#72b416'; // Vert - Payé
     if (paidPercentage > 0) return '#f59e0b'; // Orange - Partiel
-    return '#ef4444'; // Rouge - Non payé
+    return '#f4b400'; // Orange - Non payé
   };
 
   // Icônes selon le statut
@@ -99,23 +99,36 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
           {/* Tooltip personnalisé */}
           {showTooltip && !snapshot.isDragging && (
             <div className={styles.tooltip}>
-              <div className={styles.tooltipContent}>
-                <div className={styles.tooltipMainRow}>
-                  <div>
-                    <span className={styles.tooltipParticipants}>{numberOfPeople}</span>
-                  </div>
-                  <span className={styles.tooltipClientName}>
-                    {clientLastName} <br />
-                    {getFlagEmoji(booking.clientNationality)}  {booking.clientPhone}
-                  </span>
+              <div className={styles.tooltipHeader} style={{ backgroundColor: getBookingColor() }}>
+                <div className={styles.tooltipHeaderTop}>
+                  <span className={styles.tooltipNumber}>{numberOfPeople}</span>
+                  <span className={styles.tooltipIcon}>👤</span>
+                  <span className={styles.tooltipName}>{clientLastName.toUpperCase()}</span>
                 </div>
-                
-                <div className={styles.tooltipPayment}>
-                  <span className={styles.tooltipPaid}>Encaissé : <br />{amountPaid}€</span>
-                  <span className={styles.tooltipRemaining}>
-                    Reste: <br /> {(totalPrice - amountPaid).toFixed(2)}€
-                  </span>
+                <div className={styles.tooltipHeaderBottom}>
+                  {booking.clientNationality && (
+                    <img
+                      src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
+                      alt={booking.clientNationality}
+                      className={styles.tooltipFlag}
+                    />
+                  )}
+                  <span className={styles.tooltipPhone}>{booking.clientPhone || 'N/A'}</span>
                 </div>
+              </div>
+              <div className={styles.tooltipBody}>
+                <table className={styles.tooltipTable}>
+                  <tbody>
+                    <tr>
+                      <td className={styles.tooltipTableLabel}>Encaissé :</td>
+                      <td className={styles.tooltipTableValue}>{amountPaid} €</td>
+                    </tr>
+                    <tr>
+                      <td className={styles.tooltipTableLabel}>Reste à régler :</td>
+                      <td className={styles.tooltipTableValue}>{(totalPrice - amountPaid).toFixed(2)} €</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

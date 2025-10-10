@@ -1,26 +1,31 @@
 .bookingBadgeWrapper {
   position: relative;
-  display: inline-block;
-  z-index: 1;
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.bookingBadgeWrapper:hover {
+  z-index: 10001;
 }
 
 
 .bookingBadge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.5rem;
-  border-radius: 6px;
+  gap: 0.3rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0;
   color: white;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: grab;
   transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
   user-select: none;
-  min-width: 50px;
+  width: 100%;
+  height: 100%;
 }
 
 .bookingBadge:hover {
@@ -69,19 +74,32 @@
 /* Tooltip */
 .tooltip {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 0.5rem 0.625rem;
-  min-width: 200px;
-  z-index: 10000;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+  z-index: 10002;
   animation: tooltipFadeIn 0.15s ease-out;
   pointer-events: none;
   white-space: normal;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Petite flèche en bas du tooltip */
+.tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid white;
 }
 
 @keyframes tooltipFadeIn {
@@ -95,85 +113,100 @@
   }
 }
 
-/* Petite flèche en bas du tooltip */
-.tooltip::before {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 10px;
-  height: 10px;
-  background: white;
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.tooltipContent {
+/* Header coloré du tooltip */
+.tooltipHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  text-align: center;
+  gap: 0.25rem;
+  padding: 0.625rem 0.875rem;
+  color: white;
+  font-weight: 700;
 }
 
-.tooltipMainRow {
+.tooltipHeaderTop {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.tooltipHeaderBottom {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 4px;
-  font-weight: 700;
-  color: white;
-  border-radius: 4px;
-  text-align: center;
-  background-color: rgb(18, 155, 18);
+  font-size: 0.85rem;
 }
 
-.tooltipParticipants {
-  background: green;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+.tooltipNumber {
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-width: 24px;
+}
+
+.tooltipIcon {
   font-size: 0.875rem;
-  font-weight: 700;
-  min-width: 28px;
-  text-align: center;
-  margin-right: 2px;
 }
 
-.tooltipClientName {
+.tooltipName {
   font-size: 0.875rem;
   flex: 1;
+  letter-spacing: 0.3px;
+}
+
+/* Corps blanc du tooltip */
+.tooltipBody {
+  padding: 0.75rem 0.875rem;
+  background: white;
+  color: #2c3e50;
+}
+
+.tooltipContactRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .tooltipFlag {
-  font-size: 1.125rem;
+  width: 20px;
+  height: 15px;
+  border-radius: 2px;
 }
 
 .tooltipPhone {
-  font-size: 0.75rem;
-  color: #6b7280;
-  padding-left: 0.25rem;
+  font-size: 0.8rem;
+  color: #2c3e50;
+  font-weight: 500;
 }
 
-.tooltipPayment {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 0.25rem;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 0.125rem;
+/* Tableau de paiement */
+.tooltipTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
 }
 
-.tooltipPaid {
-  font-size: 0.875rem;
+.tooltipTable tbody tr {
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.tooltipTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.tooltipTableLabel {
+  padding: 0.375rem 0;
+  color: #6c757d;
+  font-weight: 500;
+  text-align: left;
+}
+
+.tooltipTableValue {
+  padding: 0.375rem 0;
   font-weight: 700;
-  color: #10b981;
-}
-
-.tooltipRemaining {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #ef4444;
+  color: #2c3e50;
+  text-align: right;
 }
 
 /* Responsive Mobile */
