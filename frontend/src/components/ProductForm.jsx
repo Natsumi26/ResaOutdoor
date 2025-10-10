@@ -11,12 +11,14 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
     duration: '',
     color: '#3498db',
     level: 'découverte',
+    region: 'annecy',
     maxCapacity: '',
     autoCloseHoursBefore: '',
     postBookingMessage: '',
+    pageLink: '',
     wazeLink: '',
     googleMapsLink: '',
-    categoryId: '',
+    categoryIds: [],
     guideId: '',
     images: [],
     priceGroup: { enabled: false, min: '', price: '' }
@@ -114,12 +116,6 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
       newErrors.duration = 'Durée requise';
     if (!formData.maxCapacity || formData.maxCapacity <= 0)
       newErrors.maxCapacity = 'Capacité requise';
-    if (!formData.categoryId)
-      newErrors.categoryId = 'Catégorie requise';
-
-    // Valider le guideId uniquement pour les admins
-    // if (currentUser?.role === 'admin' && !formData.guideId)
-    //   newErrors.guideId = 'Guide requis';
 
     if (formData.priceGroup.enabled) {
       if (!formData.priceGroup.min || formData.priceGroup.min <= 0)
@@ -205,7 +201,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
 
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label>Catégorie *</label>
+              <label>Catégorie</label>
               <select
                 name="categoryId"
                 value={formData.categoryId}
@@ -217,7 +213,6 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
-              {errors.categoryId && <span className={styles.errorMsg}>{errors.categoryId}</span>}
             </div>
           </div>
 
@@ -236,17 +231,29 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
             </div>
 
             <div className={styles.formGroup}>
-              <label>Capacité max *</label>
-              <input
-                type="number"
-                name="maxCapacity"
-                value={formData.maxCapacity}
+              <label>Région *</label>
+              <select
+                name="region"
+                value={formData.region}
                 onChange={handleChange}
-                className={errors.maxCapacity ? styles.error : ''}
-                min="1"
-              />
-              {errors.maxCapacity && <span className={styles.errorMsg}>{errors.maxCapacity}</span>}
+              >
+                <option value="annecy">Annecy</option>
+                <option value="grenoble">Grenoble</option>
+              </select>
             </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Capacité max *</label>
+            <input
+              type="number"
+              name="maxCapacity"
+              value={formData.maxCapacity}
+              onChange={handleChange}
+              className={errors.maxCapacity ? styles.error : ''}
+              min="1"
+            />
+            {errors.maxCapacity && <span className={styles.errorMsg}>{errors.maxCapacity}</span>}
           </div>
         </div>
 

@@ -3,9 +3,9 @@ import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDeleteSession, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const { bookings = [], product, startTime } = session;
+  const { bookings = [], startTime } = session;
   // Calculer le taux de remplissage
   const getMaxCapacity = () => {
     if (session.products?.length === 1) {
@@ -114,6 +114,20 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
               >
                 📝 Ajouter une réservation
               </button>
+              {onDeleteSession && (
+                <button
+                  className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Êtes-vous sûr de vouloir supprimer cette session ?\n\nSession : ${startTime}\nRéservations : ${bookings.length}`)) {
+                      onDeleteSession(session.id);
+                      setShowDropdown(false);
+                    }
+                  }}
+                >
+                  🗑️ Supprimer la session
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -211,6 +211,16 @@ const Calendar = () => {
     setBookingSessionId(null);
   };
 
+  const handleDeleteSession = async (sessionId) => {
+    try {
+      await sessionsAPI.delete(sessionId);
+      await loadSessions();
+    } catch (err) {
+      console.error('Erreur suppression session:', err);
+      alert('Erreur lors de la suppression: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -298,6 +308,7 @@ const Calendar = () => {
           onBookingClick={handleBookingClick}
           onCreateBooking={handleCreateBooking}
           onCreateSession={handleNewSession}
+          onDeleteSession={handleDeleteSession}
         />
       )}
 

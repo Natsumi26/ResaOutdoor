@@ -21,6 +21,9 @@ build/
 # Prisma
 backend/prisma/migrations/
 
+# Prisma
+backend/uploads
+
 # IDE
 .vscode/
 .idea/

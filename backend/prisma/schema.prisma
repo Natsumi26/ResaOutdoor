@@ -50,6 +50,7 @@ model Product {
   duration              Int      // Durée en minutes
   color                 String   // Code couleur hex
   level                 String   // "découverte", "aventure", "sportif"
+  region                String   @default("annecy") // "annecy" ou "grenoble"
   maxCapacity           Int
   autoCloseHoursBefore  Int?     // Fermeture auto X heures avant
   postBookingMessage    String?

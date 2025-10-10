@@ -12,6 +12,7 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [regionFilter, setRegionFilter] = useState('all');
 
   useEffect(() => {
     loadData();
@@ -93,31 +94,23 @@ const Products = () => {
 
   if (loading) return <div className={styles.loading}>Chargement...</div>;
 
-const categoryGroups = [
-  {
-    label: 'Chartreuse & Vercors',
-    categoryNames: ['Chartreuse', 'Vercors']
-  },
-  {
-    label: 'Annecy & Chambéry',
-    categoryNames: ['Annecy', 'Chambéry']
-  }
-];
+const uniqueRegions = Array.from(
+  new Set(products.map(p => p.region).filter(Boolean))
+);
 
-const productsByGroup = categoryGroups.map(group => {
-  const groupCategories = categories.filter(c =>
-    group.categoryNames.includes(c.name)
-  );
+// Filtrer les produits par région
+const filteredProducts = regionFilter === 'all'
+  ? products
+  : products.filter(p => p.region === regionFilter);
 
-  const groupProducts = products.filter(p =>
-    groupCategories.some(c => c.id === p.category.id)
-  );
-
+const productsByRegion = uniqueRegions.map(regionName => {
+  const regionProducts = filteredProducts.filter(p => p.region === regionName);
   return {
-    label: group.label,
-    products: groupProducts
+    label: regionName,
+    products: regionProducts
   };
 });
+console.log(products)
 
 return (
   <div className={styles.container}>
@@ -143,9 +136,9 @@ return (
       </div>
     ) : (
       <div className={styles.groupGrid}>
-        {productsByGroup.map(({ label, products }, index) => (
+        {productsByRegion.map(({ label, products }) => (
           <div key={label} className={styles.groupRow}>
-            <h2 className={styles.groupTitle}>📍 {label}</h2>
+            <h2 className={styles.groupTitle}>📍 {label.charAt(0).toUpperCase() + label.slice(1)}</h2>
             <hr/>
 
             {products.length > 0 ? (
