@@ -1,0 +1,218 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.dialog {
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog h2 {
+  margin: 0 0 1.5rem 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+}
+
+.sessionInfo {
+  background-color: #f8fafc;
+  border-left: 4px solid #667eea;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 6px;
+}
+
+.sessionInfo p {
+  margin: 0.5rem 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.instruction {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.monthNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.monthNav h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  text-transform: capitalize;
+}
+
+.navBtn {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.navBtn:hover {
+  background-color: #e2e8f0;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.weekDay {
+  text-align: center;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  text-transform: uppercase;
+}
+
+.emptyDay {
+  /* Jours vides */
+}
+
+.day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.day:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.day.selected {
+  background-color: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.day.sessionDate {
+  background-color: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.day.today {
+  border-color: #3b82f6;
+  font-weight: 700;
+}
+
+.checkmark {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.75rem;
+}
+
+.selectedInfo {
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btnCancel,
+.btnConfirm {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.btnCancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.btnCancel:hover {
+  background-color: #e2e8f0;
+}
+
+.btnConfirm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btnConfirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btnConfirm:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dialog {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .calendar {
+    gap: 0.25rem;
+  }
+
+  .day {
+    font-size: 0.875rem;
+  }
+
+  .weekDay {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+  }
+}

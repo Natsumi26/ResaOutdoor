@@ -1,0 +1,268 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.dialog {
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog h2 {
+  margin: 0 0 1.5rem 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+}
+
+.instruction {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.bulkActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.bulkBtn {
+  padding: 0.5rem 1rem;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bulkBtn:hover {
+  background-color: #e2e8f0;
+}
+
+.sessionsList {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dateGroup {
+  margin-bottom: 1.5rem;
+}
+
+.dateGroup:last-child {
+  margin-bottom: 0;
+}
+
+.dateHeader {
+  font-size: 0.95rem;
+  color: #475569;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  text-transform: capitalize;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.sessionItem {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.sessionItem:hover:not(.disabled) {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.sessionItem.selected {
+  border-color: #667eea;
+  background-color: #f0f4ff;
+}
+
+.sessionItem.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #fafafa;
+}
+
+.sessionCheckbox {
+  display: flex;
+  align-items: center;
+  min-width: 24px;
+}
+
+.sessionCheckbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.lockIcon {
+  font-size: 1.25rem;
+}
+
+.sessionDetails {
+  flex: 1;
+}
+
+.sessionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeSlot {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.magicBadge {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.productTag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: #f8fafc;
+  border: 2px solid;
+  color: #475569;
+  font-weight: 500;
+}
+
+.bookingsWarning {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.emptyState {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.selectedInfo {
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btnCancel,
+.btnConfirm {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.btnCancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.btnCancel:hover {
+  background-color: #e2e8f0;
+}
+
+.btnConfirm {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.btnConfirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btnConfirm:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dialog {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .bulkActions {
+    flex-direction: column;
+  }
+
+  .sessionsList {
+    max-height: 300px;
+  }
+
+  .sessionItem {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .products {
+    gap: 0.375rem;
+  }
+
+  .productTag {
+    font-size: 0.75rem;
+  }
+}

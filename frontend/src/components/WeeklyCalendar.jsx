@@ -11,7 +11,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
     paiements: false,
     stocks: false
   });
-  
+
   // Générer les 7 jours de la semaine
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lundi
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -56,152 +56,153 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   };
 
   const handleDragEnd = (result) => {
-  const { source, destination, draggableId } = result;
+    const { source, destination, draggableId } = result;
 
-  if (!destination) return;
+    if (!destination) return;
 
-  if (source.droppableId === destination.droppableId) return;
+    if (source.droppableId === destination.droppableId) return;
 
-  // Extraire l'ID de session en enlevant le préfixe "session-"
-  const newSessionId = destination.droppableId.replace('session-', '');
+    // Extraire l'ID de session en enlevant le préfixe "session-"
+    const newSessionId = destination.droppableId.replace('session-', '');
 
-
-  // Déplacer la réservation
-  onMoveBooking(draggableId, newSessionId);
-};
+    // Déplacer la réservation
+    onMoveBooking(draggableId, newSessionId);
+  };
 
   return (
     <div className={styles.container}>
-      {/* Header avec navigation et jours */}
-      <div className={styles.header}>
-        <div className={styles.navigation}>
+      {/* Barre de navigation en haut */}
+      <div className={styles.topBar}>
+        <div className={styles.leftControls}>
           <button className={styles.todayBtn} onClick={goToToday}>
             Aujourd'hui
           </button>
           <button className={styles.navBtn} onClick={goToPreviousWeek}>
             ◀
           </button>
-
-          {/* Jours de la semaine */}
-          <div className={styles.weekDays}>
-            {weekDays.map(day => (
-              <div key={day.toString()} className={styles.dayHeaderCompact}>
-                <span className={styles.dayNameCompact}>
-                  {format(day, 'EEEEEE', { locale: fr })}
-                </span>
-                <span className={styles.dayDateCompact}>
-                  {format(day, 'dd/MM')}
-                </span>
-              </div>
-            ))}
-          </div>
-
           <button className={styles.navBtn} onClick={goToNextWeek}>
             ▶
           </button>
         </div>
-      </div>
 
-      {/* Barre de filtres */}
-      <div className={styles.filtersBar}>
-        <div className={styles.filtersLabel}>▸ Filtres</div>
-        <div className={styles.filters}>
+        {/* Filtres */}
+        <div className={styles.filtersContainer}>
+          <span className={styles.filtersLabel}>Filtres</span>
           <button
             className={`${styles.filterBtn} ${filters.paiements ? styles.active : ''}`}
             onClick={() => setFilters({...filters, paiements: !filters.paiements})}
           >
-            <span className={styles.dotPurple}></span> Paiements
+            <span className={styles.dotGreen}></span> Réservations
           </button>
           <button
             className={`${styles.filterBtn} ${filters.stocks ? styles.active : ''}`}
             onClick={() => setFilters({...filters, stocks: !filters.stocks})}
           >
-            <span className={styles.dotGray}></span> Capacité
+            <span className={styles.dotGray}></span> Stocks
           </button>
         </div>
       </div>
 
-      {/* Calendrier en liste verticale */}
-      <DragDropContext 
-          onDragEnd={handleDragEnd}>
-        <div className={styles.calendarList}>
+      {/* En-tête avec les jours de la semaine */}
+      <div className={styles.weekHeader}>
+        {weekDays.map((day) => {
+          const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+          return (
+            <div
+              key={day.toString()}
+              className={`${styles.dayColumn} ${isToday ? styles.todayColumn : ''}`}
+            >
+              <div className={styles.dayName}>
+                {format(day, 'EEEE', { locale: fr })}
+              </div>
+              <div className={styles.dayDate}>
+                {format(day, 'dd/MM')}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Calendrier des sessions */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className={styles.calendarContent}>
           {weekDays.map(day => {
             const dateKey = format(day, 'yyyy-MM-dd');
             const morningSessions = sessionsByDay[dateKey]?.matin || [];
             const afternoonSessions = sessionsByDay[dateKey]?.['après-midi'] || [];
+            const hasAnySessions = morningSessions.length > 0 || afternoonSessions.length > 0;
 
             return (
-              <div key={dateKey} className={styles.dayRow}>
-                {/* En-tête du jour */}
-                <div className={styles.dayRowHeader}>
-                  <div className={styles.dayRowInfo}>
-                    <span className={styles.dayRowName}>
-                      {format(day, 'EEEE', { locale: fr })}
-                    </span>
-                    <span className={styles.dayRowDate}>
-                      {format(day, 'dd/MM')}
-                    </span>
-                  </div>
+              <div key={dateKey} className={styles.daySection}>
+                <div className={styles.daySectionHeader}>
+                  <span className={styles.daySectionTitle}>
+                    {format(day, 'EEEE dd/MM', { locale: fr })}
+                  </span>
                   {onCreateSession && (
                     <button
-                      className={styles.btnPrimary}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCreateSession(day);
-                      }}
-                      title="Ajouter une session"
+                      className={styles.btnAddSession}
+                      onClick={() => onCreateSession(day)}
+                      title="Nouvelle session"
                     >
-                      +
+                      + Nouveau...
                     </button>
                   )}
                 </div>
 
-                {/* Deux colonnes: Matin et Après-midi */}
-                <div className={styles.dayRowContent}>
-                  {/* Colonne Matin */}
-                  <div className={styles.timeSlotColumn}>
-                    <div className={styles.timeSlotColumnHeader}>Matin</div>
-                    <div className={styles.sessionsContainer}>
-                      {morningSessions.length > 0 ? (
-                        morningSessions.map(session => (
-                          <SessionSlot
-                            key={session.id}
-                            session={session}
-                            onClick={() => onSessionClick(session)}
-                            onBookingClick={onBookingClick}
-                            onCreateBooking={onCreateBooking}
-                            onDeleteSession={onDeleteSession}
-                            filters={filters}
-                          />
-                        ))
-                      ) : (
-                        <div className={styles.emptySlot}>Aucune session</div>
-                      )}
-                    </div>
+                {!hasAnySessions && (
+                  <div className={styles.emptyDay}>
+                    Rien de prévu ! 🌄
                   </div>
+                )}
 
-                  {/* Colonne Après-midi */}
-                  <div className={styles.timeSlotColumn}>
-                    <div className={styles.timeSlotColumnHeader}>Après-midi</div>
-                    <div className={styles.sessionsContainer}>
-                      {afternoonSessions.length > 0 ? (
-                        afternoonSessions.map(session => (
-                          <SessionSlot
-                            key={session.id}
-                            session={session}
-                            onClick={() => onSessionClick(session)}
-                            onBookingClick={onBookingClick}
-                            onCreateBooking={onCreateBooking}
-                            onDeleteSession={onDeleteSession}
-                            filters={filters}
-                          />
-                        ))
-                      ) : (
-                        <div className={styles.emptySlot}>Aucune session</div>
-                      )}
+                {/* Deux colonnes : Matin et Après-midi côte à côte */}
+                {hasAnySessions && (
+                  <div className={styles.timeSlotsGrid}>
+                    {/* Colonne Matin */}
+                    <div className={styles.timeSlotBlock}>
+                      <div className={styles.timeSlotLabel}>Matin</div>
+                      <div className={styles.sessionsBlock}>
+                        {morningSessions.length > 0 ? (
+                          morningSessions.map(session => (
+                            <SessionSlot
+                              key={session.id}
+                              session={session}
+                              onClick={() => onSessionClick(session)}
+                              onBookingClick={onBookingClick}
+                              onCreateBooking={onCreateBooking}
+                              onDeleteSession={onDeleteSession}
+                              filters={filters}
+                            />
+                          ))
+                        ) : (
+                          <div className={styles.emptySlot}>-</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Colonne Après-midi */}
+                    <div className={styles.timeSlotBlock}>
+                      <div className={styles.timeSlotLabel}>Après-midi</div>
+                      <div className={styles.sessionsBlock}>
+                        {afternoonSessions.length > 0 ? (
+                          afternoonSessions.map(session => (
+                            <SessionSlot
+                              key={session.id}
+                              session={session}
+                              onClick={() => onSessionClick(session)}
+                              onBookingClick={onBookingClick}
+                              onCreateBooking={onCreateBooking}
+                              onDeleteSession={onDeleteSession}
+                              filters={filters}
+                            />
+                          ))
+                        ) : (
+                          <div className={styles.emptySlot}>-</div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

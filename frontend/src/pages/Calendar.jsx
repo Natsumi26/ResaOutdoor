@@ -4,6 +4,9 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import BookingModal from '../components/BookingModal';
 import SessionForm from '../components/SessionForm';
 import BookingForm from '../components/BookingForm';
+import SessionDuplicateDialog from '../components/SessionDuplicateDialog';
+import SessionDeleteDialog from '../components/SessionDeleteDialog';
+import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
 import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
@@ -22,6 +25,11 @@ const Calendar = () => {
   const [bookingSessionId, setBookingSessionId] = useState(null);
   const [sessionFormDate, setSessionFormDate] = useState(null);
   const [selectedGuideFilter, setSelectedGuideFilter] = useState(''); // Filtre par guide
+  const [sessionMenuOpen, setSessionMenuOpen] = useState(false); // Menu Session
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false); // Dialog de duplication
+  const [sessionToDuplicate, setSessionToDuplicate] = useState(null); // Session à dupliquer
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false); // Dialog de suppression
+  const [showConfirmDuplicate, setShowConfirmDuplicate] = useState(false); // Modal de confirmation de duplication
 
   // Charger les sessions de la semaine
   const loadSessions = async () => {
@@ -173,15 +181,23 @@ const Calendar = () => {
 
   const handleSessionSubmit = async (data) => {
     try {
+      let createdSession;
       if (editingSession) {
         await sessionsAPI.update(editingSession.id, data);
       } else {
-        await sessionsAPI.create(data);
+        const response = await sessionsAPI.create(data);
+        createdSession = response.data.session;
       }
       await loadSessions();
       setShowSessionForm(false);
       setEditingSession(null);
       setSessionFormDate(null);
+
+      // Proposer la duplication après création
+      if (createdSession) {
+        setSessionToDuplicate(createdSession);
+        setShowConfirmDuplicate(true);
+      }
     } catch (err) {
       console.error('Erreur sauvegarde session:', err);
       alert('Erreur lors de la sauvegarde: ' + (err.response?.data?.message || err.message));
@@ -192,6 +208,76 @@ const Calendar = () => {
     setShowSessionForm(false);
     setEditingSession(null);
     setSessionFormDate(null);
+  };
+
+  const handleDeleteSessions = () => {
+    setSessionMenuOpen(false);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDuplicateYes = () => {
+    setShowConfirmDuplicate(false);
+    setShowDuplicateDialog(true);
+  };
+
+  const handleConfirmDuplicateNo = () => {
+    setShowConfirmDuplicate(false);
+    setSessionToDuplicate(null);
+  };
+
+  const handleDuplicateConfirm = async (selectedDates) => {
+    if (!sessionToDuplicate || selectedDates.length === 0) return;
+
+    try {
+      // Dupliquer la session sur chaque date sélectionnée
+      for (const date of selectedDates) {
+        const sessionData = {
+          date: new Date(date).toISOString(),
+          timeSlot: sessionToDuplicate.timeSlot,
+          startTime: sessionToDuplicate.startTime,
+          isMagicRotation: sessionToDuplicate.isMagicRotation,
+          status: sessionToDuplicate.status,
+          productIds: sessionToDuplicate.products.map(sp => sp.productId),
+          guideId: sessionToDuplicate.guideId
+        };
+        await sessionsAPI.create(sessionData);
+      }
+
+      await loadSessions();
+      setShowDuplicateDialog(false);
+      setSessionToDuplicate(null);
+      alert(`Session dupliquée sur ${selectedDates.length} jour(s) avec succès !`);
+    } catch (err) {
+      console.error('Erreur duplication session:', err);
+      alert('Erreur lors de la duplication: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDeleteConfirm = async (selectedSessions) => {
+    if (selectedSessions.length === 0) return;
+
+    // Vérifier si des sessions ont des réservations
+    const sessionsWithBookings = selectedSessions.filter(s => s.bookings && s.bookings.length > 0);
+
+    if (sessionsWithBookings.length > 0) {
+      alert(`Impossible de supprimer ${sessionsWithBookings.length} session(s) car elles contiennent des réservations.`);
+      return;
+    }
+
+    if (!window.confirm(`Supprimer ${selectedSessions.length} session(s) ?`)) return;
+
+    try {
+      for (const session of selectedSessions) {
+        await sessionsAPI.delete(session.id);
+      }
+
+      await loadSessions();
+      setShowDeleteDialog(false);
+      alert(`${selectedSessions.length} session(s) supprimée(s) avec succès !`);
+    } catch (err) {
+      console.error('Erreur suppression sessions:', err);
+      alert('Erreur lors de la suppression: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   const handleBookingSubmit = async (data) => {
@@ -274,9 +360,33 @@ const Calendar = () => {
         </div>
 
         {!showSessionForm && !showBookingForm && (
-          <button className={styles.btnPrimary} onClick={() => handleNewSession()}>
-            + Nouvelle Session
-          </button>
+          <div className={styles.sessionMenuContainer}>
+            <button
+              className={styles.btnPrimary}
+              onClick={() => setSessionMenuOpen(!sessionMenuOpen)}
+            >
+              Session ▾
+            </button>
+            {sessionMenuOpen && (
+              <div className={styles.sessionDropdown}>
+                <button
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    handleNewSession();
+                    setSessionMenuOpen(false);
+                  }}
+                >
+                  ➕ Nouvelle session
+                </button>
+                <button
+                  className={styles.dropdownItem}
+                  onClick={handleDeleteSessions}
+                >
+                  🗑️ Supprimer sessions
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -318,6 +428,35 @@ const Calendar = () => {
           bookingId={selectedBookingId}
           onClose={handleCloseModal}
           onUpdate={handleBookingUpdate}
+        />
+      )}
+
+      {/* Dialogue de duplication de session */}
+      {showDuplicateDialog && sessionToDuplicate && (
+        <SessionDuplicateDialog
+          session={sessionToDuplicate}
+          onConfirm={handleDuplicateConfirm}
+          onCancel={() => {
+            setShowDuplicateDialog(false);
+            setSessionToDuplicate(null);
+          }}
+        />
+      )}
+
+      {/* Dialogue de suppression de sessions */}
+      {showDeleteDialog && (
+        <SessionDeleteDialog
+          sessions={sessions}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setShowDeleteDialog(false)}
+        />
+      )}
+
+      {/* Modal de confirmation de duplication */}
+      {showConfirmDuplicate && (
+        <ConfirmDuplicateModal
+          onConfirm={handleConfirmDuplicateYes}
+          onCancel={handleConfirmDuplicateNo}
         />
       )}
     </div>

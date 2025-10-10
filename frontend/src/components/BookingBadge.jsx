@@ -41,13 +41,15 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   // Format du nom
   const displayName = `${clientFirstName} ${clientLastName.charAt(0)}.`;
 
-  // gestion nationalité
+  // gestion nationalité - convertir code pays en émoji drapeau
   const getFlagEmoji = (countryCode) => {
-      if (!countryCode) return '';
-      return countryCode
-        .toUpperCase()
-        .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
-    };
+    if (!countryCode || countryCode.length !== 2) return '';
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  };
 
   return (
     <Draggable draggableId={booking.id} index={index}>
@@ -75,8 +77,23 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
             }}
           >
             <span className={styles.numberOfPeople}>{numberOfPeople}</span>
-            <span className={styles.icon}>{getIcon()}</span>
-            <span className={styles.clientName}>{displayName}</span>
+            {booking.clientNationality && (
+              <img
+                src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
+                alt={booking.clientNationality}
+                className={styles.flagIcon}
+                onError={(e) => {
+                  // Si l'image ne charge pas, afficher le code pays
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'inline';
+                }}
+              />
+            )}
+            {booking.clientNationality && (
+              <span className={styles.countryCodeFallback} style={{display: 'none'}}>
+                {booking.clientNationality.toUpperCase()}
+              </span>
+            )}
           </div>
 
           {/* Tooltip personnalisé */}
