@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
@@ -7,6 +7,26 @@ const Dashboard = () => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Détecter si on est sur mobile et gérer l'état du sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // Sur mobile, la sidebar est fermée par défaut
+      if (mobile && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Vérifier à l'initialisation
+    handleResize();
+
+    // Écouter les changements de taille
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -15,8 +35,16 @@ const Dashboard = () => {
 
   return (
     <div className={styles.dashboard}>
+      {/* Overlay pour fermer le sidebar sur mobile */}
+      {isMobile && sidebarOpen && (
+        <div
+          className={styles.overlay}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''}`}>
+      <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}>
         <div className={styles.sidebarHeader}>
           <h2>🏔️ CanyonLife</h2>
           <button

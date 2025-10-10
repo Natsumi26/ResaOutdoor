@@ -98,8 +98,8 @@
   width: 250px;
   position: absolute;
   bottom: 100%;
-  left: 0;
   right: 0;
+  left: auto;
   background-color: white;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -157,4 +157,74 @@
 
 .capacityFull {
   color: #dc2626;
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+  .sessionSlot {
+    padding: 0.5rem;
+  }
+
+  .sessionHeader {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .sessionTime {
+    font-size: 0.7rem;
+  }
+
+  .sessionName {
+    font-size: 0.8rem;
+  }
+
+  .sessionCapacity {
+    font-size: 0.8rem;
+  }
+
+  .bookingsContainer {
+    gap: 0.25rem;
+  }
+
+  .btnPrimary {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  .dropdown {
+    width: 220px;
+  }
+
+  .dropdownItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .paymentWarning,
+  .capacityInfo {
+    font-size: 0.7rem;
+    padding: 0.375rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sessionSlot {
+    padding: 0.375rem;
+  }
+
+  .sessionHeader {
+    gap: 0.25rem;
+  }
+
+  .sessionTime {
+    font-size: 0.65rem;
+  }
+
+  .sessionName {
+    font-size: 0.75rem;
+  }
+
+  .dropdown {
+    width: 200px;
+  }
 }

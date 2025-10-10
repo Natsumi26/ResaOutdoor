@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
-  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, payments = [] } = booking;
+  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid } = booking;
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 1024); // Désactiver tooltip sur mobile et tablette
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Déterminer la couleur du badge selon le statut de paiement
   const getBookingColor = () => {
@@ -39,8 +49,6 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
         .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
     };
 
-  const paidPercentage = (amountPaid / totalPrice) * 100;
-
   return (
     <Draggable draggableId={booking.id} index={index}>
       {(provided, snapshot) => (
@@ -56,11 +64,12 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
               opacity: isVisible ? 1 : 0,
               pointerEvents: isVisible ? 'auto' : 'none',
             }}
-            onMouseEnter={() => !snapshot.isDragging && setShowTooltip(true)}
+            onMouseEnter={() => !snapshot.isDragging && !isMobile && setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onClick={(e) => {
               e.stopPropagation();
               if (!snapshot.isDragging) {
+                console.log("Badge cliqué :", booking.id);
                 onClick?.(booking.id);
               }
             }}

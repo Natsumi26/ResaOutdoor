@@ -160,3 +160,101 @@
   margin: 0 auto;
   width: 100%;
 }
+
+/* Overlay pour mobile */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .dashboard {
+    position: relative;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 999;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.closed {
+    transform: translateX(-100%);
+    width: 260px;
+  }
+
+  .sidebar.mobile {
+    width: 260px;
+  }
+
+  .sidebar.mobile.closed {
+    transform: translateX(-100%);
+  }
+
+  .toggleBtn {
+    position: absolute;
+    right: -48px;
+    top: 20px;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+  }
+
+  .sidebar.closed .toggleBtn {
+    right: auto;
+    left: 100%;
+    margin-left: 8px;
+  }
+
+  .main {
+    padding: 20px 15px;
+    width: 100%;
+  }
+
+  .sidebarHeader h2 {
+    font-size: 18px;
+  }
+
+  .navItem {
+    padding: 12px 16px;
+  }
+
+  .icon {
+    font-size: 18px;
+  }
+}
+
+/* Responsive pour petits écrans */
+@media (max-width: 480px) {
+  .main {
+    padding: 15px 10px;
+  }
+
+  .sidebar {
+    width: 240px;
+  }
+
+  .sidebar.mobile {
+    width: 240px;
+  }
+}

@@ -488,28 +488,28 @@ L'équipe`;
 
           {/* Onglet Historique */}
           {activeTab === 'history' && (
-            <div className={styles.historyTab}>
-              <h3>📜 Historique des modifications</h3>
-              <div className={styles.timeline}>
-                {history.length === 0 ? (
-                  <div className={styles.emptyState}>Aucun historique</div>
-                ) : (
-                  history.map((item, index) => (
-                    <div key={item.id} className={styles.timelineItem}>
-                      <div className={styles.timelineDot}></div>
-                      {index < history.length - 1 && <div className={styles.timelineLine}></div>}
-                      <div className={styles.timelineContent}>
-                        <div className={styles.timelineAction}>{item.action}</div>
-                        <div className={styles.timelineDetails}>{item.details}</div>
-                        <div className={styles.timelineDate}>
-                          {format(new Date(item.createdAt), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+              <div className={styles.historyTab}>
+                <h3>📜 Historique des modifications</h3>
+                <div className={styles.timeline}>
+                  {history.length === 0 ? (
+                    <div className={styles.emptyState}>Aucun historique</div>
+                  ) : (
+                    history.map((item, index) => (
+                      <div key={item.id} className={styles.timelineItem}>
+                        <div className={styles.timelineDot}></div>
+                        {index < history.length - 1 && <div className={styles.timelineLine}></div>}
+                        <div className={styles.timelineContent}>
+                          <div className={styles.timelineAction}>{item.action}</div>
+                          <div className={styles.timelineDetails}>{item.details}</div>
+                          <div className={styles.timelineDate}>
+                            {format(new Date(item.createdAt), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
           )}
         </div>
 

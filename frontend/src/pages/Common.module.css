@@ -165,6 +165,7 @@
   background: white;
   border-radius: 12px;
   padding: 24px;
+  text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
@@ -347,4 +348,160 @@
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 16px;
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* Table responsive - Scroll horizontal */
+  .tableContainer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .table th,
+  .table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .table th {
+    font-size: 12px;
+  }
+
+  /* Grid responsive */
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .groupGrid {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card h3 {
+    font-size: 16px;
+  }
+
+  .card p {
+    font-size: 13px;
+  }
+
+  .cardFooter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .cardActions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btnEdit,
+  .btnDelete {
+    width: 100%;
+    padding: 10px;
+  }
+
+  /* Modal responsive */
+  .modal {
+    padding: 10px;
+  }
+
+  .modalContent {
+    padding: 20px;
+    max-height: 85vh;
+  }
+
+  .modalContent h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modalActions button {
+    width: 100%;
+  }
+
+  .formGroup {
+    margin-bottom: 16px;
+  }
+
+  .formGroup label {
+    font-size: 13px;
+  }
+
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .productImage {
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 20px;
+  }
+
+  .table {
+    min-width: 500px;
+    font-size: 12px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 6px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .productImage {
+    height: 120px;
+  }
 }
