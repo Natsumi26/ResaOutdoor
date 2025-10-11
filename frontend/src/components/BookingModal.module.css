@@ -159,6 +159,12 @@
   margin-bottom: 0;
 }
 
+.headerActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -169,6 +175,30 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.editForm {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  background-color: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+.input {
+  padding: 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .label {
@@ -412,7 +442,12 @@
 
 .footerActions {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
+  align-items: center;
+}
+
+.footerActions > * {
+  flex-shrink: 0;
 }
 
 /* Buttons */
@@ -447,6 +482,24 @@
 
 .btnSecondary:hover {
   background-color: #cbd5e1;
+}
+
+.btnSuccess {
+  padding: 0.75rem 1.5rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnSuccess:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 .btnEmail {

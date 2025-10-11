@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import BookingModal from '../components/BookingModal';
+import SessionDetailModal from '../components/SessionDetailModal';
 import SessionForm from '../components/SessionForm';
 import BookingForm from '../components/BookingForm';
 import SessionDuplicateDialog from '../components/SessionDuplicateDialog';
@@ -30,6 +31,7 @@ const Calendar = () => {
   const [sessionToDuplicate, setSessionToDuplicate] = useState(null); // Session à dupliquer
   const [showDeleteDialog, setShowDeleteDialog] = useState(false); // Dialog de suppression
   const [showConfirmDuplicate, setShowConfirmDuplicate] = useState(false); // Modal de confirmation de duplication
+  const [selectedSessionId, setSelectedSessionId] = useState(null); // Session sélectionnée pour le modal de détail
 
   // Charger les sessions de la semaine
   const loadSessions = async () => {
@@ -147,8 +149,14 @@ const Calendar = () => {
     }
   };
 
-  // Gérer le clic sur une session (modifier)
+  // Gérer le clic sur une session (ouvrir le modal de détail)
   const handleSessionClick = (session) => {
+    setSelectedSessionId(session.id);
+  };
+
+  // Gérer l'édition depuis le modal de détail
+  const handleEditFromDetail = (session) => {
+    setSelectedSessionId(null);
     setEditingSession(session);
     setShowSessionForm(true);
   };
@@ -428,6 +436,22 @@ const Calendar = () => {
           bookingId={selectedBookingId}
           onClose={handleCloseModal}
           onUpdate={handleBookingUpdate}
+        />
+      )}
+
+      {/* Modal de détails de session */}
+      {selectedSessionId && (
+        <SessionDetailModal
+          session={sessions.find(s => s.id === selectedSessionId)}
+          onClose={() => setSelectedSessionId(null)}
+          onEdit={handleEditFromDetail}
+          onBookingClick={handleBookingClick}
+          onDuplicate={(session) => {
+            setSelectedSessionId(null);
+            setSessionToDuplicate(session);
+            setShowDuplicateDialog(true);
+          }}
+          onDelete={handleDeleteSession}
         />
       )}
 

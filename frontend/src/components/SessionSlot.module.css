@@ -10,10 +10,12 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   overflow: visible;
   position: relative;
+  cursor: pointer;
 }
 
 .sessionRow:hover {
   background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Informations à gauche (en colonne) avec liseré coloré */
@@ -74,7 +76,15 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  min-width: 60px;
+}
+
+/* Container pour capacité et bouton + */
+.sessionCapacityContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 90px;
 }
 
 /* Capacité à droite */
@@ -84,11 +94,50 @@
   color: #2c3e50;
   min-width: 50px;
   text-align: right;
+  transition: opacity 0.2s ease;
 }
 
 .capacitySeparator {
   color: #bdc3c7;
   font-weight: 400;
+}
+
+/* Bouton + qui remplace la capacité au survol (desktop) */
+.addBookingButton {
+  position: absolute;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Au survol : masquer la capacité et afficher le bouton */
+.sessionRow:hover .sessionCapacity {
+  opacity: 0;
+}
+
+.sessionRow:hover .addBookingButton {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.addBookingButton:hover {
+  background-color: #2980b9;
+  transform: scale(1.05);
 }
 
 /* Responsive */
@@ -107,7 +156,27 @@
     width: 100%;
   }
 
+  .sessionCapacityContainer {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
   .sessionCapacity {
     align-self: flex-end;
+    opacity: 1 !important;
+  }
+
+  /* Sur mobile, le bouton est toujours visible et positionné en dessous */
+  .addBookingButton {
+    position: relative;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Pas de masquage de la capacité sur mobile */
+  .sessionRow:hover .sessionCapacity {
+    opacity: 1;
   }
 }

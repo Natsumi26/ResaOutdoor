@@ -126,7 +126,7 @@
 .tooltipHeaderTop {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .tooltipHeaderBottom {
@@ -137,17 +137,15 @@
 }
 
 .tooltipNumber {
-  font-size: 1.1rem;
-  font-weight: 700;
-  min-width: 24px;
-}
-
-.tooltipIcon {
   font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
 }
 
 .tooltipName {
   font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
   flex: 1;
   letter-spacing: 0.3px;
 }
@@ -175,38 +173,38 @@
 }
 
 .tooltipPhone {
-  font-size: 0.8rem;
-  color: #2c3e50;
-  font-weight: 500;
+  font-size: 0.875rem;
+  color: white;
+  font-weight: 700;
 }
 
-/* Tableau de paiement */
-.tooltipTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
+/* Colonnes pour le paiement - 2 colonnes côte à côte */
+.tooltipColumn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
 }
 
-.tooltipTable tbody tr {
-  border-bottom: 1px solid #f1f3f5;
+.tooltipRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: center;
 }
 
-.tooltipTable tbody tr:last-child {
-  border-bottom: none;
-}
-
-.tooltipTableLabel {
-  padding: 0.375rem 0;
+.tooltipLabel {
+  font-size: 0.75rem;
   color: #6c757d;
   font-weight: 500;
-  text-align: left;
 }
 
-.tooltipTableValue {
-  padding: 0.375rem 0;
+.tooltipValue {
+  font-size: 0.875rem;
   font-weight: 700;
   color: #2c3e50;
-  text-align: right;
 }
 
 /* Responsive Mobile */

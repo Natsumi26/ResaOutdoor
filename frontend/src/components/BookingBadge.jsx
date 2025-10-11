@@ -51,6 +51,55 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
     return String.fromCodePoint(...codePoints);
   };
 
+  // Formater le numéro de téléphone avec indicatif pays et espaces
+  const formatPhoneNumber = (phone, countryCode) => {
+    if (!phone) return 'N/A';
+
+    // Retirer tous les espaces et caractères spéciaux
+    let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+
+    // Indicatifs pays courants
+    const countryPrefixes = {
+      'FR': '+33',
+      'BE': '+32',
+      'CH': '+41',
+      'ES': '+34',
+      'IT': '+39',
+      'DE': '+49',
+      'GB': '+44',
+      'US': '+1',
+      'CA': '+1',
+    };
+
+    let prefix = countryPrefixes[countryCode?.toUpperCase()] || '';
+
+    // Si le numéro commence déjà par +, extraire l'indicatif
+    if (cleanPhone.startsWith('+')) {
+      const match = cleanPhone.match(/^\+(\d{1,3})/);
+      if (match) {
+        prefix = '+' + match[1];
+        cleanPhone = cleanPhone.substring(match[0].length);
+      }
+    }
+    // Si le numéro commence par 00, convertir en +
+    else if (cleanPhone.startsWith('00')) {
+      const match = cleanPhone.match(/^00(\d{1,3})/);
+      if (match) {
+        prefix = '+' + match[1];
+        cleanPhone = cleanPhone.substring(match[0].length);
+      }
+    }
+    // Si numéro français commence par 0, retirer le 0 initial
+    else if (cleanPhone.startsWith('0') && countryCode?.toUpperCase() === 'FR') {
+      cleanPhone = cleanPhone.substring(1);
+    }
+
+    // Formater avec des espaces tous les 2 chiffres
+    const formatted = cleanPhone.match(/.{1,2}/g)?.join(' ') || cleanPhone;
+
+    return prefix ? `${prefix} ${formatted}` : formatted;
+  };
+
   return (
     <Draggable draggableId={booking.id} index={index}>
       {(provided, snapshot) => (
@@ -102,7 +151,6 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
               <div className={styles.tooltipHeader} style={{ backgroundColor: getBookingColor() }}>
                 <div className={styles.tooltipHeaderTop}>
                   <span className={styles.tooltipNumber}>{numberOfPeople}</span>
-                  <span className={styles.tooltipIcon}>👤</span>
                   <span className={styles.tooltipName}>{clientLastName.toUpperCase()}</span>
                 </div>
                 <div className={styles.tooltipHeaderBottom}>
@@ -113,22 +161,22 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
                       className={styles.tooltipFlag}
                     />
                   )}
-                  <span className={styles.tooltipPhone}>{booking.clientPhone || 'N/A'}</span>
+                  <span className={styles.tooltipPhone}>
+                    {formatPhoneNumber(booking.clientPhone, booking.clientNationality)}
+                  </span>
                 </div>
               </div>
               <div className={styles.tooltipBody}>
-                <table className={styles.tooltipTable}>
-                  <tbody>
-                    <tr>
-                      <td className={styles.tooltipTableLabel}>Encaissé :</td>
-                      <td className={styles.tooltipTableValue}>{amountPaid} €</td>
-                    </tr>
-                    <tr>
-                      <td className={styles.tooltipTableLabel}>Reste à régler :</td>
-                      <td className={styles.tooltipTableValue}>{(totalPrice - amountPaid).toFixed(2)} €</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className={styles.tooltipColumn}>
+                  <div className={styles.tooltipRow}>
+                    <span className={styles.tooltipLabel}>Encaissé :</span>
+                    <span className={styles.tooltipValue}>{amountPaid} €</span>
+                  </div>
+                  <div className={styles.tooltipRow}>
+                    <span className={styles.tooltipLabel}>Reste à régler :</span>
+                    <span className={styles.tooltipValue}>{(totalPrice - amountPaid).toFixed(2)} €</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -45,8 +45,16 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDele
     return '#3498db';
   };
 
+  const handleSessionClick = (e) => {
+    // Ne pas déclencher si on clique sur un badge ou le bouton +
+    if (e.target.closest('[draggable="true"]') || e.target.closest('button')) {
+      return;
+    }
+    onClick?.(session);
+  };
+
   return (
-    <div className={styles.sessionRow}>
+    <div className={styles.sessionRow} onClick={handleSessionClick}>
       {/* Informations à gauche avec liseré coloré */}
       <div className={styles.sessionInfoLeft} style={{ borderLeftColor: getProductColor() }}>
         <div className={styles.sessionTime}>{startTime}</div>
@@ -86,9 +94,21 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDele
         </Droppable>
       </div>
 
-      {/* Capacité à droite */}
-      <div className={styles.sessionCapacity}>
-        {totalPeople} <span className={styles.capacitySeparator}>/</span>{maxCapacity}
+      {/* Capacité à droite avec bouton + au survol */}
+      <div className={styles.sessionCapacityContainer}>
+        <div className={styles.sessionCapacity}>
+          {totalPeople} <span className={styles.capacitySeparator}>/</span>{maxCapacity}
+        </div>
+        <button
+          className={styles.addBookingButton}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateBooking(session);
+          }}
+          title="Ajouter une réservation"
+        >
+          +
+        </button>
       </div>
     </div>
   );

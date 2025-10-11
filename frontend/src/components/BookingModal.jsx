@@ -18,6 +18,16 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [clientRequestText, setClientRequestText] = useState('');
   const [showActivityEmail, setShowActivityEmail] = useState(false);
   const [activityEmailText, setActivityEmailText] = useState('');
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [editedClientData, setEditedClientData] = useState({
+    clientFirstName: '',
+    clientLastName: '',
+    clientEmail: '',
+    clientPhone: '',
+    clientNationality: '',
+    numberOfPeople: 0,
+    totalPrice: 0
+  });
 
   useEffect(() => {
     loadBooking();
@@ -28,11 +38,65 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
       setLoading(true);
       const response = await bookingsAPI.getById(bookingId);
       setBooking(response.data.booking);
+      // Initialiser les données d'édition
+      setEditedClientData({
+        clientFirstName: response.data.booking.clientFirstName || '',
+        clientLastName: response.data.booking.clientLastName || '',
+        clientEmail: response.data.booking.clientEmail || '',
+        clientPhone: response.data.booking.clientPhone || '',
+        clientNationality: response.data.booking.clientNationality || '',
+        numberOfPeople: response.data.booking.numberOfPeople || 0,
+        totalPrice: response.data.booking.totalPrice || 0
+      });
     } catch (error) {
       console.error('Erreur chargement réservation:', error);
       alert('Impossible de charger la réservation');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditClient = () => {
+    setIsEditingClient(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingClient(false);
+    // Réinitialiser avec les données actuelles
+    setEditedClientData({
+      clientFirstName: booking.clientFirstName || '',
+      clientLastName: booking.clientLastName || '',
+      clientEmail: booking.clientEmail || '',
+      clientPhone: booking.clientPhone || '',
+      clientNationality: booking.clientNationality || '',
+      numberOfPeople: booking.numberOfPeople || 0,
+      totalPrice: booking.totalPrice || 0
+    });
+  };
+
+  const handleNumberOfPeopleChange = (newNumberOfPeople) => {
+    // Calculer le prix unitaire actuel
+    const unitPrice = booking.totalPrice / booking.numberOfPeople;
+    // Calculer le nouveau prix total
+    const newTotalPrice = unitPrice * newNumberOfPeople;
+
+    setEditedClientData({
+      ...editedClientData,
+      numberOfPeople: newNumberOfPeople,
+      totalPrice: parseFloat(newTotalPrice.toFixed(2))
+    });
+  };
+
+  const handleSaveClient = async () => {
+    try {
+      await bookingsAPI.update(bookingId, editedClientData);
+      alert('Informations client mises à jour avec succès !');
+      setIsEditingClient(false);
+      await loadBooking();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur mise à jour client:', error);
+      alert('Impossible de mettre à jour les informations: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -223,28 +287,110 @@ L'équipe`;
                     ✉️ Demande au client
                   </button>
                 </div>
-                <div className={styles.infoGrid}>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Nom complet</span>
-                    <span className={styles.value}>
-                      {booking.clientFirstName} {booking.clientLastName}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Email</span>
-                    <span className={styles.value}>{booking.clientEmail}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Téléphone</span>
-                    <span className={styles.value}>{booking.clientPhone}</span>
-                  </div>
-                  {booking.clientNationality && (
+
+                {!isEditingClient ? (
+                  <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                      <span className={styles.label}>Nationalité</span>
-                      <span className={styles.value}>{booking.clientNationality}</span>
+                      <span className={styles.label}>Prénom</span>
+                      <span className={styles.value}>{booking.clientFirstName}</span>
                     </div>
-                  )}
-                </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.label}>Nom</span>
+                      <span className={styles.value}>{booking.clientLastName}</span>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.label}>Email</span>
+                      <span className={styles.value}>{booking.clientEmail}</span>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.label}>Téléphone</span>
+                      <span className={styles.value}>{booking.clientPhone}</span>
+                    </div>
+                    {booking.clientNationality && (
+                      <div className={styles.infoItem}>
+                        <span className={styles.label}>Nationalité</span>
+                        <span className={styles.value}>{booking.clientNationality}</span>
+                      </div>
+                    )}
+                    <div className={styles.infoItem}>
+                      <span className={styles.label}>Nombre de personnes</span>
+                      <span className={styles.value}>{booking.numberOfPeople}</span>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.label}>Prix total</span>
+                      <span className={styles.value}>{booking.totalPrice} €</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.editForm}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Prénom</label>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={editedClientData.clientFirstName}
+                        onChange={(e) => setEditedClientData({...editedClientData, clientFirstName: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Nom</label>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={editedClientData.clientLastName}
+                        onChange={(e) => setEditedClientData({...editedClientData, clientLastName: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Email</label>
+                      <input
+                        type="email"
+                        className={styles.input}
+                        value={editedClientData.clientEmail}
+                        onChange={(e) => setEditedClientData({...editedClientData, clientEmail: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Téléphone</label>
+                      <input
+                        type="tel"
+                        className={styles.input}
+                        value={editedClientData.clientPhone}
+                        onChange={(e) => setEditedClientData({...editedClientData, clientPhone: e.target.value})}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Nationalité (code pays, ex: FR)</label>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={editedClientData.clientNationality}
+                        onChange={(e) => setEditedClientData({...editedClientData, clientNationality: e.target.value.toUpperCase()})}
+                        maxLength="2"
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Nombre de personnes</label>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        min="1"
+                        value={editedClientData.numberOfPeople}
+                        onChange={(e) => handleNumberOfPeopleChange(parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Prix total</label>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={editedClientData.totalPrice}
+                        onChange={(e) => setEditedClientData({...editedClientData, totalPrice: parseFloat(e.target.value)})}
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Formulaire demande client */}
                 {showClientRequest && (
@@ -526,6 +672,29 @@ L'équipe`;
             )}
           </div>
           <div className={styles.footerActions}>
+            {!isEditingClient ? (
+              <button
+                className={styles.btnPrimary}
+                onClick={handleEditClient}
+              >
+                ✏️ Modifier
+              </button>
+            ) : (
+              <>
+                <button
+                  className={styles.btnSuccess}
+                  onClick={handleSaveClient}
+                >
+                  ✓ Enregistrer
+                </button>
+                <button
+                  className={styles.btnSecondary}
+                  onClick={handleCancelEdit}
+                >
+                  ✕ Annuler
+                </button>
+              </>
+            )}
             <button
               className={styles.btnDelete}
               onClick={handleDeleteBooking}
