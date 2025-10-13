@@ -1,5 +1,11 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Lister tous les produits
 export const getAllProducts = async (req, res, next) => {
@@ -16,7 +22,14 @@ export const getAllProducts = async (req, res, next) => {
       where.guideId = guideId;
     }
 
-    if (categoryId) where.categoryId = categoryId;
+    // Filtrer par catégorie si fournie
+    if (categoryId) {
+      where.categories = {
+        some: {
+          categoryId: categoryId
+        }
+      };
+    }
 
     const products = await prisma.product.findMany({
       where,
@@ -28,7 +41,11 @@ export const getAllProducts = async (req, res, next) => {
             email: true
           }
         },
-        category: true
+        categories: {
+          include: {
+            category: true
+          }
+        }
       },
       orderBy: { name: 'asc' }
     });
@@ -57,10 +74,14 @@ export const getProductById = async (req, res, next) => {
             email: true
           }
         },
-        category: true
+        categories: {
+          include: {
+            category: true
+          }
+        }
       }
     });
-
+    console.log(product)
     if (!product) {
       throw new AppError('Produit non trouvé', 404);
     }
@@ -86,17 +107,19 @@ export const createProduct = async (req, res, next) => {
       duration,
       color,
       level,
+      region,
       maxCapacity,
       autoCloseHoursBefore,
       postBookingMessage,
       wazeLink,
       googleMapsLink,
+      websiteLink,
       images,
       guideId: bodyGuideId,
-      categoryId
+      categoryIds // Tableau d'IDs de catégories (peut être vide)
     } = req.body;
 
-    if (!name || !priceIndividual || !duration || !level || !maxCapacity || !categoryId) {
+    if (!name || !priceIndividual || !duration || !level || !maxCapacity) {
       throw new AppError('Champs requis manquants', 400);
     }
 
@@ -108,25 +131,38 @@ export const createProduct = async (req, res, next) => {
       guideId = req.user.userId;
     }
 
+    // Préparer les données de création
+    const productData = {
+      name,
+      shortDescription,
+      longDescription,
+      priceIndividual: parseFloat(priceIndividual),
+      priceGroup: priceGroup || null,
+      duration: parseInt(duration),
+      color: color || '#93C5FD',
+      level,
+      region: region || 'annecy',
+      maxCapacity: parseInt(maxCapacity),
+      autoCloseHoursBefore: autoCloseHoursBefore ? parseInt(autoCloseHoursBefore) : null,
+      postBookingMessage,
+      wazeLink,
+      googleMapsLink,
+      websiteLink,
+      images: images || [],
+      guideId
+    };
+
+    // Ajouter les catégories si fournies
+    if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
+      productData.categories = {
+        create: categoryIds.map(catId => ({
+          categoryId: catId
+        }))
+      };
+    }
+
     const product = await prisma.product.create({
-      data: {
-        name,
-        shortDescription,
-        longDescription,
-        priceIndividual: parseFloat(priceIndividual),
-        priceGroup: priceGroup || null,
-        duration: parseInt(duration),
-        color: color || '#93C5FD',
-        level,
-        maxCapacity: parseInt(maxCapacity),
-        autoCloseHoursBefore: autoCloseHoursBefore ? parseInt(autoCloseHoursBefore) : null,
-        postBookingMessage,
-        wazeLink,
-        googleMapsLink,
-        images: images || [],
-        guideId,
-        categoryId
-      },
+      data: productData,
       include: {
         guide: {
           select: {
@@ -135,7 +171,11 @@ export const createProduct = async (req, res, next) => {
             email: true
           }
         },
-        category: true
+        categories: {
+          include: {
+            category: true
+          }
+        }
       }
     });
 
@@ -152,7 +192,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+    const { categoryIds, ...updateData } = req.body;
 
     // Vérifier que le produit existe et appartient au guide (sauf si admin)
     const existingProduct = await prisma.product.findUnique({
@@ -174,6 +214,7 @@ export const updateProduct = async (req, res, next) => {
     delete updateData.updatedAt;
     delete updateData.guide;
     delete updateData.category;
+    delete updateData.categories;
 
     // Convertir les types si nécessaire
     if (updateData.priceIndividual) {
@@ -189,6 +230,24 @@ export const updateProduct = async (req, res, next) => {
       updateData.autoCloseHoursBefore = parseInt(updateData.autoCloseHoursBefore);
     }
 
+    // Gérer la mise à jour des catégories si fournie
+    if (categoryIds !== undefined) {
+      // Supprimer toutes les catégories existantes
+      await prisma.productCategory.deleteMany({
+        where: { productId: id }
+      });
+
+      // Ajouter les nouvelles catégories (si le tableau n'est pas vide)
+      if (Array.isArray(categoryIds) && categoryIds.length > 0) {
+        await prisma.productCategory.createMany({
+          data: categoryIds.map(catId => ({
+            productId: id,
+            categoryId: catId
+          }))
+        });
+      }
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: updateData,
@@ -200,7 +259,11 @@ export const updateProduct = async (req, res, next) => {
             email: true
           }
         },
-        category: true
+        categories: {
+          include: {
+            category: true
+          }
+        }
       }
     });
 
@@ -235,6 +298,23 @@ export const deleteProduct = async (req, res, next) => {
     if (req.user.role !== 'admin' && existingProduct.guideId !== req.user.userId) {
       throw new AppError('Vous ne pouvez supprimer que vos propres produits', 403);
     }
+
+    // Suppression des images
+    if (Array.isArray(existingProduct.images)) {
+      existingProduct.images.forEach((imgPath) => {
+        const fileName = path.basename(imgPath);
+        console.log(fileName)
+        const fullPath = path.join(__dirname, '../../uploads', fileName);
+        console.log(fullPath)
+        fs.unlink(fullPath, (err) => {
+          if (err) console.error(`Erreur suppression image ${imgPath}:`, err);
+        });
+      });
+    }
+
+    await prisma.productCategory.deleteMany({
+      where: { productId: id }
+    });
 
     await prisma.product.delete({
       where: { id }

@@ -31,9 +31,6 @@ export const getAllSessions = async (req, res, next) => {
         products: {
           include: {
             product: {
-              include: {
-                category: true
-              }
             }
           }
         },

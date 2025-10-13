@@ -163,6 +163,22 @@ return (
                       <span>⏱️ {product.duration / 60}h</span>
                       <span>👥 Max: {product.maxCapacity}</span>
                     </div>
+                    {product.categories && product.categories.length > 0 && (
+                      <div className={styles.productCategories}>
+                        {product.categories.map(pc => (
+                          <span key={pc.id} className={styles.badgeCategory}>
+                            {pc.category?.name || 'N/A'}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {product.websiteLink && (
+                      <div className={styles.productWebLink}>
+                        <a href={product.websiteLink} target="_blank" rel="noopener noreferrer">
+                          🔗 Voir la page
+                        </a>
+                      </div>
+                    )}
                     <div className={styles.cardFooter}>
                       <span className={styles.badgeLevel}>{product.level}</span>
                     </div>

@@ -105,6 +105,53 @@
   cursor: pointer;
 }
 
+/* Categories Checkboxes */
+.categoriesCheckboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.categoryCheckbox {
+  display: flex !important;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.categoryCheckbox:hover {
+  background-color: #f8f9fa;
+}
+
+.categoryCheckbox input[type="checkbox"] {
+  width: auto !important;
+  cursor: pointer;
+  margin: 0;
+}
+
+.categoryCheckbox span {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #495057;
+}
+
+.noCategories {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 /* Price Group Box */
 .priceGroupBox {
   background: white;

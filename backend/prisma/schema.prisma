@@ -34,7 +34,7 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  products    Product[]
+  products    ProductCategory[]
 
   @@map("categories")
 }
@@ -56,17 +56,16 @@ model Product {
   postBookingMessage    String?
   wazeLink              String?
   googleMapsLink        String?
+  websiteLink           String?  // Lien vers la page internet du produit
   images                String[] // URLs des images
 
   guideId               String
   guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)
 
-  categoryId            String
-  category              Category @relation(fields: [categoryId], references: [id])
-
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  categories            ProductCategory[]
   sessionProducts       SessionProduct[]
   bookings              Booking[]
 
@@ -110,6 +109,23 @@ model SessionProduct {
 
   @@unique([sessionId, productId])
   @@map("session_products")
+}
+
+// Table de jonction : Catégories associées à un produit
+// Permet à un produit d'avoir plusieurs catégories ou aucune
+model ProductCategory {
+  id         String   @id @default(uuid())
+
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([productId, categoryId])
+  @@map("product_categories")
 }
 
 // Réservations

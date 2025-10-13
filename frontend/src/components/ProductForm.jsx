@@ -15,7 +15,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
     maxCapacity: '',
     autoCloseHoursBefore: '',
     postBookingMessage: '',
-    pageLink: '',
+    websiteLink: '',
     wazeLink: '',
     googleMapsLink: '',
     categoryIds: [],
@@ -30,9 +30,15 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
 
   useEffect(() => {
     if (product) {
+      // Extraire les IDs de catégories depuis la structure product.categories
+      const categoryIds = product.categories
+        ? product.categories.map(pc => pc.categoryId || pc.category?.id).filter(Boolean)
+        : [];
+
       setFormData({
         ...product,
         duration: product.duration ? product.duration / 60 : '', // Convertir minutes en heures
+        categoryIds: categoryIds,
         priceGroup: product.priceGroup
           ? { enabled: true, ...product.priceGroup }
           : { enabled: false, min: '', price: '' }
@@ -58,6 +64,20 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
         [field]: value
       }
     }));
+  };
+
+  const handleCategoryToggle = (categoryId) => {
+    setFormData(prev => {
+      const categoryIds = prev.categoryIds || [];
+      const isSelected = categoryIds.includes(categoryId);
+
+      return {
+        ...prev,
+        categoryIds: isSelected
+          ? categoryIds.filter(id => id !== categoryId)
+          : [...categoryIds, categoryId]
+      };
+    });
   };
 
   const handleColorChange = (color) => {
@@ -156,7 +176,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
 
     onSubmit(submitData);
   };
-
+console.log(formData)
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.formGrid}>
@@ -199,21 +219,25 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
             />
           </div>
 
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Catégorie</label>
-              <select
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleChange}
-                className={errors.categoryId ? styles.error : ''}
-              >
-                <option value="">Sélectionner...</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
+          <div className={styles.formGroup}>
+            <label>Catégories (sélection multiple possible)</label>
+            <div className={styles.categoriesCheckboxes}>
+              {categories.length === 0 ? (
+                <p className={styles.noCategories}>Aucune catégorie disponible</p>
+              ) : (
+                categories.map(cat => (
+                  <label key={cat.id} className={styles.categoryCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={formData.categoryIds?.includes(cat.id) || false}
+                      onChange={() => handleCategoryToggle(cat.id)}
+                    />
+                    <span>{cat.name}</span>
+                  </label>
+                ))
+              )}
             </div>
+            <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
           </div>
 
           <div className={styles.formRow}>
@@ -378,7 +402,7 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
               <div className={styles.imagePreview}>
                 {formData.images.map((url, index) => (
                   <div key={index} className={styles.imageItem}>
-                    <img src={url} alt={`Image ${index + 1}`} />
+                    <img src={`http://localhost:5000${url}`} alt={`Image ${index + 1}`} />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
@@ -419,6 +443,18 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
               rows="3"
               placeholder="Message envoyé au client après sa réservation..."
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Lien vers la page internet</label>
+            <input
+              type="url"
+              name="websiteLink"
+              value={formData.websiteLink}
+              onChange={handleChange}
+              placeholder="https://votre-site.com/produit"
+            />
+            <small>Lien vers la page de présentation du produit sur votre site web</small>
           </div>
 
           <div className={styles.formGroup}>

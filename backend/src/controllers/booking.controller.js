@@ -25,9 +25,6 @@ export const getAllBookings = async (req, res, next) => {
           }
         },
         product: {
-          include: {
-            category: true
-          }
         },
         payments: true,
         history: {
@@ -71,9 +68,6 @@ export const getBookingById = async (req, res, next) => {
           }
         },
         product: {
-          include: {
-            category: true
-          }
         },
         payments: {
           orderBy: { createdAt: 'desc' }

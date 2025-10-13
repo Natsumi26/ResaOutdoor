@@ -4,7 +4,11 @@
       "Bash(npx prisma migrate reset:*)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx prisma migrate resolve:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": [],
     "ask": []

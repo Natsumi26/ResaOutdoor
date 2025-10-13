@@ -22,7 +22,7 @@ build/
 backend/prisma/migrations/
 
 # Prisma
-backend/uploads
+backend/uploads/*
 
 # IDE
 .vscode/
