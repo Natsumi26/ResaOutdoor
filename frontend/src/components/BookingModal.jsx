@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI, emailAPI, stripeAPI } from '../services/api';
+import { bookingsAPI, emailAPI, stripeAPI, participantsAPI } from '../services/api';
+import ParticipantForm from './ParticipantForm';
 import styles from './BookingModal.module.css';
 
 const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('info'); // 'info', 'payments', 'history'
+  const [activeTab, setActiveTab] = useState('info'); // 'info', 'participants', 'payments', 'history'
+  const [participants, setParticipants] = useState([]);
+  const [showParticipantForm, setShowParticipantForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentData, setPaymentData] = useState({
     amount: '',
@@ -48,11 +51,41 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
         numberOfPeople: response.data.booking.numberOfPeople || 0,
         totalPrice: response.data.booking.totalPrice || 0
       });
+      // Charger les participants
+      await loadParticipants();
     } catch (error) {
       console.error('Erreur chargement réservation:', error);
       alert('Impossible de charger la réservation');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadParticipants = async () => {
+    try {
+      const response = await participantsAPI.getByBooking(bookingId);
+      setParticipants(response.data.participants);
+    } catch (error) {
+      console.error('Erreur chargement participants:', error);
+      // Ne pas afficher d'erreur si aucun participant n'existe
+    }
+  };
+  console.log(participants)
+  const handleSaveParticipants = async (data) => {
+    try {
+      await participantsAPI.upsert(bookingId, {
+        participants: data.participants,
+        shoeRentalTotal: data.shoeRentalTotal,
+        totalWithShoes: data.totalWithShoes
+      });
+      alert('Participants enregistrés avec succès !');
+      setShowParticipantForm(false);
+      await loadParticipants();
+      await loadBooking(); // Recharger pour mettre à jour le prix si location de chaussures
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur sauvegarde participants:', error);
+      alert('Impossible d\'enregistrer les participants: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -256,6 +289,12 @@ L'équipe`;
             onClick={() => setActiveTab('info')}
           >
             📋 Informations
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 'participants' ? styles.active : ''}`}
+            onClick={() => setActiveTab('participants')}
+          >
+            👥 Participants {participants.length > 0 && `(${participants.length})`}
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'payments' ? styles.active : ''}`}
@@ -536,6 +575,68 @@ L'équipe`;
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Onglet Participants */}
+          {activeTab === 'participants' && (
+            <div className={styles.participantsTab}>
+              {!showParticipantForm ? (
+                <>
+                  <div className={styles.sectionHeader}>
+                    <h3>👥 Participants ({participants.length}/{booking.numberOfPeople})</h3>
+                    <button
+                      className={styles.btnAdd}
+                      onClick={() => setShowParticipantForm(true)}
+                    >
+                      {participants.length > 0 ? '✏️ Modifier' : '+ Ajouter'}
+                    </button>
+                  </div>
+
+                  {participants.length > 0 ? (
+                    <div className={styles.participantsList}>
+                      {participants.map((participant, index) => (
+                        <div key={participant.id} className={styles.participantCard}>
+                          <div className={styles.participantHeader}>
+                            <span className={styles.participantName}>
+                              {index + 1}. {participant.firstName}
+                            </span>
+                            <span className={styles.wetsuitBadge}>
+                              {participant.wetsuitSize}
+                            </span>
+                          </div>
+                          <div className={styles.participantDetails}>
+                            <span>👤 {participant.age} ans</span>
+                            <span>📏 {participant.height} cm</span>
+                            <span>⚖️ {participant.weight} kg</span>
+                            {participant.shoeRental && (
+                              <span className={styles.shoeRental}>
+                                👟 Pointure {participant.shoeSize}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <p>Aucun participant enregistré</p>
+                      <p className={styles.emptyHint}>
+                        Cliquez sur "Ajouter" pour renseigner les informations des participants
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <ParticipantForm
+                  booking={booking}
+                  shoeRentalAvailable={booking.session?.shoeRentalAvailable}
+                  shoeRentalPrice={booking.session?.shoeRentalPrice}
+                  initialParticipants={participants}
+                  onSubmit={handleSaveParticipants}
+                  onCancel={() => setShowParticipantForm(false)}
+                />
+              )}
             </div>
           )}
 

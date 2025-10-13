@@ -198,9 +198,6 @@ export const createBooking = async (req, res, next) => {
             }
           },
           product: {
-            include: {
-              category: true
-            }
           }
         }
       });
@@ -288,9 +285,6 @@ export const updateBooking = async (req, res, next) => {
             }
           },
           product: {
-            include: {
-              category: true
-            }
           },
           payments: true,
           history: true

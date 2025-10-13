@@ -10,7 +10,9 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
     isMagicRotation: false,
     productIds: [],  // Array de produits sélectionnés
     guideId: '',  // Guide assigné (pour admin)
-    status: 'open'
+    status: 'open',
+    shoeRentalAvailable: false,  // Location de chaussures disponible
+    shoeRentalPrice: ''  // Prix de location
   });
 
   const [errors, setErrors] = useState({});
@@ -27,7 +29,9 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         isMagicRotation: session.isMagicRotation,
         productIds,
         guideId: session.guideId || '',
-        status: session.status
+        status: session.status,
+        shoeRentalAvailable: session.shoeRentalAvailable || false,
+        shoeRentalPrice: session.shoeRentalPrice || ''
       });
     } else if (currentUser && !formData.guideId) {
       // Par défaut, le guide connecté
@@ -106,6 +110,13 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       newErrors.guideId = 'Sélectionnez un guide';
     }
 
+    // Validation location de chaussures
+    if (formData.shoeRentalAvailable) {
+      if (!formData.shoeRentalPrice || parseFloat(formData.shoeRentalPrice) <= 0) {
+        newErrors.shoeRentalPrice = 'Le prix de location doit être supérieur à 0';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -122,7 +133,9 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       isMagicRotation: formData.isMagicRotation,
       status: formData.status,
       productIds: formData.productIds,
-      guideId: formData.guideId
+      guideId: formData.guideId,
+      shoeRentalAvailable: formData.shoeRentalAvailable,
+      shoeRentalPrice: formData.shoeRentalAvailable ? parseFloat(formData.shoeRentalPrice) : null
     };
 
     onSubmit(submitData);
@@ -247,6 +260,46 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               ℹ️ Mode standard : Vous pouvez proposer plusieurs canyons sur ce créneau.
               Chaque canyon peut être réservé indépendamment jusqu'à sa capacité maximale.
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* Location de chaussures */}
+      <div className={styles.section}>
+        <h3>👟 Location de chaussures</h3>
+
+        <div className={styles.formGroup}>
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              name="shoeRentalAvailable"
+              checked={formData.shoeRentalAvailable}
+              onChange={handleChange}
+            />
+            <div>
+              <strong>Proposer la location de chaussures</strong>
+              <p className={styles.helpText}>
+                Les clients pourront ajouter une location de chaussures lors de leur réservation.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {formData.shoeRentalAvailable && (
+          <div className={styles.formGroup}>
+            <label>Prix de location par personne *</label>
+            <input
+              type="number"
+              name="shoeRentalPrice"
+              value={formData.shoeRentalPrice}
+              onChange={handleChange}
+              placeholder="Ex: 5"
+              step="0.01"
+              min="0"
+              className={errors.shoeRentalPrice ? styles.error : ''}
+            />
+            {errors.shoeRentalPrice && <span className={styles.errorMsg}>{errors.shoeRentalPrice}</span>}
+            <p className={styles.helpText}>Le prix sera ajouté au total de la réservation pour chaque participant qui souhaite louer des chaussures.</p>
           </div>
         )}
       </div>

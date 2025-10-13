@@ -110,5 +110,12 @@ export const stripeAPI = {
   verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`)
 };
 
+// Participants
+export const participantsAPI = {
+  getByBooking: (bookingId) => api.get(`/participants/booking/${bookingId}`),
+  upsert: (bookingId, data) => api.post(`/participants/booking/${bookingId}`, data),
+  getSessionWetsuitSummary: (sessionId) => api.get(`/participants/session/${sessionId}/wetsuit-summary`),
+  delete: (id) => api.delete(`/participants/${id}`)
+};
 
 export default api;

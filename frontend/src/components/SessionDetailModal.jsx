@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import WetsuitSummary from './WetsuitSummary';
 import styles from './SessionDetailModal.module.css';
 
 const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplicate, onDelete }) => {
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'clients', 'communication'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'clients', 'equipment', 'communication'
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
   if (!session) return null;
-
+console.log(session)
   const { bookings = [], startTime, date, guide, products } = session;
 
   // Calculer les statistiques
@@ -67,9 +68,10 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   };
 
   const handleDownloadPDF = () => {
-    // TODO: Implémenter le téléchargement PDF avec poids/tailles
-    alert('Fonctionnalité PDF à venir : génération d\'un document avec poids et tailles de tous les clients');
-  };
+              const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              const token = localStorage.getItem('token');
+              window.open(`${API_URL}/participants/session/${session.id}/print?token=${token}`, '_blank');
+              };
 
   const formatDate = (dateString) => {
     return format(new Date(dateString), 'EEEE d MMMM yyyy', { locale: fr });
@@ -186,6 +188,12 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
             Clients ({confirmedBookings.length})
           </button>
           <button
+            className={`${styles.tab} ${activeTab === 'equipment' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('equipment')}
+          >
+            🧥 Équipements
+          </button>
+          <button
             className={`${styles.tab} ${activeTab === 'communication' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('communication')}
           >
@@ -247,7 +255,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
                   📋 Dupliquer
                 </button>
                 <button className={styles.btnSecondary} onClick={handleDownloadPDF}>
-                  📄 PDF Poids/Tailles
+                  📄 PDF Info résa
                 </button>
                 <button className={styles.btnDanger} onClick={handleDeleteSession}>
                   🗑️ Supprimer
@@ -295,9 +303,6 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
             <div className={styles.clientsTab}>
               <div className={styles.clientsHeader}>
                 <h3>Détails des clients</h3>
-                <button className={styles.btnSecondary} onClick={handleDownloadPDF}>
-                  📄 Exporter PDF
-                </button>
               </div>
 
               {confirmedBookings.length === 0 ? (
@@ -366,6 +371,13 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Onglet Équipements */}
+          {activeTab === 'equipment' && (
+            <div className={styles.equipmentTab}>
+              <WetsuitSummary sessionId={session.id} onClose={null} />
             </div>
           )}
 

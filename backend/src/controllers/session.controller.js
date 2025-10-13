@@ -73,9 +73,6 @@ export const getSessionById = async (req, res, next) => {
         products: {
           include: {
             product: {
-              include: {
-                category: true
-              }
             }
           }
         },
@@ -119,7 +116,9 @@ export const createSession = async (req, res, next) => {
       isMagicRotation,
       productIds, // Array de produits pour la rotation magique
       status,
-      guideId: bodyGuideId  // Optionnel : fourni par l'admin
+      guideId: bodyGuideId,  // Optionnel : fourni par l'admin
+      shoeRentalAvailable,   // Nouveau : location de chaussures disponible
+      shoeRentalPrice        // Nouveau : prix de location
     } = req.body;
 
     // Récupérer le guideId depuis le user authentifié
@@ -142,6 +141,11 @@ export const createSession = async (req, res, next) => {
 
     if (!productIds || productIds.length === 0) {
       throw new AppError('Au moins un produit doit être sélectionné', 400);
+    }
+
+    // Validation : si location disponible, le prix doit être fourni
+    if (shoeRentalAvailable && (!shoeRentalPrice || shoeRentalPrice <= 0)) {
+      throw new AppError('Le prix de location de chaussures doit être spécifié et supérieur à 0', 400);
     }
 
     // Vérifier que le guide n'a pas déjà une session sur ce créneau
@@ -167,7 +171,9 @@ export const createSession = async (req, res, next) => {
           startTime,
           isMagicRotation: isMagicRotation || false,
           guideId,
-          status: status || 'open'
+          status: status || 'open',
+          shoeRentalAvailable: shoeRentalAvailable || false,
+          shoeRentalPrice: shoeRentalAvailable ? shoeRentalPrice : null
         }
       });
 
@@ -186,9 +192,6 @@ export const createSession = async (req, res, next) => {
           products: {
             include: {
               product: {
-                include: {
-                  category: true
-                }
               }
             }
           },
@@ -221,7 +224,9 @@ export const updateSession = async (req, res, next) => {
       startTime,
       isMagicRotation,
       productIds,
-      status
+      status,
+      shoeRentalAvailable,
+      shoeRentalPrice
     } = req.body;
 
     const updateData = {};
@@ -231,6 +236,22 @@ export const updateSession = async (req, res, next) => {
     if (startTime) updateData.startTime = startTime;
     if (typeof isMagicRotation === 'boolean') updateData.isMagicRotation = isMagicRotation;
     if (status) updateData.status = status;
+    if (typeof shoeRentalAvailable === 'boolean') {
+      updateData.shoeRentalAvailable = shoeRentalAvailable;
+      // Si la location est activée, vérifier que le prix est fourni
+      if (shoeRentalAvailable) {
+        if (!shoeRentalPrice || shoeRentalPrice <= 0) {
+          throw new AppError('Le prix de location de chaussures doit être spécifié et supérieur à 0', 400);
+        }
+        updateData.shoeRentalPrice = shoeRentalPrice;
+      } else {
+        // Si désactivée, mettre le prix à null
+        updateData.shoeRentalPrice = null;
+      }
+    } else if (shoeRentalPrice !== undefined) {
+      // Si seulement le prix est mis à jour
+      updateData.shoeRentalPrice = shoeRentalPrice;
+    }
 
     // Mettre à jour en transaction
     const session = await prisma.$transaction(async (tx) => {
@@ -265,9 +286,6 @@ export const updateSession = async (req, res, next) => {
           products: {
             include: {
               product: {
-                include: {
-                  category: true
-                }
               }
             }
           },

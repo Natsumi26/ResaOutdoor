@@ -74,22 +74,24 @@ model Product {
 
 // Sessions (créneaux planifiés)
 model Session {
-  id                String      @id @default(uuid())
-  date              DateTime
-  timeSlot          String      // "matin", "après-midi" ou "journée"
-  startTime         String      // "09:00"
-  isMagicRotation   Boolean     @default(false)
-  status            String      @default("open") // "open", "full", "closed"
+  id                    String      @id @default(uuid())
+  date                  DateTime
+  timeSlot              String      // "matin", "après-midi" ou "journée"
+  startTime             String      // "09:00"
+  isMagicRotation       Boolean     @default(false)
+  status                String      @default("open") // "open", "full", "closed"
+  shoeRentalAvailable   Boolean     @default(false) // Location de chaussures disponible
+  shoeRentalPrice       Float?      // Prix de location de chaussures
 
-  guideId           String
-  guide             User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  guideId               String
+  guide                 User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   // Relations
-  products          SessionProduct[]  // Produits disponibles dans cette session
-  bookings          Booking[]
+  products              SessionProduct[]  // Produits disponibles dans cette session
+  bookings              Booking[]
 
   @@map("sessions")
 }
@@ -157,6 +159,7 @@ model Booking {
 
   payments          Payment[]
   history           BookingHistory[]
+  participants      Participant[]
 
   @@map("bookings")
 }
@@ -204,4 +207,25 @@ model GiftVoucher {
   expiresAt     DateTime?
 
   @@map("gift_vouchers")
+}
+
+// Participants (informations sur chaque participant d'une réservation)
+model Participant {
+  id            String   @id @default(uuid())
+
+  firstName     String
+  age           Int
+  height        Int      // Taille en cm
+  weight        Float    // Poids en kg
+  wetsuitSize   String?  // Taille de combinaison calculée automatiquement
+  shoeRental    Boolean  @default(false) // Location de chaussures pour ce participant
+  shoeSize      Int?     // Pointure si location de chaussures
+
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("participants")
 }

@@ -741,3 +741,9 @@
     flex: 1;
   }
 }
+
+/* Equipment Tab */
+.equipmentTab {
+  padding: 0;
+  margin: -1.5rem;
+}

@@ -9,6 +9,7 @@ import categoryRoutes from './routes/category.routes.js';
 import productRoutes from './routes/product.routes.js';
 import sessionRoutes from './routes/session.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
+import participantRoutes from './routes/participant.routes.js';
 import giftVoucherRoutes from './routes/giftVoucher.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import availabilityRoutes from './routes/availability.routes.js';
@@ -46,6 +47,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/participants', participantRoutes);
 app.use('/api/gift-vouchers', giftVoucherRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/availability', availabilityRoutes);
@@ -61,8 +63,21 @@ app.get('/api/health', (req, res) => {
 // Error handler (doit être en dernier)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// 🔒 Gérer les arrêts propres pour éviter les conflits de port
+process.on('SIGTERM', () => {
+  server.close(() => {
+    console.log('🛑 Serveur fermé proprement (SIGTERM)');
+  });
+});
+
+process.on('SIGINT', () => {
+  server.close(() => {
+    console.log('🛑 Serveur fermé proprement (SIGINT)');
+  });
 });
 
 export default app;
