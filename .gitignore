@@ -21,6 +21,13 @@ build/
 
 # Prisma
 backend/uploads/*
+# Ne PAS ignorer les migrations !
+# backend/prisma/migrations/ doit être versionné
+# Mais ignorer les fichiers temporaires
+*.db
+*.db-journal
+backup_*.sql
+backend/backups/
 
 # IDE
 .vscode/

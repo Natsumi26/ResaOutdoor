@@ -8,7 +8,9 @@
       "Bash(npx prisma migrate resolve:*)",
       "Bash(npx prisma migrate:*)",
       "Bash(npx prisma db execute:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(rm:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
