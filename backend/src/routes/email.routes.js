@@ -24,9 +24,6 @@ router.post('/booking-confirmation/:bookingId', async (req, res, next) => {
           }
         },
         product: {
-          include: {
-            category: true
-          }
         }
       }
     });

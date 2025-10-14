@@ -7,7 +7,8 @@ import {
   addPayment,
   cancelBooking,
   moveBooking,
-  deleteBooking
+  deleteBooking,
+  markProductDetailsSent
 } from '../controllers/booking.controller.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -22,6 +23,7 @@ router.put('/:id', updateBooking);
 router.post('/:id/payment', addPayment);
 router.post('/:id/cancel', cancelBooking);
 router.post('/:id/move', moveBooking);
+router.post('/:id/mark-product-details-sent', markProductDetailsSent);
 router.delete('/:id', deleteBooking);
 
 export default router;

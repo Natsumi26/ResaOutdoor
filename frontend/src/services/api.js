@@ -85,6 +85,7 @@ export const bookingsAPI = {
   addPayment: (id, data) => api.post(`/bookings/${id}/payment`, data),
   cancel: (id) => api.post(`/bookings/${id}/cancel`),
   move: (id, data) => api.post(`/bookings/${id}/move`, data),
+  markProductDetailsSent: (id) => api.post(`/bookings/${id}/mark-product-details-sent`),
   delete: (id) => api.delete(`/bookings/${id}`)
 };
 

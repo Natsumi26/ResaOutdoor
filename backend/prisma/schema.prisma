@@ -132,34 +132,38 @@ model ProductCategory {
 
 // Réservations
 model Booking {
-  id                String      @id @default(uuid())
+  id                        String      @id @default(uuid())
 
   // Client
-  clientFirstName   String
-  clientLastName    String
-  clientEmail       String
-  clientPhone       String
-  clientNationality String?
+  clientFirstName           String
+  clientLastName            String
+  clientEmail               String
+  clientPhone               String
+  clientNationality         String?
 
   // Réservation
-  numberOfPeople    Int
-  totalPrice        Float
-  amountPaid        Float       @default(0)
-  status            String      @default("pending") // "pending", "confirmed", "cancelled"
+  numberOfPeople            Int
+  totalPrice                Float
+  amountPaid                Float       @default(0)
+  status                    String      @default("pending") // "pending", "confirmed", "cancelled"
+
+  // Statuts de complétion pour le badge
+  participantsFormCompleted Boolean     @default(false) // Le formulaire participants est complété
+  productDetailsSent        Boolean     @default(false) // Les détails du produit ont été envoyés par le guide
 
   // Relations : Le client réserve pour UN produit (canyon) spécifique
-  sessionId         String
-  session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId                 String
+  session                   Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  productId         String
-  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId                 String
+  product                   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
 
-  payments          Payment[]
-  history           BookingHistory[]
-  participants      Participant[]
+  payments                  Payment[]
+  history                   BookingHistory[]
+  participants              Participant[]
 
   @@map("bookings")
 }

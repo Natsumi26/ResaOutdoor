@@ -3,7 +3,7 @@ import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
-  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid } = booking;
+  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, participantsFormCompleted, productDetailsSent } = booking;
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -16,25 +16,29 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Déterminer la couleur du badge selon le statut de paiement
+  // Déterminer la couleur du badge selon la complétion du formulaire et l'envoi des détails
   const getBookingColor = () => {
     if (status === 'cancelled') return '#94a3b8'; // Gris
 
-    const paidPercentage = (amountPaid / totalPrice) * 100;
+    // Vert si TOUT est complété (formulaire participants ET détails produit envoyés)
+    if (participantsFormCompleted && productDetailsSent) {
+      return '#72b416'; // Vert
+    }
 
-    if (paidPercentage >= 100) return '#72b416'; // Vert - Payé
-    if (paidPercentage > 0) return '#f59e0b'; // Orange - Partiel
-    return '#f4b400'; // Orange - Non payé
+    // Orange sinon
+    return '#f59e0b'; // Orange
   };
 
   // Icônes selon le statut
   const getIcon = () => {
     if (status === 'cancelled') return '✕';
 
-    const paidPercentage = (amountPaid / totalPrice) * 100;
+    // Vert si TOUT est complété
+    if (participantsFormCompleted && productDetailsSent) {
+      return '✓';
+    }
 
-    if (paidPercentage >= 100) return '✓';
-    if (paidPercentage > 0) return '◐';
+    // Orange sinon
     return '○';
   };
 
@@ -169,12 +173,16 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
               <div className={styles.tooltipBody}>
                 <div className={styles.tooltipColumn}>
                   <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipLabel}>Encaissé :</span>
-                    <span className={styles.tooltipValue}>{amountPaid} €</span>
+                    <span className={styles.tooltipLabel}>Formulaire participants :</span>
+                    <span className={styles.tooltipValue} style={{ color: participantsFormCompleted ? '#10b981' : '#f59e0b' }}>
+                      {participantsFormCompleted ? '✓ Complété' : '○ En attente'}
+                    </span>
                   </div>
                   <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipLabel}>Reste à régler :</span>
-                    <span className={styles.tooltipValue}>{(totalPrice - amountPaid).toFixed(2)} €</span>
+                    <span className={styles.tooltipLabel}>Détails produit :</span>
+                    <span className={styles.tooltipValue} style={{ color: productDetailsSent ? '#10b981' : '#f59e0b' }}>
+                      {productDetailsSent ? '✓ Envoyés' : '○ Non envoyés'}
+                    </span>
                   </div>
                 </div>
               </div>

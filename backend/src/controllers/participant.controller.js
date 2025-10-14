@@ -140,7 +140,7 @@ export const upsertParticipants = async (req, res, next) => {
       })
     );
 
-    // Mettre à jour le prix total de la réservation
+    // Mettre à jour le prix total de la réservation et marquer le formulaire comme complété
     // Soustraire l'ancien coût des chaussures et ajouter le nouveau
     const newTotalPrice = booking.totalPrice - oldShoeRentalTotal + newShoeRentalTotal;
 
@@ -152,10 +152,23 @@ export const upsertParticipants = async (req, res, next) => {
 
     await prisma.booking.update({
       where: { id: bookingId },
-      data: { totalPrice: newTotalPrice }
+      data: {
+        totalPrice: newTotalPrice,
+        participantsFormCompleted: true  // Marquer le formulaire comme complété
+      }
+    });
+
+    // Ajouter à l'historique
+    await prisma.bookingHistory.create({
+      data: {
+        action: 'modified',
+        details: `Formulaire participants complété (${participants.length} participant(s))`,
+        bookingId
+      }
     });
 
     console.log('Prix mis à jour dans la base de données');
+    console.log('Formulaire participants marqué comme complété');
     console.log('=========================');
 
     res.json({

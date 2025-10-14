@@ -222,13 +222,26 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
         bookingId: bookingId,
         to: booking.clientEmail,
         subject: 'Informations sur votre activité',
-        message: activityEmailText
+        content: activityEmailText
       });
       alert('Email envoyé avec succès au client !');
       setShowActivityEmail(false);
+      handleMarkProductDetailsSent()
     } catch (error) {
       console.error('Erreur envoi email activité:', error);
       alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleMarkProductDetailsSent = async () => {
+    try {
+      await bookingsAPI.markProductDetailsSent(bookingId);
+      alert('Détails du produit marqués comme envoyés !');
+      await loadBooking();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur marquage détails produit:', error);
+      alert('Impossible de marquer les détails comme envoyés: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -575,6 +588,34 @@ L'équipe`;
                   </div>
                 </div>
               </div>
+
+              {/* Statuts de complétion */}
+              <div className={styles.section}>
+                <h3>✅ Statuts de Complétion</h3>
+                <div className={styles.infoGrid}>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Formulaire participants</span>
+                    <span className={styles.value} style={{ color: booking.participantsFormCompleted ? '#10b981' : '#f59e0b' }}>
+                      {booking.participantsFormCompleted ? '✓ Complété' : '○ En attente'}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Détails produit envoyés</span>
+                    <span className={styles.value} style={{ color: booking.productDetailsSent ? '#10b981' : '#f59e0b' }}>
+                      {booking.productDetailsSent ? '✓ Envoyés' : '○ Non envoyés'}
+                    </span>
+                  </div>
+                </div>
+                {!booking.productDetailsSent && (
+                  <button
+                    className={styles.btnPrimary}
+                    onClick={handleMarkProductDetailsSent}
+                    style={{ marginTop: '10px' }}
+                  >
+                    ✓ Marquer les détails produit comme envoyés
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -601,9 +642,11 @@ L'équipe`;
                             <span className={styles.participantName}>
                               {index + 1}. {participant.firstName}
                             </span>
-                            <span className={styles.wetsuitBadge}>
-                              {participant.wetsuitSize}
-                            </span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span className={styles.wetsuitBadge}>
+                                {participant.wetsuitSize}
+                              </span>
+                            </div>
                           </div>
                           <div className={styles.participantDetails}>
                             <span>👤 {participant.age} ans</span>

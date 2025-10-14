@@ -667,3 +667,49 @@ export const deleteBooking = async (req, res, next) => {
     }
   }
 };
+
+// Marquer les détails du produit comme envoyés par le guide
+export const markProductDetailsSent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await prisma.$transaction(async (tx) => {
+      const updatedBooking = await tx.booking.update({
+        where: { id },
+        data: { productDetailsSent: true },
+        include: {
+          session: {
+            include: {
+              guide: true
+            }
+          },
+          product: true,
+          payments: true,
+          history: true
+        }
+      });
+
+      // Ajouter à l'historique
+      await tx.bookingHistory.create({
+        data: {
+          action: 'modified',
+          details: 'Détails du produit envoyés au client',
+          bookingId: id
+        }
+      });
+
+      return updatedBooking;
+    });
+
+    res.json({
+      success: true,
+      booking
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      next(new AppError('Réservation non trouvée', 404));
+    } else {
+      next(error);
+    }
+  }
+};
