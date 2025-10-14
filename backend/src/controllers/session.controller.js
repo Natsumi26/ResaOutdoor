@@ -148,18 +148,8 @@ export const createSession = async (req, res, next) => {
       throw new AppError('Le prix de location de chaussures doit être spécifié et supérieur à 0', 400);
     }
 
-    // Vérifier que le guide n'a pas déjà une session sur ce créneau
-    const existingSession = await prisma.session.findFirst({
-      where: {
-        guideId,
-        date: new Date(date),
-        timeSlot
-      }
-    });
-
-    if (existingSession) {
-      throw new AppError('Vous avez déjà une session sur ce créneau', 409);
-    }
+    // Note: Suppression de la vérification d'unicité pour permettre plusieurs sessions
+    // sur le même créneau pour le même guide
 
     // Créer la session avec les produits en transaction
     const session = await prisma.$transaction(async (tx) => {

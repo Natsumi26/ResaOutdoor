@@ -45,16 +45,6 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   // Format du nom
   const displayName = `${clientFirstName} ${clientLastName.charAt(0)}.`;
 
-  // gestion nationalité - convertir code pays en émoji drapeau
-  const getFlagEmoji = (countryCode) => {
-    if (!countryCode || countryCode.length !== 2) return '';
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  };
-
   // Formater le numéro de téléphone avec indicatif pays et espaces
   const formatPhoneNumber = (phone, countryCode) => {
     if (!phone) return 'N/A';

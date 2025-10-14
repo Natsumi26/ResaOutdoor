@@ -324,7 +324,16 @@ const getFlagEmoji = (countryCode) => {
             <label>Nationalité</label>
              <div className={styles.nationalityWrapper}>
               <span className={styles.flag}>
-                {getFlagEmoji(formData.clientNationality)}
+              <img
+                              src={`https://flagcdn.com/16x12/${formData.clientNationality.toLowerCase()}.png`}
+                              alt={formData.clientNationality}
+                              className={styles.flagIcon}
+                              onError={(e) => {
+                                // Si l'image ne charge pas, afficher le code pays
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'inline';
+                              }}
+                            />
               </span>
               <select
                 name="clientNationality"

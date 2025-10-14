@@ -354,11 +354,17 @@ export const getSessionPrintHTML = async (req, res, next) => {
 
     // Compter les tailles de combinaisons
     const wetsuitCounts = {};
+    const shoeRentalCounts = {};
     session.bookings.forEach(booking => {
       booking.participants.forEach(participant => {
+        console.log(participant)
         if (participant.wetsuitSize) {
           wetsuitCounts[participant.wetsuitSize] =
             (wetsuitCounts[participant.wetsuitSize] || 0) + 1;
+        }
+        if (participant.shoeSize) {
+          shoeRentalCounts[participant.shoeSize] =
+            (shoeRentalCounts[participant.shoeSize] || 0) + 1;
         }
       });
     });
@@ -368,6 +374,12 @@ export const getSessionPrintHTML = async (req, res, next) => {
     const wetsuitSummary = sizeOrder
       .filter(size => wetsuitCounts[size])
       .map(size => `${wetsuitCounts[size]}${size}`)
+      .join(' - ');
+
+    //Somme des taille de chaussures si location
+    const shoeSummary = Object.entries(shoeRentalCounts)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+      .map(([size, count]) => `${count}x${size}`)
       .join(' - ');
 
     // Formater la date
@@ -552,6 +564,11 @@ export const getSessionPrintHTML = async (req, res, next) => {
     <h2>📊 Total du nombre et des tailles de combinaisons à prévoir:</h2>
     <p class="summary-text">${wetsuitSummary || 'Aucune donnée'}</p>
   </div>
+  <div class="summary">
+  <h2>👟 Pointures à prévoir :</h2>
+  <p class="summary-text">${shoeSummary || 'Aucune donnée'}</p>
+  </div>
+
 
   <script>
     // Auto-print on load (optional)
