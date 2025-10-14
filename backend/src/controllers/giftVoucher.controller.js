@@ -71,10 +71,15 @@ export const getGiftVoucherByCode = async (req, res, next) => {
 // Créer un bon cadeau ou code promo
 export const createGiftVoucher = async (req, res, next) => {
   try {
-    const { amount, expiresAt, type = 'voucher', maxUsages, code: customCode } = req.body;
+    const { amount, expiresAt, type = 'voucher', maxUsages, code: customCode, discountType = 'fixed' } = req.body;
 
     if (!amount || amount <= 0) {
       throw new AppError('Montant invalide', 400);
+    }
+
+    // Validation du pourcentage
+    if (discountType === 'percentage' && amount > 100) {
+      throw new AppError('Le pourcentage ne peut pas dépasser 100%', 400);
     }
 
     // Si un code personnalisé est fourni, vérifier qu'il n'existe pas déjà
@@ -105,6 +110,7 @@ export const createGiftVoucher = async (req, res, next) => {
       data: {
         code,
         amount: parseFloat(amount),
+        discountType,
         type,
         maxUsages: maxUsages ? parseInt(maxUsages) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null

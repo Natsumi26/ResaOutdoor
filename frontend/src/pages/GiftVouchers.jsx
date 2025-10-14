@@ -11,7 +11,8 @@ const GiftVouchers = () => {
     expiresAt: '',
     type: 'voucher',
     maxUsages: '',
-    code: ''
+    code: '',
+    discountType: 'fixed'
   });
   const [verifyCode, setVerifyCode] = useState('');
   const [verifyResult, setVerifyResult] = useState(null);
@@ -75,7 +76,8 @@ const GiftVouchers = () => {
       expiresAt: '',
       type: 'voucher',
       maxUsages: '',
-      code: ''
+      code: '',
+      discountType: 'fixed'
     });
     setShowModal(true);
   };
@@ -142,7 +144,7 @@ const GiftVouchers = () => {
               {verifyResult.voucher && (
                 <div style={{ marginTop: '10px', fontSize: '14px' }}>
                   <p><strong>Code:</strong> {verifyResult.voucher.code}</p>
-                  <p><strong>Montant:</strong> {verifyResult.voucher.amount}€</p>
+                  <p><strong>Remise:</strong> {verifyResult.voucher.discountType === 'percentage' ? `${verifyResult.voucher.amount}%` : `${verifyResult.voucher.amount}€`}</p>
                   <p><strong>Type:</strong> {verifyResult.voucher.type === 'voucher' ? 'Bon cadeau (usage unique)' : 'Code promo (utilisations multiples)'}</p>
                   <p><strong>Utilisations:</strong> {verifyResult.voucher.usageCount}
                     {verifyResult.voucher.maxUsages ? ` / ${verifyResult.voucher.maxUsages}` : ' (illimité)'}
@@ -200,7 +202,9 @@ const GiftVouchers = () => {
                       <span style={{ color: '#0d6efd' }}>🏷️ Code promo</span>
                     )}
                   </td>
-                  <td>{voucher.amount}€</td>
+                  <td>
+                    {voucher.discountType === 'percentage' ? `${voucher.amount}%` : `${voucher.amount}€`}
+                  </td>
                   <td>
                     {voucher.usageCount}
                     {voucher.maxUsages ? ` / ${voucher.maxUsages}` : ' (∞)'}
@@ -262,15 +266,36 @@ const GiftVouchers = () => {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Montant (€) *</label>
+                <label>Type de remise *</label>
+                <select
+                  value={formData.discountType}
+                  onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+                  required
+                >
+                  <option value="fixed">💶 Montant fixe (€)</option>
+                  <option value="percentage">📊 Pourcentage (%)</option>
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>
+                  {formData.discountType === 'percentage' ? 'Pourcentage (%) *' : 'Montant (€) *'}
+                </label>
                 <input
                   type="number"
-                  step="0.01"
+                  step={formData.discountType === 'percentage' ? '1' : '0.01'}
                   min="1"
+                  max={formData.discountType === 'percentage' ? '100' : undefined}
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   required
+                  placeholder={formData.discountType === 'percentage' ? 'Ex: 10 pour 10%' : 'Ex: 50 pour 50€'}
                 />
+                {formData.discountType === 'percentage' && (
+                  <small style={{ color: '#6c757d', fontSize: '12px' }}>
+                    Maximum 100%
+                  </small>
+                )}
               </div>
 
               {formData.type === 'promo' && (

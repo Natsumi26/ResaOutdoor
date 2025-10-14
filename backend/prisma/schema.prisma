@@ -202,7 +202,8 @@ model BookingHistory {
 model GiftVoucher {
   id            String              @id @default(uuid())
   code          String              @unique
-  amount        Float               // Montant de réduction
+  amount        Float               // Montant de réduction (en € ou en %)
+  discountType  String              @default("fixed") // "fixed" (montant fixe) ou "percentage" (pourcentage)
   type          String              @default("voucher") // "voucher" (à usage unique) ou "promo" (utilisations multiples)
   maxUsages     Int?                // Nombre max d'utilisations (null = illimité)
   usageCount    Int                 @default(0) // Nombre d'utilisations actuelles

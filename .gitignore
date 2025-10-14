@@ -18,8 +18,6 @@ dist/
 build/
 *.tsbuildinfo
 
-# Prisma
-backend/prisma/migrations/
 
 # Prisma
 backend/uploads/*
@@ -440,3 +438,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+backend/prisma/migrations/20251006132002_first/migration.sql
+backend/prisma/migrations/20251007084440_refactor_session_booking_system/migration.sql
+backend/prisma/migrations/20251010091942_add_region_to_products/migration.sql
+backend/prisma/migrations/20251013083126_add_product_categories_and_website_link/migration.sql
+backend/prisma/migrations/20251013095339_add_participants_and_shoe_rental/migration.sql
+backend/prisma/migrations/20251014072046_add_booking_completion_status/migration.sql
