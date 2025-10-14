@@ -54,15 +54,24 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       }));
     }
   };
+  const getTimeSlotFromTime = (time) => time >= '13:00' ? 'après-midi' : 'matin';
+  const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '14:00' : '09:00';
 
   const handleTimeSlotChange = (slot) => {
-    let defaultTime = '09:00';
-    if (slot === 'après-midi') defaultTime = '14:00';
-
+    const defaultTime = getDefaultTimeFromSlot(slot);
     setFormData(prev => ({
       ...prev,
       timeSlot: slot,
       startTime: defaultTime
+    }));
+  };
+
+  const handleStartTimeChange = (time) => {
+    const slot = getTimeSlotFromTime(time);
+    setFormData(prev => ({
+      ...prev,
+      startTime: time,
+      timeSlot: slot
     }));
   };
 
@@ -168,7 +177,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               type="time"
               name="startTime"
               value={formData.startTime}
-              onChange={handleChange}
+              onChange={(e) => handleStartTimeChange(e.target.value)}
               className={errors.startTime ? styles.error : ''}
             />
             {errors.startTime && <span className={styles.errorMsg}>{errors.startTime}</span>}
