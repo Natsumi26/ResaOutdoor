@@ -198,19 +198,36 @@ model BookingHistory {
   @@map("booking_history")
 }
 
-// Bons cadeaux
+// Bons cadeaux / Codes promos
 model GiftVoucher {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  amount        Float
-  isUsed        Boolean  @default(false)
-  usedAt        DateTime?
-  usedBy        String?  // Email ou nom du client
+  id            String              @id @default(uuid())
+  code          String              @unique
+  amount        Float               // Montant de réduction
+  type          String              @default("voucher") // "voucher" (à usage unique) ou "promo" (utilisations multiples)
+  maxUsages     Int?                // Nombre max d'utilisations (null = illimité)
+  usageCount    Int                 @default(0) // Nombre d'utilisations actuelles
 
-  createdAt     DateTime @default(now())
+  createdAt     DateTime            @default(now())
   expiresAt     DateTime?
 
+  usages        PromoCodeUsage[]    // Historique des utilisations
+
   @@map("gift_vouchers")
+}
+
+// Historique d'utilisation des codes promos
+model PromoCodeUsage {
+  id            String       @id @default(uuid())
+
+  voucherId     String
+  voucher       GiftVoucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  usedBy        String?      // Email ou nom du client
+  bookingId     String?      // Lien vers la réservation si applicable
+
+  usedAt        DateTime     @default(now())
+
+  @@map("promo_code_usages")
 }
 
 // Participants (informations sur chaque participant d'une réservation)

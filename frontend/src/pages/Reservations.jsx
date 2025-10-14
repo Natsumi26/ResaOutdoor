@@ -13,6 +13,8 @@ const Reservations = () => {
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [searchDate, setSearchDate] = useState('');
   const [searchClient, setSearchClient] = useState('');
+  const [searchYear, setSearchYear] = useState('');
+
 
   useEffect(() => {
     loadBookings();
@@ -20,7 +22,7 @@ const Reservations = () => {
 
   useEffect(() => {
     filterBookings();
-  }, [searchDate, searchClient, bookings]);
+  }, [searchDate, searchClient,searchYear, bookings]);
 
   const loadBookings = async () => {
     try {
@@ -54,6 +56,14 @@ const Reservations = () => {
         const fullName = `${booking.clientFirstName} ${booking.clientLastName}`.toLowerCase();
         return fullName.includes(search) ||
                booking.clientEmail.toLowerCase().includes(search);
+      });
+    }
+
+     // Filtre par année
+    if (searchYear) {
+      filtered = filtered.filter(booking => {
+        const year = format(new Date(booking.session.date), 'yyyy');
+        return year === searchYear;
       });
     }
 
@@ -126,6 +136,29 @@ const Reservations = () => {
 
       {/* Filtres de recherche */}
       <div className={styles.filters}>
+        <div className={styles.filterGroup}>
+          <label>📆 Filtrer par année</label>
+          <select
+            value={searchYear}
+            onChange={(e) => setSearchYear(e.target.value)}
+            className={styles.input}
+          >
+            <option value="">Toutes</option>
+            {[...new Set(bookings.map(b => format(new Date(b.session.date), 'yyyy')))]
+              .sort()
+              .map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+          </select>
+          {searchYear && (
+            <button
+              className={styles.clearBtn}
+              onClick={() => setSearchYear('')}
+            >
+              ✕
+            </button>
+          )}
+        </div>
         <div className={styles.filterGroup}>
           <label>📅 Recherche par date</label>
           <input

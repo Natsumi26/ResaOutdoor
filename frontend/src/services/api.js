@@ -93,6 +93,7 @@ export const bookingsAPI = {
 export const giftVouchersAPI = {
   getAll: (params) => api.get('/gift-vouchers', { params }),
   getByCode: (code) => api.get(`/gift-vouchers/${code}`),
+  verifyCode: (code) => api.get(`/gift-vouchers/${code}/verify`),
   create: (data) => api.post('/gift-vouchers', data),
   use: (code, data) => api.post(`/gift-vouchers/${code}/use`, data),
   delete: (id) => api.delete(`/gift-vouchers/${id}`)

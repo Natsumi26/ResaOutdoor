@@ -14,15 +14,21 @@ const generateVoucherCode = () => {
 // Lister tous les bons cadeaux
 export const getAllGiftVouchers = async (req, res, next) => {
   try {
-    const { isUsed } = req.query;
+    const { type } = req.query;
 
     const where = {};
-    if (isUsed !== undefined) {
-      where.isUsed = isUsed === 'true';
+    if (type) {
+      where.type = type;
     }
 
     const vouchers = await prisma.giftVoucher.findMany({
       where,
+      include: {
+        usages: {
+          orderBy: { usedAt: 'desc' },
+          take: 5 // Dernières 5 utilisations
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -35,17 +41,22 @@ export const getAllGiftVouchers = async (req, res, next) => {
   }
 };
 
-// Obtenir un bon cadeau par code
+// Obtenir un bon cadeau par code avec historique d'utilisation
 export const getGiftVoucherByCode = async (req, res, next) => {
   try {
     const { code } = req.params;
 
     const voucher = await prisma.giftVoucher.findUnique({
-      where: { code: code.toUpperCase() }
+      where: { code: code.toUpperCase() },
+      include: {
+        usages: {
+          orderBy: { usedAt: 'desc' }
+        }
+      }
     });
 
     if (!voucher) {
-      throw new AppError('Bon cadeau non trouvé', 404);
+      throw new AppError('Code non trouvé', 404);
     }
 
     res.json({
@@ -57,26 +68,36 @@ export const getGiftVoucherByCode = async (req, res, next) => {
   }
 };
 
-// Créer un bon cadeau
+// Créer un bon cadeau ou code promo
 export const createGiftVoucher = async (req, res, next) => {
   try {
-    const { amount, expiresAt } = req.body;
+    const { amount, expiresAt, type = 'voucher', maxUsages, code: customCode } = req.body;
 
     if (!amount || amount <= 0) {
       throw new AppError('Montant invalide', 400);
     }
 
-    // Générer un code unique
+    // Si un code personnalisé est fourni, vérifier qu'il n'existe pas déjà
     let code;
-    let isUnique = false;
-
-    while (!isUnique) {
-      code = generateVoucherCode();
+    if (customCode) {
+      code = customCode.toUpperCase();
       const existing = await prisma.giftVoucher.findUnique({
         where: { code }
       });
-      if (!existing) {
-        isUnique = true;
+      if (existing) {
+        throw new AppError('Ce code existe déjà', 409);
+      }
+    } else {
+      // Générer un code unique
+      let isUnique = false;
+      while (!isUnique) {
+        code = generateVoucherCode();
+        const existing = await prisma.giftVoucher.findUnique({
+          where: { code }
+        });
+        if (!existing) {
+          isUnique = true;
+        }
       }
     }
 
@@ -84,7 +105,12 @@ export const createGiftVoucher = async (req, res, next) => {
       data: {
         code,
         amount: parseFloat(amount),
+        type,
+        maxUsages: maxUsages ? parseInt(maxUsages) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null
+      },
+      include: {
+        usages: true
       }
     });
 
@@ -97,40 +123,132 @@ export const createGiftVoucher = async (req, res, next) => {
   }
 };
 
-// Utiliser un bon cadeau
+// Utiliser un bon cadeau ou code promo
 export const useGiftVoucher = async (req, res, next) => {
   try {
     const { code } = req.params;
-    const { usedBy } = req.body;
+    const { usedBy, bookingId } = req.body;
 
     const voucher = await prisma.giftVoucher.findUnique({
-      where: { code: code.toUpperCase() }
+      where: { code: code.toUpperCase() },
+      include: {
+        usages: true
+      }
     });
 
     if (!voucher) {
-      throw new AppError('Bon cadeau non trouvé', 404);
+      throw new AppError('Code non trouvé', 404);
     }
 
-    if (voucher.isUsed) {
+    // Vérifier l'expiration
+    if (voucher.expiresAt && new Date() > voucher.expiresAt) {
+      throw new AppError('Ce code a expiré', 410);
+    }
+
+    // Vérifier le nombre d'utilisations pour les codes promos
+    if (voucher.type === 'promo' && voucher.maxUsages !== null) {
+      if (voucher.usageCount >= voucher.maxUsages) {
+        throw new AppError('Ce code promo a atteint sa limite d\'utilisations', 409);
+      }
+    }
+
+    // Pour les bons cadeaux (usage unique), vérifier s'il a déjà été utilisé
+    if (voucher.type === 'voucher' && voucher.usageCount > 0) {
       throw new AppError('Ce bon cadeau a déjà été utilisé', 409);
     }
 
-    if (voucher.expiresAt && new Date() > voucher.expiresAt) {
-      throw new AppError('Ce bon cadeau a expiré', 410);
-    }
+    // Enregistrer l'utilisation avec une transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Créer une entrée d'utilisation
+      await tx.promoCodeUsage.create({
+        data: {
+          voucherId: voucher.id,
+          usedBy,
+          bookingId
+        }
+      });
 
-    const updatedVoucher = await prisma.giftVoucher.update({
-      where: { code: code.toUpperCase() },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-        usedBy
-      }
+      // Incrémenter le compteur d'utilisations
+      const updated = await tx.giftVoucher.update({
+        where: { code: code.toUpperCase() },
+        data: {
+          usageCount: { increment: 1 }
+        },
+        include: {
+          usages: {
+            orderBy: { usedAt: 'desc' }
+          }
+        }
+      });
+
+      return updated;
     });
 
     res.json({
       success: true,
-      voucher: updatedVoucher
+      voucher: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Vérifier la validité d'un code promo (sans l'utiliser)
+export const verifyPromoCode = async (req, res, next) => {
+  try {
+    const { code } = req.params;
+
+    const voucher = await prisma.giftVoucher.findUnique({
+      where: { code: code.toUpperCase() },
+      include: {
+        usages: {
+          orderBy: { usedAt: 'desc' }
+        }
+      }
+    });
+
+    if (!voucher) {
+      return res.json({
+        success: false,
+        valid: false,
+        message: 'Code non trouvé'
+      });
+    }
+
+    // Vérifier l'expiration
+    if (voucher.expiresAt && new Date() > voucher.expiresAt) {
+      return res.json({
+        success: false,
+        valid: false,
+        message: 'Ce code a expiré',
+        voucher
+      });
+    }
+
+    // Vérifier le nombre d'utilisations
+    let canUse = true;
+    let message = 'Code valide';
+
+    if (voucher.type === 'promo' && voucher.maxUsages !== null) {
+      if (voucher.usageCount >= voucher.maxUsages) {
+        canUse = false;
+        message = 'Ce code promo a atteint sa limite d\'utilisations';
+      }
+    }
+
+    if (voucher.type === 'voucher' && voucher.usageCount > 0) {
+      canUse = false;
+      message = 'Ce bon cadeau a déjà été utilisé';
+    }
+
+    res.json({
+      success: true,
+      valid: canUse,
+      message,
+      voucher: {
+        ...voucher,
+        remainingUses: voucher.maxUsages ? voucher.maxUsages - voucher.usageCount : null
+      }
     });
   } catch (error) {
     next(error);
