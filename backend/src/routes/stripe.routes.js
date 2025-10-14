@@ -5,7 +5,11 @@ import { AppError } from '../middleware/errorHandler.js';
 import {
   createCheckoutSession,
   retrieveCheckoutSession,
-  constructWebhookEvent
+  constructWebhookEvent,
+  createConnectAccountLink,
+  createConnectAccountLinkForExisting,
+  getConnectAccount,
+  createLoginLink
 } from '../services/stripe.service.js';
 import { sendPaymentConfirmation } from '../services/email.service.js';
 
@@ -88,7 +92,7 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
  * POST /api/stripe/webhook
  * IMPORTANT: Le raw body est géré dans server.js AVANT express.json()
  */
-router.post('/webhook', async (req, res) => {
+router.post('/', async (req, res) => {
   const signature = req.headers['stripe-signature'];
 
   try {
@@ -187,6 +191,145 @@ router.post('/webhook', async (req, res) => {
   } catch (error) {
     console.error('Erreur traitement webhook Stripe:', error);
     res.status(400).send(`Webhook Error: ${error.message}`);
+  }
+});
+
+/**
+ * Connecter un compte Stripe pour un guide
+ * POST /api/stripe/connect/onboard
+ */
+router.post('/connect/onboard', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    // Récupérer l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new AppError('Utilisateur non trouvé', 404);
+    }
+
+    // Si l'utilisateur a déjà un compte Stripe Connect
+    if (user.stripeAccount) {
+      // Créer un nouveau lien d'onboarding
+      const link = await createConnectAccountLinkForExisting(user.stripeAccount);
+      return res.json({
+        success: true,
+        url: link.url,
+        accountId: user.stripeAccount
+      });
+    }
+
+    // Créer un nouveau compte Stripe Connect
+    const result = await createConnectAccountLink(userId, user.email);
+
+    // Sauvegarder l'ID du compte Stripe
+    await prisma.user.update({
+      where: { id: userId },
+      data: { stripeAccount: result.accountId }
+    });
+
+    res.json({
+      success: true,
+      url: result.url,
+      accountId: result.accountId
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Obtenir les informations du compte Stripe Connect
+ * GET /api/stripe/connect/account
+ */
+router.get('/connect/account', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    // Récupérer l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user || !user.stripeAccount) {
+      return res.json({
+        success: true,
+        connected: false
+      });
+    }
+
+    // Récupérer les infos du compte Stripe
+    const account = await getConnectAccount(user.stripeAccount);
+
+    res.json({
+      success: true,
+      connected: true,
+      account: {
+        id: account.id,
+        email: account.email,
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted,
+        country: account.country
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Créer un lien vers le dashboard Stripe Express
+ * POST /api/stripe/connect/dashboard
+ */
+router.post('/connect/dashboard', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    // Récupérer l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user || !user.stripeAccount) {
+      throw new AppError('Compte Stripe non configuré', 404);
+    }
+
+    // Créer le lien de connexion au dashboard
+    const link = await createLoginLink(user.stripeAccount);
+
+    res.json({
+      success: true,
+      url: link.url
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Déconnecter le compte Stripe
+ * POST /api/stripe/connect/disconnect
+ */
+router.post('/connect/disconnect', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+
+    // Supprimer le lien avec le compte Stripe
+    await prisma.user.update({
+      where: { id: userId },
+      data: { stripeAccount: null }
+    });
+
+    res.json({
+      success: true,
+      message: 'Compte Stripe déconnecté'
+    });
+  } catch (error) {
+    next(error);
   }
 });
 

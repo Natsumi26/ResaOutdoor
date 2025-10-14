@@ -1,6 +1,8 @@
 import { transporter, defaultFrom } from '../config/email.js';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import nodemailer from 'nodemailer';
+
 
 /**
  * Template HTML pour email de confirmation de réservation

@@ -109,7 +109,12 @@ export const emailAPI = {
 // Stripe
 export const stripeAPI = {
   createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),
-  verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`)
+  verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`),
+  // Stripe Connect
+  connectOnboard: () => api.post('/stripe/connect/onboard'),
+  getConnectAccount: () => api.get('/stripe/connect/account'),
+  getDashboardLink: () => api.post('/stripe/connect/dashboard'),
+  disconnectAccount: () => api.post('/stripe/connect/disconnect')
 };
 
 // Participants

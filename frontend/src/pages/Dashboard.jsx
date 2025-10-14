@@ -118,6 +118,16 @@ const Dashboard = () => {
             <span className={styles.icon}>🎁</span>
             {sidebarOpen && <span>Bons cadeaux</span>}
           </NavLink>
+
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `${styles.navItem} ${isActive ? styles.active : ''}`
+            }
+          >
+            <span className={styles.icon}>⚙️</span>
+            {sidebarOpen && <span>Paramètres</span>}
+          </NavLink>
         </nav>
 
         <div className={styles.sidebarFooter}>

@@ -13,8 +13,8 @@ export const createCheckoutSession = async (booking, amount) => {
     const { session, product } = booking;
     const sessionDate = format(new Date(session.date), 'dd MMMM yyyy', { locale: fr });
 
-    // Créer la session de checkout
-    const checkoutSession = await stripe.checkout.sessions.create({
+    // Configuration de base de la session
+    const sessionConfig = {
       payment_method_types: ['card'],
       line_items: [
         {
@@ -43,7 +43,20 @@ export const createCheckoutSession = async (booking, amount) => {
         numberOfPeople: booking.numberOfPeople.toString(),
         sessionDate: sessionDate
       }
-    });
+    };
+
+    // Si le guide a un compte Stripe Connect, router le paiement directement vers lui
+    if (session.guide && session.guide.stripeAccount) {
+      // Utiliser Stripe Connect - paiement direct sans commission plateforme
+      sessionConfig.payment_intent_data = {
+        transfer_data: {
+          destination: session.guide.stripeAccount
+        }
+      };
+    }
+
+    // Créer la session de checkout
+    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
 
     return {
       sessionId: checkoutSession.id,
@@ -140,11 +153,11 @@ export const createRefund = async (paymentIntentId, amount = null) => {
 
 /**
  * Vérifier la signature d'un webhook Stripe
- * @param {string} payload - Corps de la requête
+ * @param {string} body - Corps de la requête
  * @param {string} signature - Signature Stripe
  * @returns {Object} Événement vérifié
  */
-export const constructWebhookEvent = (payload, signature) => {
+export const constructWebhookEvent = (body, signature) => {
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -153,7 +166,7 @@ export const constructWebhookEvent = (payload, signature) => {
     }
 
     const event = stripe.webhooks.constructEvent(
-      payload,
+      body,
       signature,
       webhookSecret
     );
@@ -161,6 +174,101 @@ export const constructWebhookEvent = (payload, signature) => {
     return event;
   } catch (error) {
     console.error('Erreur vérification webhook:', error);
+    throw error;
+  }
+};
+
+/**
+ * Créer un lien d'onboarding Stripe Connect pour un guide
+ * @param {string} userId - ID du guide
+ * @param {string} email - Email du guide
+ * @returns {Promise<Object>} Lien d'onboarding
+ */
+export const createConnectAccountLink = async (userId, email) => {
+  try {
+    // Créer un compte Stripe Connect si n'existe pas déjà
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true }
+      },
+      business_type: 'individual',
+      metadata: {
+        userId
+      }
+    });
+
+    // Créer le lien d'onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/refresh`,
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/return`,
+      type: 'account_onboarding'
+    });
+
+    return {
+      accountId: account.id,
+      url: accountLink.url
+    };
+  } catch (error) {
+    console.error('Erreur création compte Stripe Connect:', error);
+    throw error;
+  }
+};
+
+/**
+ * Créer un nouveau lien d'onboarding pour un compte existant
+ * @param {string} accountId - ID du compte Stripe Connect
+ * @returns {Promise<Object>} Lien d'onboarding
+ */
+export const createConnectAccountLinkForExisting = async (accountId) => {
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/refresh`,
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/return`,
+      type: 'account_onboarding'
+    });
+
+    return {
+      url: accountLink.url
+    };
+  } catch (error) {
+    console.error('Erreur création lien onboarding:', error);
+    throw error;
+  }
+};
+
+/**
+ * Récupérer les informations d'un compte Stripe Connect
+ * @param {string} accountId - ID du compte Stripe Connect
+ * @returns {Promise<Object>} Informations du compte
+ */
+export const getConnectAccount = async (accountId) => {
+  try {
+    const account = await stripe.accounts.retrieve(accountId);
+    return account;
+  } catch (error) {
+    console.error('Erreur récupération compte Stripe:', error);
+    throw error;
+  }
+};
+
+/**
+ * Créer un lien vers le dashboard Stripe Express pour un guide
+ * @param {string} accountId - ID du compte Stripe Connect
+ * @returns {Promise<Object>} Lien vers le dashboard
+ */
+export const createLoginLink = async (accountId) => {
+  try {
+    const loginLink = await stripe.accounts.createLoginLink(accountId);
+    return {
+      url: loginLink.url
+    };
+  } catch (error) {
+    console.error('Erreur création login link:', error);
     throw error;
   }
 };
