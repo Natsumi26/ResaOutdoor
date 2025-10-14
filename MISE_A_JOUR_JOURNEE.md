@@ -95,3 +95,20 @@ POST /api/sessions
 - Aucune migration SQL n'est nécessaire car `timeSlot` est déjà de type `String`
 - Les sessions existantes ne sont pas affectées
 - Le drag & drop fonctionne entre tous les créneaux
+
+## 🚨 RÈGLE D'OR : Toujours créer une migration après modification du schema.prisma
+
+**Workflow obligatoire :**
+
+1. Modifier `schema.prisma`
+2. Créer la migration : `npx prisma migrate dev --name description_changement`
+3. Vérifier le fichier SQL généré
+4. Régénérer le client : `npx prisma generate`
+5. Redémarrer le serveur
+
+**❌ Ne JAMAIS :**
+- Modifier `schema.prisma` sans créer de migration
+- Utiliser `db push` (sauf prototypage rapide)
+- Modifier directement la base de données
+
+**📖 Guide complet :** Voir [GUIDE_PRISMA.md](GUIDE_PRISMA.md)

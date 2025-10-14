@@ -190,12 +190,20 @@ Le schéma Prisma définit les modèles suivants :
 
 ### Backend
 ```bash
-npm run dev              # Démarrer en mode développement
-npm start                # Démarrer en production
-npm run prisma:studio    # Interface graphique Prisma
-npm run prisma:migrate   # Créer une migration
-npm run prisma:seed      # Réinitialiser les données
+npm run dev                      # Démarrer en mode développement
+npm start                        # Démarrer en production
+npm run setup                    # Installation complète (après git clone)
+npm run prisma:studio            # Interface graphique Prisma
+npm run prisma:migrate           # Créer une migration
+npm run prisma:migrate:deploy    # Appliquer les migrations (prod)
+npm run prisma:migrate:status    # Vérifier l'état des migrations
+npm run prisma:seed              # Réinitialiser les données
+npm run db:backup                # Créer un backup de la BDD
 ```
+
+### 📚 Documentation Prisma
+- **[AIDE_MEMOIRE_PRISMA.md](AIDE_MEMOIRE_PRISMA.md)** - Guide rapide des commandes
+- **[GUIDE_PRISMA.md](GUIDE_PRISMA.md)** - Guide complet des bonnes pratiques
 
 ### Frontend
 ```bash
