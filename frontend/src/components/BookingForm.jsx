@@ -176,14 +176,6 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   { code: 'CH', name: 'Suisse' },
 ];
 
-const getFlagEmoji = (countryCode) => {
-  return countryCode
-    .toUpperCase()
-    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
-};
-
-
-
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <h2>📝 Nouvelle réservation</h2>
@@ -325,15 +317,10 @@ const getFlagEmoji = (countryCode) => {
              <div className={styles.nationalityWrapper}>
               <span className={styles.flag}>
               <img
-                              src={`https://flagcdn.com/16x12/${formData.clientNationality.toLowerCase()}.png`}
-                              alt={formData.clientNationality}
-                              className={styles.flagIcon}
-                              onError={(e) => {
-                                // Si l'image ne charge pas, afficher le code pays
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'inline';
-                              }}
-                            />
+                src={`https://flagcdn.com/16x12/${formData.clientNationality.toLowerCase()}.png`}
+                alt={formData.clientNationality}
+                className={styles.flagIcon}
+              />
               </span>
               <select
                 name="clientNationality"
