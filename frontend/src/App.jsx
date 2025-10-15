@@ -5,7 +5,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
 import Users from './pages/Users';
-import Categories from './pages/Categories';
 import Products from './pages/Products';
 import GiftVouchers from './pages/GiftVouchers';
 import Reservations from './pages/Reservations';
@@ -47,7 +46,6 @@ const AppRoutes = () => {
       >
         <Route index element={<Calendar />} />
         <Route path="users" element={<Users />} />
-        <Route path="categories" element={<Categories />} />
         <Route path="products" element={<Products />} />
         <Route path="reservations" element={<Reservations />} />
         <Route path="gift-vouchers" element={<GiftVouchers />} />

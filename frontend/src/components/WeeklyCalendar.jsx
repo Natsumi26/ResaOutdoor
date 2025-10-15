@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -7,10 +7,7 @@ import SessionSlot from './SessionSlot';
 
 const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [filters, setFilters] = useState({
-    paiements: false,
-    stocks: false
-  });
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Générer les 7 jours de la semaine
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lundi
@@ -53,6 +50,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
 
   const goToToday = () => {
     setCurrentWeek(new Date());
+    setSelectedDate('');
   };
 
   const handleDragEnd = (result) => {
@@ -68,6 +66,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
     // Déplacer la réservation
     onMoveBooking(draggableId, newSessionId);
   };
+
 
   return (
     <div className={styles.container}>
@@ -87,19 +86,25 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
 
         {/* Filtres */}
         <div className={styles.filtersContainer}>
-          <span className={styles.filtersLabel}>Filtres</span>
-          <button
-            className={`${styles.filterBtn} ${filters.paiements ? styles.active : ''}`}
-            onClick={() => setFilters({...filters, paiements: !filters.paiements})}
-          >
-            <span className={styles.dotGreen}></span> Réservations
-          </button>
-          <button
-            className={`${styles.filterBtn} ${filters.stocks ? styles.active : ''}`}
-            onClick={() => setFilters({...filters, stocks: !filters.stocks})}
-          >
-            <span className={styles.dotGray}></span> Stocks
-          </button>
+          <label htmlFor="dateInput" className={styles.filtersLabel}>
+            Aller à la date
+          </label>
+          <input
+            id="dateInput"
+            type="date"
+            className={styles.filterBtn}
+            value={selectedDate}
+            onChange={(e) => {
+              const rawDate = e.target.value;
+              setSelectedDate(rawDate);
+                if (rawDate) {
+                const parsedDate = new Date(rawDate);
+                if (!isNaN(parsedDate)) {
+                  setCurrentWeek(parsedDate);
+                }
+              }
+            }}
+          />
         </div>
       </div>
 
@@ -131,9 +136,18 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             const morningSessions = sessionsByDay[dateKey]?.matin || [];
             const afternoonSessions = sessionsByDay[dateKey]?.['après-midi'] || [];
             const hasAnySessions = morningSessions.length > 0 || afternoonSessions.length > 0;
+            const dayRefs = useRef({});
+
+              useEffect(() => {
+                const targetDate = selectedDate || format(new Date(), 'yyyy-MM-dd');
+                const targetElement = dayRefs.current[targetDate];
+                if (targetElement) {
+                  targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, [selectedDate, currentWeek]);
 
             return (
-              <div key={dateKey} className={styles.daySection}>
+              <div key={dateKey} ref={(el) => (dayRefs.current[dateKey] = el)} className={styles.daySection}>
                 <div className={styles.daySectionHeader}>
                   <span className={styles.daySectionTitle}>
                     {format(day, 'EEEE dd/MM', { locale: fr })}
@@ -171,7 +185,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                               onBookingClick={onBookingClick}
                               onCreateBooking={onCreateBooking}
                               onDeleteSession={onDeleteSession}
-                              filters={filters}
                             />
                           ))
                         ) : (
@@ -193,7 +206,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                               onBookingClick={onBookingClick}
                               onCreateBooking={onCreateBooking}
                               onDeleteSession={onDeleteSession}
-                              filters={filters}
                             />
                           ))
                         ) : (

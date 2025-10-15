@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
+import { categoriesAPI } from '../services/api';
 import styles from './ProductForm.module.css';
 
-const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCancel }) => {
+const ProductForm = ({ product, categories: initialCategories, users, currentUser, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     shortDescription: '',
@@ -27,6 +28,16 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState(initialCategories || []);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+
+  useEffect(() => {
+    if (initialCategories) {
+      setCategories(initialCategories);
+    }
+  }, [initialCategories]);
 
   useEffect(() => {
     if (product) {
@@ -47,6 +58,65 @@ const ProductForm = ({ product, categories, users, currentUser, onSubmit, onCanc
       setFormData(prev => ({ ...prev, guideId: users[0].id }));
     }
   }, [product, users]);
+
+  // Fonctions de gestion des catégories
+  const loadCategories = async () => {
+    try {
+      const response = await categoriesAPI.getAll();
+      setCategories(response.data.categories);
+    } catch (error) {
+      console.error('Erreur lors du chargement des catégories:', error);
+    }
+  };
+
+  const openCategoryModal = (category = null) => {
+    if (category) {
+      setEditingCategoryId(category.id);
+      setCategoryFormData({ name: category.name, description: category.description || '' });
+    } else {
+      setEditingCategoryId(null);
+      setCategoryFormData({ name: '', description: '' });
+    }
+    setShowCategoryModal(true);
+  };
+
+  const closeCategoryModal = () => {
+    setShowCategoryModal(false);
+    setEditingCategoryId(null);
+    setCategoryFormData({ name: '', description: '' });
+  };
+
+  const handleCategorySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingCategoryId) {
+        await categoriesAPI.update(editingCategoryId, categoryFormData);
+      } else {
+        await categoriesAPI.create(categoryFormData);
+      }
+      await loadCategories();
+      closeCategoryModal();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erreur lors de la sauvegarde de la catégorie');
+    }
+  };
+
+  const handleCategoryDelete = async (categoryId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
+      return;
+    }
+    try {
+      await categoriesAPI.delete(categoryId);
+      await loadCategories();
+      // Retirer la catégorie des sélections si elle était sélectionnée
+      setFormData(prev => ({
+        ...prev,
+        categoryIds: prev.categoryIds.filter(id => id !== categoryId)
+      }));
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erreur lors de la suppression de la catégorie');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -226,17 +296,44 @@ console.log(formData)
                 <p className={styles.noCategories}>Aucune catégorie disponible</p>
               ) : (
                 categories.map(cat => (
-                  <label key={cat.id} className={styles.categoryCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={formData.categoryIds?.includes(cat.id) || false}
-                      onChange={() => handleCategoryToggle(cat.id)}
-                    />
-                    <span>{cat.name}</span>
-                  </label>
+                  <div key={cat.id} className={styles.categoryItem}>
+                    <label className={styles.categoryCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={formData.categoryIds?.includes(cat.id) || false}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                      />
+                      <span>{cat.name}</span>
+                    </label>
+                    <div className={styles.categoryActions}>
+                      <button
+                        type="button"
+                        className={styles.btnCategoryEdit}
+                        onClick={() => openCategoryModal(cat)}
+                        title="Modifier la catégorie"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnCategoryDelete}
+                        onClick={() => handleCategoryDelete(cat.id)}
+                        title="Supprimer la catégorie"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
+            <button
+              type="button"
+              className={styles.btnAddCategory}
+              onClick={() => openCategoryModal()}
+            >
+              + Ajouter une catégorie
+            </button>
             <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
           </div>
 
@@ -489,6 +586,45 @@ console.log(formData)
           {product ? 'Modifier' : 'Créer'} le produit
         </button>
       </div>
+
+      {/* Modal de gestion des catégories */}
+      {showCategoryModal && (
+        <div className={styles.modal} onClick={closeCategoryModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2>{editingCategoryId ? 'Modifier' : 'Créer'} une catégorie</h2>
+            <div onSubmit={handleCategorySubmit}>
+              <div className={styles.formGroup}>
+                <label>Nom *</label>
+                <input
+                  type="text"
+                  value={categoryFormData.name}
+                  onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Description</label>
+                <textarea
+                  value={categoryFormData.description}
+                  onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                  rows="3"
+                />
+              </div>
+
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btnCancel} onClick={closeCategoryModal}>
+                  Annuler
+                </button>
+                <button type="submit" className={styles.btnSubmit} onClick={handleCategorySubmit}>
+                  {editingCategoryId ? 'Modifier' : 'Créer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

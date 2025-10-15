@@ -80,16 +80,6 @@ const Dashboard = () => {
           )}
 
           <NavLink
-            to="/categories"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <span className={styles.icon}>📁</span>
-            {sidebarOpen && <span>Catégories</span>}
-          </NavLink>
-
-          <NavLink
             to="/products"
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.active : ''}`
