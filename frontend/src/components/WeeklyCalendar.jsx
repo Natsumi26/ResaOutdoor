@@ -6,7 +6,6 @@ import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
 
 const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession }) => {
-  const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState('');
 
   // Générer les 7 jours de la semaine
@@ -43,15 +42,19 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   const sessionsByDay = organizeSessionsByDay();
 
   const goToPreviousWeek = () => {
-    setCurrentWeek(prev => addDays(prev, -7));
+    const baseDate = selectedDate ? new Date(selectedDate) : new Date();
+    const newDate = addDays(baseDate, -7);
+    setSelectedDate(format(newDate, 'yyyy-MM-dd'));
   };
 
   const goToNextWeek = () => {
-    setCurrentWeek(prev => addDays(prev, 7));
+    const baseDate = selectedDate ? new Date(selectedDate) : new Date();
+    const newDate = addDays(baseDate, 7);
+    setSelectedDate(format(newDate, 'yyyy-MM-dd'));
   };
 
+
   const goToToday = () => {
-    setCurrentWeek(new Date());
     setSelectedDate('');
   };
 
@@ -99,12 +102,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             onChange={(e) => {
               const rawDate = e.target.value;
               setSelectedDate(rawDate);
-                if (rawDate) {
-                const parsedDate = new Date(rawDate);
-                if (!isNaN(parsedDate)) {
-                  setCurrentWeek(parsedDate);
-                }
-              }
             }}
           />
         </div>

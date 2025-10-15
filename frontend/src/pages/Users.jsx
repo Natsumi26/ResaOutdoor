@@ -116,7 +116,11 @@ const Users = () => {
                     {user.role === 'admin' ? 'Admin' : 'Guide'}
                   </span>
                 </td>
-                <td>{user.stripeAccount || '-'}</td>
+                <td className={styles.stripeCell}>
+                  <div className={styles.stripeScroll}>
+                    {user.stripeAccount || '-'}
+                  </div>
+                </td>
                 <td>
                   <button className={styles.btnEdit} onClick={() => openModal(user)}>
                     ✏️
