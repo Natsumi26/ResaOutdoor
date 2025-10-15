@@ -10,7 +10,9 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   const [selectedDate, setSelectedDate] = useState('');
 
   // Générer les 7 jours de la semaine
-  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Lundi
+  const weekStart = selectedDate
+  ? new Date(selectedDate)
+  : new Date(); // aujourd'hui si aucune date sélectionnée
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   // Organiser les sessions par jour et créneaux
@@ -136,18 +138,9 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             const morningSessions = sessionsByDay[dateKey]?.matin || [];
             const afternoonSessions = sessionsByDay[dateKey]?.['après-midi'] || [];
             const hasAnySessions = morningSessions.length > 0 || afternoonSessions.length > 0;
-            const dayRefs = useRef({});
-
-              useEffect(() => {
-                const targetDate = selectedDate || format(new Date(), 'yyyy-MM-dd');
-                const targetElement = dayRefs.current[targetDate];
-                if (targetElement) {
-                  targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }, [selectedDate, currentWeek]);
 
             return (
-              <div key={dateKey} ref={(el) => (dayRefs.current[dateKey] = el)} className={styles.daySection}>
+              <div key={dateKey} className={styles.daySection}>
                 <div className={styles.daySectionHeader}>
                   <span className={styles.daySectionTitle}>
                     {format(day, 'EEEE dd/MM', { locale: fr })}
