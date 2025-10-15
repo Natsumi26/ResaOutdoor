@@ -56,7 +56,10 @@ export const createCheckoutSession = async (booking, amount) => {
     }
 
     // Créer la session de checkout
-    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+    const checkoutSession = await stripe.checkout.sessions.create(
+      sessionConfig,
+      session.guide?.stripeAccount ? { stripeAccount: session.guide.stripeAccount } : undefined
+    );
 
     return {
       sessionId: checkoutSession.id,

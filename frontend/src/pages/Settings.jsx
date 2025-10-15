@@ -15,6 +15,7 @@ const Settings = () => {
       setLoading(true);
       const response = await stripeAPI.getConnectAccount();
       setStripeAccount(response.data);
+      console.log(stripeAccount)
     } catch (error) {
       console.error('Erreur chargement compte Stripe:', error);
     } finally {

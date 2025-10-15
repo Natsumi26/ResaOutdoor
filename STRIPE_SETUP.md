@@ -190,3 +190,132 @@ Plus d'infos : https://stripe.com/fr/pricing
 - Documentation officielle : https://stripe.com/docs
 - Stripe CLI : https://stripe.com/docs/stripe-cli
 - Support : support@stripe.com
+
+📚 Guide complet : Gestion des comptes Stripe par guide
+Situation actuelle
+Votre application est déjà configurée pour utiliser Stripe Connect ! Voici comment cela fonctionne :
+1. Architecture
+┌─────────────────────────────────────────────────┐
+│  Votre Compte Stripe (Plateforme)              │
+│  STRIPE_SECRET_KEY dans .env                    │
+│  - Gère tous les paiements                      │
+│  - Redistribue aux guides via Connect           │
+└─────────────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+┌───────▼──────┐         ┌──────▼───────┐
+│ Guide 1      │         │ Guide 2      │
+│ stripeAccount│         │ stripeAccount│
+│ = acct_ABC   │         │ = acct_XYZ   │
+└──────────────┘         └──────────────┘
+2. Quel accountId utiliser ?
+Il y a 2 types d'accountId :
+A. Compte Plateforme (VOUS)
+Format : Clé secrète sk_test_xxx ou sk_live_xxx
+Où : Dans votre fichier .env comme STRIPE_SECRET_KEY
+Utilisation : Pour gérer tous les comptes Connect
+Vous l'avez déjà !
+B. Compte Connect (CHAQUE GUIDE)
+Format : acct_ + caractères alphanumériques (ex: acct_1NvF2gJZ3mKv8jP4)
+Où : Stocké dans User.stripeAccount (base de données)
+Utilisation : Pour router les paiements vers le bon guide
+Obtenu automatiquement via l'onboarding
+3. Comment un guide obtient son accountId ?
+Votre application a déjà tout en place ! Voici le processus :
+Étape 1: Guide se connecte et va dans "Paramètres"
+         ↓
+Étape 2: Clique sur "🔗 Connecter mon compte Stripe"
+         ↓
+Étape 3: Backend appelle createConnectAccountLink()
+         qui crée automatiquement un accountId Stripe
+         ↓
+Étape 4: Backend sauvegarde accountId dans user.stripeAccount
+         ↓
+Étape 5: Guide est redirigé vers Stripe pour compléter son profil
+         (infos bancaires, identité, etc.)
+         ↓
+Étape 6: Guide revient sur l'application
+         Status: ✅ Compte actif ou ⚠️ Configuration en attente
+         ↓
+Étape 7: Les paiements pour ses sessions vont directement
+         sur son compte Stripe (pas besoin de redistribution manuelle)
+4. Flux de paiement avec accountId
+Quand un client paie pour une session d'un guide :
+// Dans stripe.service.js (ligne 49-56)
+if (session.guide && session.guide.stripeAccount) {
+  // Le guide a configuré son compte Stripe
+  sessionConfig.payment_intent_data = {
+    transfer_data: {
+      destination: session.guide.stripeAccount  // Ex: acct_ABC123
+    }
+  };
+  // ➡️ Le paiement va DIRECTEMENT sur le compte du guide
+}
+// Sinon, le paiement reste sur le compte plateforme
+5. États possibles du stripeAccount
+État	Valeur dans BDD	Signification	Action
+Non connecté	null	Guide n'a jamais connecté Stripe	Bouton "Connecter" visible
+En cours	acct_xxx + details_submitted: false	Compte créé mais pas configuré	Bouton "Compléter" visible
+Actif	acct_xxx + charges_enabled: true	Compte totalement configuré	Peut recevoir des paiements
+Suspendu	acct_xxx + charges_enabled: false	Problème avec le compte	Contacter Stripe
+6. Où trouver l'accountId d'un guide
+Option A : Dans la base de données
+SELECT login, stripeAccount FROM users;
+Résultat exemple :
+guide1 | acct_1NvF2gJZ3mKv8jP4
+guide2 | null
+guide3 | acct_1PxR4kLM6nKw9sQ7
+Option B : Dans l'interface admin (Users)
+Votre page Users.jsx affiche déjà le stripeAccount de chaque utilisateur.
+Option C : Dans le dashboard Stripe
+Allez sur https://dashboard.stripe.com/connect/accounts
+Vous verrez tous les comptes Connect créés
+Chaque compte a un ID commençant par acct_
+7. Dois-je saisir manuellement l'accountId ?
+NON ! C'est automatique :
+❌ Ne saisissez PAS manuellement l'accountId
+✅ Laissez le système créer le compte via l'onboarding
+✅ Le backend sauvegarde automatiquement l'accountId dans la BDD
+8. Configuration pour votre environnement
+Environnement de développement (test)
+Dans votre .env :
+# Compte plateforme (VOUS)
+STRIPE_SECRET_KEY=sk_test_51PxxxxxxxxxxxxxxxxxxxxxxxxxxxxYrX
+
+# URLs
+FRONTEND_URL=http://localhost:5173
+APP_URL=http://localhost:5000
+
+# Webhook (optionnel en dev)
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+Les guides auront des accountId de test : acct_xxxxxxxxxxxxx
+Environnement de production (live)
+Dans votre .env de production :
+# Compte plateforme (VOUS) - LIVE
+STRIPE_SECRET_KEY=sk_live_51PxxxxxxxxxxxxxxxxxxxxxxxxxxxxYrX
+
+# URLs de production
+FRONTEND_URL=https://votre-domaine.com
+APP_URL=https://api.votre-domaine.com
+
+# Webhook de production
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+Les guides auront des accountId live : acct_xxxxxxxxxxxxx ⚠️ Important : En passant de test à live, les guides devront reconnecter leurs comptes Stripe (les accountId de test ne fonctionnent pas en live).
+9. Vérifier que tout fonctionne
+Pour tester le système :
+Connectez-vous en tant que guide (pas admin)
+Allez dans Paramètres
+Cliquez sur "Connecter mon compte Stripe"
+Suivez le processus Stripe (en test, pas besoin de vraies infos bancaires)
+Vérifiez que le stripeAccount est bien enregistré dans la base de données
+Créez une session pour ce guide
+Faites un paiement test (carte 4242 4242 4242 4242)
+Vérifiez dans le dashboard Stripe que le paiement est allé sur le bon compte
+10. FAQ
+Q : Puis-je utiliser le même compte Stripe pour tous les guides ? R : Non, chaque guide doit avoir son propre compte Connect pour des raisons légales et fiscales. Q : Les guides peuvent-ils voir les paiements des autres guides ? R : Non, chaque guide ne voit que ses propres transactions dans son dashboard Stripe. Q : Que se passe-t-il si un guide n'a pas configuré Stripe ? R : Le paiement reste sur votre compte plateforme et vous devrez le redistribuer manuellement. Q : Y a-t-il des frais supplémentaires pour Stripe Connect ? R : Non, les frais Stripe sont les mêmes (1,4% + 0,25€ par transaction européenne). Q : Puis-je prendre une commission sur les paiements ? R : Oui, en modifiant le code pour utiliser application_fee_amount au lieu de transfer_data.
+Résumé :
+Vous n'avez rien à saisir manuellement
+Le système crée automatiquement les accountId via l'onboarding
+Chaque guide configure son propre compte Stripe
+Les paiements sont automatiquement routés vers le bon guide

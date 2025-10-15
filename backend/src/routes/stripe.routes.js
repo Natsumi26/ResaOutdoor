@@ -206,7 +206,7 @@ router.post('/connect/onboard', authMiddleware, async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
-
+console.log(user)
     if (!user) {
       throw new AppError('Utilisateur non trouvé', 404);
     }
