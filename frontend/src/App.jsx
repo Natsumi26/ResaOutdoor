@@ -12,6 +12,13 @@ import Settings from './pages/Settings';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
+// Pages client
+import CanyonSearch from './pages/client/CanyonSearch';
+import CanyonDetails from './pages/client/CanyonDetails';
+import BookingForm from './pages/client/BookingForm';
+import BookingConfirmation from './pages/client/BookingConfirmation';
+import MyBooking from './pages/client/MyBooking';
+
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -36,6 +43,14 @@ const AppRoutes = () => {
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
 
+      {/* Routes client - accessibles sans authentification (pour iframe WordPress) */}
+      <Route path="/client/search" element={<CanyonSearch />} />
+      <Route path="/client/canyon/:id" element={<CanyonDetails />} />
+      <Route path="/client/book/:sessionId" element={<BookingForm />} />
+      <Route path="/client/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
+      <Route path="/client/my-booking/:bookingId" element={<MyBooking />} />
+
+      {/* Routes admin/guide - authentification requise */}
       <Route
         path="/"
         element={

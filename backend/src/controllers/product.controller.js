@@ -22,12 +22,23 @@ export const getAllProducts = async (req, res, next) => {
       where.guideId = guideId;
     }
 
-    // Filtrer par catégorie si fournie
-    if (categoryId) {
-      where.categories = {
-        some: {
-          categoryId: categoryId
-        }
+    // Filtres
+    if (req.query.region) {
+      where.region = req.query.region;
+    }
+    if (req.query.level) {
+      where.level = req.query.level;
+    }
+    if (req.query.minDuration) {
+      where.duration = {
+        gte: parseInt(req.query.minDuration) * 60
+      };
+    }
+
+    if (req.query.maxDuration) {
+      where.duration = {
+        ...(where.duration || {}),
+        lte: parseInt(req.query.maxDuration) * 60
       };
     }
 
@@ -49,7 +60,10 @@ export const getAllProducts = async (req, res, next) => {
       },
       orderBy: { name: 'asc' }
     });
-
+    // Si une date est fournie, ne garder que les produits avec au moins une session
+    if (req.query.date) {
+      products = products.filter(p => p.sessions && p.sessions.length > 0);
+    }
     res.json({
       success: true,
       products
