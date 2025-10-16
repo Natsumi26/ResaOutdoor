@@ -69,8 +69,8 @@ const PaymentSuccess = () => {
           <div className={styles.iconError}>❌</div>
           <h2>Erreur</h2>
           <p>{error}</p>
-          <button className={styles.btn} onClick={handleGoToCalendar}>
-            Retour au calendrier
+          <button className={styles.btn}>
+            Retour
           </button>
         </div>
       </div>
@@ -107,9 +107,9 @@ const PaymentSuccess = () => {
 
         <button
           className={styles.btn}
-          onClick={() => paymentInfo?.bookingId && navigate(`/client/my-booking/${paymentInfo.bookingId}`)}
+          onClick={() => paymentInfo?.bookingId && navigate(`/client/booking-confirmation/${paymentInfo.bookingId}`)}
         >
-          Voir ma réservation
+          Voir la confirmation
         </button>
       </div>
     </div>

@@ -135,7 +135,7 @@ const BookingForm = () => {
 
     if (formData.fillParticipantsNow) {
       const allFilled = participants.every(p => {
-        const basicInfoFilled = p.fistName && p.age && p.weight && p.height;
+        const basicInfoFilled = p.firstName && p.age && p.weight && p.height;
         // Si le participant veut des chaussures, la pointure est obligatoire
         const shoeSizeValid = !p.shoeRental || (p.shoeRental && p.shoeSize);
         return basicInfoFilled && shoeSizeValid;
@@ -385,8 +385,8 @@ const BookingForm = () => {
                         <label>Prénom *</label>
                         <input
                           type="text"
-                          value={participant.fistName}
-                          onChange={(e) => handleParticipantChange(index, 'fistName', e.target.value)}
+                          value={participant.firstName}
+                          onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
                           required={formData.fillParticipantsNow}
                         />
                       </div>
