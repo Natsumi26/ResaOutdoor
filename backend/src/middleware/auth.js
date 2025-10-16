@@ -23,6 +23,25 @@ export const authMiddleware = async (req, res, next) => {
   }
 };
 
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+      } catch (error) {
+        // Si le token est invalide, on continue quand même sans user
+        req.user = null;
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const adminOnly = (req, res, next) => {
   if (req.user.role !== 'admin') {
     throw new AppError('Accès réservé aux administrateurs', 403);

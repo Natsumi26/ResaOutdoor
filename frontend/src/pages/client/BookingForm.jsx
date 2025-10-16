@@ -15,11 +15,11 @@ const BookingForm = () => {
 
   const [formData, setFormData] = useState({
     numberOfPeople: 1,
-    clientName: '',
+    clientFirstName: '',
+    clientLastName: '',
     clientEmail: '',
     clientPhone: '',
     voucherCode: '',
-    shoeRentalCount: 0,
     paymentMethod: 'online', // 'online' ou 'onsite'
     fillParticipantsNow: false
   });
@@ -36,9 +36,11 @@ const BookingForm = () => {
     // Initialiser les participants quand le nombre de personnes change
     if (formData.fillParticipantsNow) {
       const newParticipants = Array(formData.numberOfPeople).fill(null).map((_, i) => ({
-        name: participants[i]?.name || '',
+        firstName: participants[i]?.firstName || '',
+        age: participants[i]?.age || '',
         weight: participants[i]?.weight || '',
         height: participants[i]?.height || '',
+        shoeRental: participants[i]?.shoeRental || false,
         shoeSize: participants[i]?.shoeSize || ''
       }));
       setParticipants(newParticipants);
@@ -107,9 +109,10 @@ const BookingForm = () => {
 
     let total = pricePerPerson * numberOfPeople;
 
-    // Ajouter la location de chaussures
-    if (formData.shoeRentalCount > 0 && session.shoeRentalPrice) {
-      total += session.shoeRentalPrice * formData.shoeRentalCount;
+    // Ajouter la location de chaussures (si les participants sont remplis)
+    if (formData.fillParticipantsNow && session.shoeRentalPrice) {
+      const shoeRentalCount = participants.filter(p => p.shoeRental).length;
+      total += session.shoeRentalPrice * shoeRentalCount;
     }
 
     // Appliquer le bon cadeau
@@ -125,15 +128,20 @@ const BookingForm = () => {
     e.preventDefault();
 
     // Validation
-    if (!formData.clientName || !formData.clientEmail || !formData.clientPhone) {
+    if (!formData.clientFirstName || !formData.clientLastName  || !formData.clientEmail || !formData.clientPhone) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
     if (formData.fillParticipantsNow) {
-      const allFilled = participants.every(p => p.name && p.weight && p.height && p.shoeSize);
+      const allFilled = participants.every(p => {
+        const basicInfoFilled = p.fistName && p.age && p.weight && p.height;
+        // Si le participant veut des chaussures, la pointure est obligatoire
+        const shoeSizeValid = !p.shoeRental || (p.shoeRental && p.shoeSize);
+        return basicInfoFilled && shoeSizeValid;
+      });
       if (!allFilled) {
-        alert('Veuillez remplir les informations de tous les participants');
+        alert('Veuillez remplir les informations de tous les participants (y compris les pointures si location de chaussures)');
         return;
       }
     }
@@ -142,17 +150,25 @@ const BookingForm = () => {
       setSubmitting(true);
 
       const total = calculateTotal();
+
+      // Calculer le nombre de locations de chaussures
+      let shoeRentalCount = 0;
+      if (formData.fillParticipantsNow && session.shoeRentalPrice) {
+        shoeRentalCount = participants.filter(p => p.shoeRental).length;
+      }
+
       const bookingData = {
         sessionId: session.id,
         productId: session.products[0].product.id,
         numberOfPeople: formData.numberOfPeople,
-        clientName: formData.clientName,
+        clientFirstName: formData.clientFirstName,
+        clientLastName: formData.clientLastName,
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         totalPrice: total,
         amountPaid: formData.paymentMethod === 'online' ? total : 0,
         status: formData.paymentMethod === 'online' ? 'confirmed' : 'pending',
-        shoeRentalCount: formData.shoeRentalCount || null,
+        shoeRentalCount: shoeRentalCount || null,
         voucherCode: formData.voucherCode || null
       };
 
@@ -235,10 +251,10 @@ const BookingForm = () => {
                 : product.priceIndividual) * formData.numberOfPeople}€</span>
             </div>
 
-            {formData.shoeRentalCount > 0 && session.shoeRentalPrice && (
+            {formData.fillParticipantsNow && session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
               <div className={styles.priceItem}>
-                <span>{formData.shoeRentalCount} location(s) chaussures × {session.shoeRentalPrice}€</span>
-                <span>{session.shoeRentalPrice * formData.shoeRentalCount}€</span>
+                <span>{participants.filter(p => p.shoeRental).length} location(s) chaussures × {session.shoeRentalPrice}€</span>
+                <span>{session.shoeRentalPrice * participants.filter(p => p.shoeRental).length}€</span>
               </div>
             )}
 
@@ -275,12 +291,23 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Nom complet *</label>
+              <label>Prénom *</label>
               <input
                 type="text"
-                value={formData.clientName}
-                onChange={(e) => handleChange('clientName', e.target.value)}
-                placeholder="Jean Dupont"
+                value={formData.clientFirstName}
+                onChange={(e) => handleChange('clientFirstName', e.target.value)}
+                placeholder="Jean"
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Nom *</label>
+              <input
+                type="text"
+                value={formData.clientLastName}
+                onChange={(e) => handleChange('clientLastName', e.target.value)}
+                placeholder="Dupont"
                 required
               />
             </div>
@@ -307,19 +334,6 @@ const BookingForm = () => {
               />
             </div>
 
-            {session.shoeRentalAvailable && (
-              <div className={styles.formGroup}>
-                <label>Location de chaussures ({session.shoeRentalPrice}€/paire)</label>
-                <select
-                  value={formData.shoeRentalCount}
-                  onChange={(e) => handleChange('shoeRentalCount', parseInt(e.target.value))}
-                >
-                  {Array.from({ length: formData.numberOfPeople + 1 }, (_, i) => i).map(num => (
-                    <option key={num} value={num}>{num} paire{num > 1 ? 's' : ''}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* Bon cadeau */}
             <div className={styles.voucherSection}>
@@ -351,9 +365,12 @@ const BookingForm = () => {
                   checked={formData.fillParticipantsNow}
                   onChange={(e) => handleChange('fillParticipantsNow', e.target.checked)}
                 />
-                Remplir les informations des participants maintenant (taille, poids, pointure)
+                Remplir les informations des participants maintenant (taille, poids{session.shoeRentalAvailable ? ', location de chaussures' : ''})
               </label>
               <small>Vous pourrez aussi les remplir plus tard depuis votre page de réservation</small>
+              {session.shoeRentalAvailable && !formData.fillParticipantsNow && (
+                <small className={styles.infoNote}>ℹ️ La location de chaussures pourra être demandée plus tard lors du remplissage des informations participants</small>
+              )}
             </div>
 
             {/* Formulaire participants */}
@@ -365,11 +382,11 @@ const BookingForm = () => {
                     <h4>Participant {index + 1}</h4>
                     <div className={styles.participantGrid}>
                       <div className={styles.formGroup}>
-                        <label>Nom *</label>
+                        <label>Prénom *</label>
                         <input
                           type="text"
-                          value={participant.name}
-                          onChange={(e) => handleParticipantChange(index, 'name', e.target.value)}
+                          value={participant.fistName}
+                          onChange={(e) => handleParticipantChange(index, 'fistName', e.target.value)}
                           required={formData.fillParticipantsNow}
                         />
                       </div>
@@ -392,15 +409,46 @@ const BookingForm = () => {
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>Pointure *</label>
+                        <label>Age (an) *</label>
                         <input
                           type="number"
-                          value={participant.shoeSize}
-                          onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
+                          value={participant.age}
+                          onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
                           required={formData.fillParticipantsNow}
                         />
                       </div>
                     </div>
+
+                    
+
+                    {/* Location de chaussures */}
+                    {session.shoeRentalAvailable && (
+                      <div className={styles.shoeRentalSection}>
+                        <label className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={participant.shoeRental}
+                            onChange={(e) => handleParticipantChange(index, 'shoeRental', e.target.checked)}
+                          />
+                          Location de chaussures (+{session.shoeRentalPrice}€)
+                        </label>
+
+                        {participant.shoeRental && (
+                          <div className={styles.formGroup}>
+                            <label>Pointure *</label>
+                            <input
+                              type="number"
+                              value={participant.shoeSize}
+                              onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
+                              placeholder="Ex: 42"
+                              min="20"
+                              max="50"
+                              required={participant.shoeRental}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

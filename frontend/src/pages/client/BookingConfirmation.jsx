@@ -102,7 +102,7 @@ const BookingConfirmation = () => {
           <div className={styles.confirmationSection}>
             <h3>Vos informations</h3>
             <div className={styles.clientInfo}>
-              <p><strong>Nom :</strong> {booking.clientName}</p>
+              <p><strong>Nom :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
               <p><strong>Email :</strong> {booking.clientEmail}</p>
               <p><strong>Téléphone :</strong> {booking.clientPhone}</p>
             </div>
@@ -134,7 +134,7 @@ const BookingConfirmation = () => {
                 <span className={styles.stepIcon}>👕</span>
                 <div>
                   <strong>Informations participants</strong>
-                  <p>Remplissez les informations de taille, poids et pointure pour la préparation du matériel</p>
+                  <p>Remplissez les informations de taille, poids et pointure pour la préparation du matériel (Si pas déjà rempli)</p>
                 </div>
               </div>
 

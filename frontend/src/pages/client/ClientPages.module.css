@@ -58,7 +58,11 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
 }
-
+.periode {
+  padding: 4%;
+  border: 1px solid black;
+  border-radius: 20px;
+}
 .filterGroup {
   display: flex;
   flex-direction: column;
@@ -874,6 +878,52 @@
   gap: 1rem;
 }
 
+.shoeRentalSection {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  margin-top: 1rem;
+}
+
+.shoeRentalSection .checkboxLabel {
+  margin-bottom: 0.75rem;
+}
+
+.infoNote {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #e7f3ff;
+  border-left: 3px solid #3498db;
+  border-radius: 4px;
+  color: #2c3e50;
+  font-size: 0.85rem;
+}
+
+.shoePriceInfo {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1.5rem 0 1rem 0;
+  border: 1px solid #dee2e6;
+}
+
+.shoePriceInfo p {
+  margin: 0.5rem 0;
+  color: #495057;
+}
+
+.priceChange {
+  color: #856404 !important;
+  background: #fff3cd;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border-left: 3px solid #ffc107;
+  margin-top: 0.75rem !important;
+  font-size: 0.9rem;
+}
+
 .paymentMethodSection {
   margin-top: 2rem;
   padding-top: 2rem;
@@ -1271,6 +1321,73 @@
 .dangerZone p {
   color: #721c24;
   margin-bottom: 1.5rem;
+}
+/* ========== PAGE MA DISPORESA ========== */
+.dispo-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.intro h3 {
+  color: #0d3b66;
+  margin-bottom: 0.5rem;
+}
+
+.intro p {
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.form-section h3 {
+  color: #0d3b66;
+  margin-bottom: 0.5rem;
+}
+
+hr {
+  border: none;
+  border-top: 2px solid #0d3b66;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: #0d3b66;
+}
+
+input[type="date"],
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 0.4rem;
+  font-size: 1rem;
+}
+
+.search-btn {
+  background-color: #0d3b66;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.search-btn:hover {
+  background-color: #145da0;
 }
 
 /* Responsive */

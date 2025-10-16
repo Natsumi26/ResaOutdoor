@@ -1,14 +1,128 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+// Rechercher les produits disponibles selon les filtres (pour les clients)
+export const searchAvailableProducts = async (req, res, next) => {
+  try {
+    const { participants, startDate, endDate, date } = req.query;
+
+    // Construire le filtre de dates pour les sessions
+    const sessionWhere = {
+      status: { in: ['open', 'full'] } // Sessions ouvertes ou complètes (mais peut-être pas pour tous les produits)
+    };
+
+    // Filtre par date spécifique
+    if (date) {
+      const specificDate = new Date(date);
+      specificDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(specificDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      sessionWhere.date = {
+        gte: specificDate,
+        lt: nextDay
+      };
+    }
+    // Filtre par période
+    else if (startDate && endDate) {
+      sessionWhere.date = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
+    }
+
+    // Récupérer toutes les sessions correspondantes
+    const sessions = await prisma.session.findMany({
+      where: sessionWhere,
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    // Construire un dictionnaire de disponibilités par produit
+    const productAvailability = {};
+
+    sessions.forEach(session => {
+      session.products.forEach(sp => {
+        const product = sp.product;
+        const productId = product.id;
+
+        // Calculer le nombre de places réservées pour ce produit dans cette session
+        const bookedForProduct = session.bookings
+          .filter(b => b.productId === productId && b.status !== 'cancelled')
+          .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+        // Places disponibles pour ce produit
+        const availableCapacity = product.maxCapacity - bookedForProduct;
+
+        // Si le nombre de participants demandé n'est pas spécifié OU s'il y a assez de places
+        if (!participants || availableCapacity >= parseInt(participants)) {
+          if (!productAvailability[productId]) {
+            productAvailability[productId] = {
+              product: product,
+              availableSessions: []
+            };
+          }
+
+          productAvailability[productId].availableSessions.push({
+            sessionId: session.id,
+            date: session.date,
+            timeSlot: session.timeSlot,
+            startTime: session.startTime,
+            availableCapacity: availableCapacity
+          });
+        }
+      });
+    });
+
+    // Convertir en tableau et ne garder que les produits avec au moins une session disponible
+    const availableProducts = Object.values(productAvailability)
+      .filter(item => item.availableSessions.length > 0)
+      .map(item => ({
+        ...item.product,
+        availableSessions: item.availableSessions
+      }));
+
+    res.json({
+      success: true,
+      products: availableProducts,
+      count: availableProducts.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Lister toutes les sessions (avec filtre par date)
 export const getAllSessions = async (req, res, next) => {
   try {
-    const { startDate, endDate, guideId } = req.query;
+    const { startDate, endDate, guideId, date, productId } = req.query;
 
     const where = {};
 
-    if (startDate && endDate) {
+    // Filtre par date spécifique
+    if (date) {
+      const specificDate = new Date(date);
+      specificDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(specificDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      where.date = {
+        gte: specificDate,
+        lt: nextDay
+      };
+    }
+    // Filtre par période
+    else if (startDate && endDate) {
       where.date = {
         gte: new Date(startDate),
         lte: new Date(endDate)
@@ -53,9 +167,17 @@ export const getAllSessions = async (req, res, next) => {
       ]
     });
 
+    // Filtrer par productId si fourni
+    let filteredSessions = sessions;
+    if (productId) {
+      filteredSessions = sessions.filter(session =>
+        session.products.some(sp => sp.productId === productId)
+      );
+    }
+
     res.json({
       success: true,
-      sessions
+      sessions: filteredSessions
     });
   } catch (error) {
     next(error);

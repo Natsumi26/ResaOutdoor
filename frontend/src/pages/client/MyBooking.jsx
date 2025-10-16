@@ -41,9 +41,11 @@ const MyBooking = () => {
         const needed = booking.numberOfPeople;
         while (existingParticipants.length < needed) {
           existingParticipants.push({
-            name: '',
+            firstName: '',
+            age: '',
             weight: '',
             height: '',
+            shoeRental: false,
             shoeSize: ''
           });
         }
@@ -67,7 +69,27 @@ const MyBooking = () => {
   const handleSaveParticipants = async () => {
     try {
       setSaving(true);
+
+      // Calculer le nombre de locations de chaussures
+      const shoeRentalCount = participants.filter(p => p.shoeRental).length;
+
+      // Mettre à jour les participants et le nombre de locations si changé
       await participantsAPI.upsert(bookingId, { participants });
+
+      // Si le nombre de locations a changé, mettre à jour la réservation
+      if (booking.shoeRentalCount !== shoeRentalCount && booking.session.shoeRentalPrice) {
+        const previousShoePrice = (booking.shoeRentalCount || 0) * booking.session.shoeRentalPrice;
+        const newShoePrice = shoeRentalCount * booking.session.shoeRentalPrice;
+        const newTotalPrice = booking.totalPrice - previousShoePrice + newShoePrice;
+
+        await bookingsAPI.update(bookingId, {
+          totalPrice: newTotalPrice
+        });
+
+        // Recharger la réservation pour avoir les nouvelles valeurs
+        await loadBooking();
+      }
+
       setEditMode(false);
       alert('Informations des participants enregistrées avec succès !');
     } catch (error) {
@@ -129,7 +151,12 @@ const MyBooking = () => {
   const isPaid = booking.amountPaid >= booking.totalPrice;
   const balance = booking.totalPrice - booking.amountPaid;
   const isCancelled = booking.status === 'cancelled';
-  const allParticipantsFilled = participants.every(p => p.name && p.weight && p.height && p.shoeSize);
+  const allParticipantsFilled = participants.every(p => {
+    const basicInfoFilled = p.firstName && p.age && p.weight && p.height;
+    // La pointure est obligatoire uniquement si location de chaussures
+    const shoeSizeValid = !p.shoeRental || (p.shoeRental && p.shoeSize);
+    return basicInfoFilled && shoeSizeValid;
+  });
 
   return (
     <div className={styles.clientContainer}>
@@ -180,12 +207,6 @@ const MyBooking = () => {
               <span className={styles.infoLabel}>Nombre de personnes</span>
               <strong>{booking.numberOfPeople} personne{booking.numberOfPeople > 1 ? 's' : ''}</strong>
             </div>
-            {booking.shoeRentalCount > 0 && (
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Location chaussures</span>
-                <strong>{booking.shoeRentalCount} paire{booking.shoeRentalCount > 1 ? 's' : ''}</strong>
-              </div>
-            )}
           </div>
         </div>
 
@@ -252,11 +273,11 @@ const MyBooking = () => {
                 {editMode ? (
                   <div className={styles.participantEditGrid}>
                     <div className={styles.formGroup}>
-                      <label>Nom *</label>
+                      <label >Prénom *</label>
                       <input
                         type="text"
-                        value={participant.name || ''}
-                        onChange={(e) => handleParticipantChange(index, 'name', e.target.value)}
+                        value={participant.firstName || ''}
+                        onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -276,22 +297,57 @@ const MyBooking = () => {
                       />
                     </div>
                     <div className={styles.formGroup}>
-                      <label>Pointure *</label>
+                      <label>Âge *</label>
                       <input
                         type="number"
-                        value={participant.shoeSize || ''}
-                        onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
+                        value={participant.age || ''}
+                        onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
                       />
                     </div>
+
+                    {/* Location de chaussures */}
+                    {booking.session.shoeRentalAvailable && (
+                      <div className={styles.shoeRentalSection} style={{ gridColumn: '1 / -1' }}>
+                        <label className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={participant.shoeRental || false}
+                            onChange={(e) => handleParticipantChange(index, 'shoeRental', e.target.checked)}
+                          />
+                          Location de chaussures (+{booking.session.shoeRentalPrice}€)
+                        </label>
+
+                        {participant.shoeRental && (
+                          <div className={styles.formGroup}>
+                            <label>Pointure *</label>
+                            <input
+                              type="number"
+                              value={participant.shoeSize || ''}
+                              onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
+                              placeholder="Ex: 42"
+                              min="20"
+                              max="50"
+                              required
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className={styles.participantViewGrid}>
-                    {participant.name ? (
+                    {participant.firstName ? (
                       <>
-                        <p><strong>Nom :</strong> {participant.name}</p>
+                        <p><strong>Nom :</strong> {participant.firstName}</p>
+                        <p><strong>Âge :</strong> {participant.age} ans</p>
                         <p><strong>Poids :</strong> {participant.weight} kg</p>
                         <p><strong>Taille :</strong> {participant.height} cm</p>
-                        <p><strong>Pointure :</strong> {participant.shoeSize}</p>
+                        {participant.shoeRental && (
+                          <p><strong>Location chaussures :</strong> Oui - Pointure {participant.shoeSize}</p>
+                        )}
+                        {!participant.shoeRental && booking.session.shoeRentalAvailable && (
+                          <p><strong>Location chaussures :</strong> Non</p>
+                        )}
                       </>
                     ) : (
                       <p className={styles.notFilled}>Non renseigné</p>
@@ -303,25 +359,41 @@ const MyBooking = () => {
           </div>
 
           {editMode && (
-            <div className={styles.editActions}>
-              <button
-                onClick={() => {
-                  setEditMode(false);
-                  loadParticipants(); // Réinitialiser
-                }}
-                className={styles.btnSecondary}
-                disabled={saving}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveParticipants}
-                className={styles.btnPrimary}
-                disabled={saving}
-              >
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
-            </div>
+            <>
+              {booking.session.shoeRentalAvailable && (
+                <div className={styles.shoePriceInfo}>
+                  <p>
+                    <strong>Locations de chaussures :</strong> {participants.filter(p => p.shoeRental).length} × {booking.session.shoeRentalPrice}€
+                    {' = '} {participants.filter(p => p.shoeRental).length * booking.session.shoeRentalPrice}€
+                  </p>
+                  {participants.filter(p => p.shoeRental).length !== (booking.shoeRentalCount || 0) && (
+                    <p className={styles.priceChange}>
+                      ⚠️ Le prix total sera mis à jour selon le nombre de locations de chaussures
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className={styles.editActions}>
+                <button
+                  onClick={() => {
+                    setEditMode(false);
+                    loadParticipants(); // Réinitialiser
+                  }}
+                  className={styles.btnSecondary}
+                  disabled={saving}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveParticipants}
+                  className={styles.btnPrimary}
+                  disabled={saving}
+                >
+                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -329,7 +401,7 @@ const MyBooking = () => {
         <div className={styles.bookingDetailsCard}>
           <h2>Vos informations</h2>
           <div className={styles.contactInfo}>
-            <p><strong>Nom :</strong> {booking.clientName}</p>
+            <p><strong>Nom :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
             <p><strong>Email :</strong> {booking.clientEmail}</p>
             <p><strong>Téléphone :</strong> {booking.clientPhone}</p>
           </div>

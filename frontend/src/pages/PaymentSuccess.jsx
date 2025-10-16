@@ -28,6 +28,13 @@ const PaymentSuccess = () => {
 
       if (response.data.paid) {
         setPaymentInfo(response.data);
+
+        // // Rediriger automatiquement vers la page de réservation client après 2 secondes
+        // if (response.data.bookingId) {
+        //   setTimeout(() => {
+        //     navigate(`/client/my-booking/${response.data.bookingId}`);
+        //   }, 2000);
+        // }
       } else {
         setError('Paiement non confirmé');
       }
@@ -93,10 +100,16 @@ const PaymentSuccess = () => {
           <p>
             💳 Le paiement a été enregistré et votre réservation a été mise à jour.
           </p>
+          <p>
+            🔄 Vous allez être redirigé vers votre réservation dans quelques secondes...
+          </p>
         </div>
 
-        <button className={styles.btn} onClick={handleGoToCalendar}>
-          Retour au calendrier
+        <button
+          className={styles.btn}
+          onClick={() => paymentInfo?.bookingId && navigate(`/client/my-booking/${paymentInfo.bookingId}`)}
+        >
+          Voir ma réservation
         </button>
       </div>
     </div>

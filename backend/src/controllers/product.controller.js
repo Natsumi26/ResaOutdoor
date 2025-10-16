@@ -22,26 +22,6 @@ export const getAllProducts = async (req, res, next) => {
       where.guideId = guideId;
     }
 
-    // Filtres
-    if (req.query.region) {
-      where.region = req.query.region;
-    }
-    if (req.query.level) {
-      where.level = req.query.level;
-    }
-    if (req.query.minDuration) {
-      where.duration = {
-        gte: parseInt(req.query.minDuration) * 60
-      };
-    }
-
-    if (req.query.maxDuration) {
-      where.duration = {
-        ...(where.duration || {}),
-        lte: parseInt(req.query.maxDuration) * 60
-      };
-    }
-
     const products = await prisma.product.findMany({
       where,
       include: {

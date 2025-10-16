@@ -11,9 +11,6 @@ Permet aux clients de trouver le canyon idéal.
 
 **Fonctionnalités :**
 - Filtres de recherche :
-  - Région (Annecy / Grenoble)
-  - Niveau (Découverte / Aventure / Sportif)
-  - Durée minimale et maximale
   - Date souhaitée (vérifie la disponibilité en temps réel)
 - Affichage en cards avec :
   - Photo du canyon
@@ -23,7 +20,7 @@ Permet aux clients de trouver le canyon idéal.
   - Bouton "Réserver"
 - Réinitialisation des filtres
 
-**Accès :** `http://localhost:5173/client/search`
+**Accès :** `http://localhost:3000/client/search`
 
 ---
 
@@ -47,7 +44,7 @@ Affiche tous les détails d'un canyon spécifique.
   - Option location de chaussures
   - Bouton "Réserver" par session
 
-**Accès :** `http://localhost:5173/client/canyon/[ID_PRODUIT]`
+**Accès :** `http://localhost:3000/client/canyon/[ID_PRODUIT]`
 
 ---
 
@@ -75,7 +72,7 @@ Permet de réserver une session.
   - Location de chaussures
   - Déduction bon cadeau
 
-**Accès :** `http://localhost:5173/client/book/[ID_SESSION]`
+**Accès :** `http://localhost:3000/client/book/[ID_SESSION]`
 
 ---
 
@@ -100,7 +97,7 @@ Affichée après une réservation réussie.
   - "Gérer ma réservation"
   - "Réserver une autre activité"
 
-**Accès :** `http://localhost:5173/client/booking-confirmation/[ID_RESERVATION]`
+**Accès :** `http://localhost:3000/client/booking-confirmation/[ID_RESERVATION]`
 
 ---
 
@@ -127,7 +124,7 @@ Permet au client de gérer sa réservation.
 - Liens vers le lieu de rendez-vous
 - Bouton d'annulation de réservation
 
-**Accès :** `http://localhost:5173/client/my-booking/[ID_RESERVATION]`
+**Accès :** `http://localhost:3000/client/my-booking/[ID_RESERVATION]`
 
 ---
 
@@ -157,7 +154,7 @@ Ajoutez ce code dans vos pages WordPress :
 ```html
 <!-- Page de recherche -->
 <iframe
-  src="http://localhost:5173/client/search"
+  src="http://localhost:3000/client/search"
   width="100%"
   height="1200px"
   frameborder="0"
@@ -166,7 +163,7 @@ Ajoutez ce code dans vos pages WordPress :
 
 <!-- Page détails (remplacer ID_PRODUIT) -->
 <iframe
-  src="http://localhost:5173/client/canyon/ID_PRODUIT"
+  src="http://localhost:3000/client/canyon/ID_PRODUIT"
   width="100%"
   height="1500px"
   frameborder="0"
@@ -302,7 +299,7 @@ VITE_API_URL=http://localhost:5000/api
 
 # Backend
 STRIPE_SECRET_KEY=sk_test_...
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:5000
 ```
 

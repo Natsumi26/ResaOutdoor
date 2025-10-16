@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { productsAPI, sessionsAPI } from '../../services/api';
+import { sessionsAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
+import Navbar from './composants/Navbar.jsx'
 
 const CanyonSearch = () => {
   const navigate = useNavigate();
@@ -10,61 +11,44 @@ const CanyonSearch = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    region: searchParams.get('region') || '',
-    level: searchParams.get('level') || '',
-    minDuration: searchParams.get('minDuration') || '',
-    maxDuration: searchParams.get('maxDuration') || '',
-    date: searchParams.get('date') || ''
+    participants: searchParams.get('participants') || '',
+    date: searchParams.get('date') || '',
+    startDate: searchParams.get('startDate') || '',
+    endDate: searchParams.get('endDate') || ''
   });
 
   useEffect(() => {
     loadProducts();
-  }, [filters.region, filters.level, filters.minDuration, filters.maxDuration, filters.date]);
-
+  }, [filters]);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
+
+      // Construire les paramètres de recherche
       const params = {};
 
-      if (filters.region) params.region = filters.region;
-      if (filters.level) params.level = filters.level;
-
-      const response = await productsAPI.getAll(params);
-      let filteredProducts = response.data.products;
-
-      // Filtrer par durée
-      if (filters.minDuration) {
-        filteredProducts = filteredProducts.filter(p => p.duration >= parseInt(filters.minDuration) * 60);
-      }
-      if (filters.maxDuration) {
-        filteredProducts = filteredProducts.filter(p => p.duration <= parseInt(filters.maxDuration) * 60);
+      if (filters.participants) {
+        params.participants = filters.participants;
       }
 
-      // Si une date est sélectionnée, vérifier la disponibilité
+      // Utiliser soit la date spécifique, soit la période
       if (filters.date) {
-        const productsWithAvailability = await Promise.all(
-          filteredProducts.map(async (product) => {
-            try {
-              const sessionsResponse = await sessionsAPI.getAll({
-                date: filters.date,
-                productId: product.id
-              });
-              const availableSessions = sessionsResponse.data.sessions.filter(
-                s => s.status === 'open' || s.status === 'full'
-              );
-              return { ...product, availableSessions: availableSessions.length };
-            } catch {
-              return { ...product, availableSessions: 0 };
-            }
-          })
-        );
-        filteredProducts = productsWithAvailability.filter(p => p.availableSessions > 0);
+        params.date = filters.date;
+      } else if (filters.startDate && filters.endDate) {
+        params.startDate = filters.startDate;
+        params.endDate = filters.endDate;
       }
+
+      // Utiliser la nouvelle API de recherche
+      const response = await sessionsAPI.searchAvailable(params);
+      setProducts(response.data.products || []);
+
       console.log('Filtres actifs:', filters);
-      setProducts(filteredProducts);
+      console.log('Produits trouvés:', response.data.count);
     } catch (error) {
       console.error('Erreur chargement produits:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -72,6 +56,18 @@ const CanyonSearch = () => {
 
   const handleFilterChange = (name, value) => {
     const newFilters = { ...filters, [name]: value };
+
+    // Si on change la date spécifique, réinitialiser la période
+    if (name === 'date' && value) {
+      newFilters.startDate = '';
+      newFilters.endDate = '';
+    }
+
+    // Si on change la période, réinitialiser la date spécifique
+    if ((name === 'startDate' || name === 'endDate') && value) {
+      newFilters.date = '';
+    }
+
     setFilters(newFilters);
 
     // Mettre à jour les paramètres URL
@@ -84,11 +80,10 @@ const CanyonSearch = () => {
 
   const handleResetFilters = () => {
     setFilters({
-      region: '',
-      level: '',
-      minDuration: '',
-      maxDuration: '',
-      date: ''
+      participants: '',
+      date: '',
+      startDate: '',
+      endDate: ''
     });
     setSearchParams({});
   };
@@ -114,7 +109,9 @@ const CanyonSearch = () => {
   }
 
   return (
-    <div className={styles.clientContainer}>
+    <>
+  <Navbar/>    
+  <div className={styles.clientContainer}>
       <div className={styles.searchHeader}>
         <h1>Trouvez votre canyon idéal</h1>
         <p>Découvrez nos canyons en Haute-Savoie et Isère</p>
@@ -124,66 +121,48 @@ const CanyonSearch = () => {
       <div className={styles.filtersCard}>
         <div className={styles.filtersGrid}>
           <div className={styles.filterGroup}>
-            <label>Région</label>
-            <select
-              value={filters.region}
-              onChange={(e) => handleFilterChange('region', e.target.value)}
-            >
-              <option value="">Toutes les régions</option>
-              <option value="annecy">Annecy</option>
-              <option value="grenoble">Grenoble</option>
-            </select>
+            <label>Nombre de participants</label>
+            <input
+              type="number"
+              min="1"
+              placeholder="Ex: 4"
+              value={filters.participants}
+              onChange={(e) => handleFilterChange('participants', e.target.value)}
+            />
           </div>
+          {/* Periode */}
+          <div className={styles.periode}>
+            Période Souhaitée :
+            <div className={styles.filterGroup}>
+              <label>Date de début</label>
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                disabled={!!filters.date}
+              />
+            </div>
 
-          <div className={styles.filterGroup}>
-            <label>Niveau</label>
-            <select
-              value={filters.level}
-              onChange={(e) => handleFilterChange('level', e.target.value)}
-            >
-              <option value="">Tous les niveaux</option>
-              <option value="découverte">Découverte</option>
-              <option value="aventure">Aventure</option>
-              <option value="sportif">Sportif</option>
-            </select>
+            <div className={styles.filterGroup}>
+              <label>Date de fin</label>
+              <input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                min={filters.startDate || new Date().toISOString().split('T')[0]}
+                disabled={!!filters.date}
+              />
+            </div>
           </div>
-
           <div className={styles.filterGroup}>
-            <label>Durée minimale</label>
-            <select
-              value={filters.minDuration}
-              onChange={(e) => handleFilterChange('minDuration', e.target.value)}
-            >
-              <option value="">Aucune</option>
-              <option value="2">2h</option>
-              <option value="3">3h</option>
-              <option value="4">4h</option>
-              <option value="5">5h</option>
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label>Durée maximale</label>
-            <select
-              value={filters.maxDuration}
-              onChange={(e) => handleFilterChange('maxDuration', e.target.value)}
-            >
-              <option value="">Aucune</option>
-              <option value="3">3h</option>
-              <option value="4">4h</option>
-              <option value="5">5h</option>
-              <option value="6">6h</option>
-              <option value="8">8h</option>
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label>Date souhaitée</label>
+            <label>OU Date spécifique</label>
             <input
               type="date"
               value={filters.date}
               onChange={(e) => handleFilterChange('date', e.target.value)}
               min={new Date().toISOString().split('T')[0]}
+              disabled={!!(filters.startDate || filters.endDate)}
             />
           </div>
 
@@ -276,6 +255,7 @@ const CanyonSearch = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

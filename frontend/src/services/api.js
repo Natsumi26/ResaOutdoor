@@ -71,6 +71,7 @@ export const productsAPI = {
 export const sessionsAPI = {
   getAll: (params) => api.get('/sessions', { params }),
   getById: (id) => api.get(`/sessions/${id}`),
+  searchAvailable: (params) => api.get('/sessions/search/available', { params }),
   create: (data) => api.post('/sessions', data),
   update: (id, data) => api.put(`/sessions/${id}`, data),
   delete: (id) => api.delete(`/sessions/${id}`)

@@ -33,7 +33,7 @@ Dans `.env`, configurez les URLs de votre application :
 
 ```env
 APP_URL=http://localhost:5000
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 ```
 
 ### 4. Configurer le Webhook (Important pour la production)
@@ -284,7 +284,7 @@ Dans votre .env :
 STRIPE_SECRET_KEY=sk_test_51PxxxxxxxxxxxxxxxxxxxxxxxxxxxxYrX
 
 # URLs
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:5000
 
 # Webhook (optionnel en dev)
