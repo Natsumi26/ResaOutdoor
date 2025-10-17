@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sessionsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI } from '../../services/api';
+import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
 
 const BookingForm = () => {
   const { sessionId } = useParams();
+  const searchParams = new URLSearchParams(location.search);
+  const productId = searchParams.get('productId');
+  console.log(productId)
   const navigate = useNavigate();
 
   const [session, setSession] = useState(null);
+  const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,7 +34,8 @@ const BookingForm = () => {
 
   useEffect(() => {
     loadSession();
-  }, [sessionId]);
+    loadProduct();
+  }, [sessionId, productId]);
 
   useEffect(() => {
     // Initialiser les participants quand le nombre de personnes change
@@ -54,6 +59,19 @@ const BookingForm = () => {
       setSession(response.data.session);
     } catch (error) {
       console.error('Erreur chargement session:', error);
+      navigate('/client/search');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await productsAPI.getById(productId);
+      setProduct(response.data.product);
+    } catch (error) {
+      console.error('Erreur chargement produit:', error);
       navigate('/client/search');
     } finally {
       setLoading(false);
@@ -95,9 +113,8 @@ const BookingForm = () => {
   };
 
   const calculateTotal = () => {
-    if (!session || !session.products || session.products.length === 0) return 0;
+    if (!session || !product) return 0;
 
-    const product = session.products[0].product;
     const numberOfPeople = formData.numberOfPeople;
 
     let pricePerPerson = product.priceIndividual;
@@ -159,7 +176,7 @@ const BookingForm = () => {
 
       const bookingData = {
         sessionId: session.id,
-        productId: session.products[0].product.id,
+        productId: productId,
         numberOfPeople: formData.numberOfPeople,
         clientFirstName: formData.clientFirstName,
         clientLastName: formData.clientLastName,
@@ -205,13 +222,12 @@ const BookingForm = () => {
     return <div className={styles.loading}>Chargement...</div>;
   }
 
-  if (!session || !session.products || session.products.length === 0) {
+  if (!session) {
     return <div className={styles.error}>Session introuvable</div>;
   }
 
-  const product = session.products[0].product;
   const total = calculateTotal();
-
+  console.log(product)
   return (
     <div className={styles.clientContainer}>
       <div className={styles.bookingFormContainer}>

@@ -44,6 +44,7 @@ const SessionDuplicateDialog = ({ session, onConfirm, onCancel }) => {
   };
 
   const handleConfirm = () => {
+    console.log('Dates sélectionnées :', selectedDates);
     onConfirm(selectedDates);
   };
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { sessionsAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
-import Navbar from './composants/Navbar.jsx'
+
 
 const CanyonSearch = () => {
   const navigate = useNavigate();
@@ -109,8 +109,7 @@ const CanyonSearch = () => {
   }
 
   return (
-    <>
-  <Navbar/>    
+    <> 
   <div className={styles.clientContainer}>
       <div className={styles.searchHeader}>
         <h1>Trouvez votre canyon idéal</h1>

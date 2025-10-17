@@ -10,6 +10,8 @@ import SessionDeleteDialog from '../components/SessionDeleteDialog';
 import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
 import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
 import styles from './Calendar.module.css';
+import { addDays } from 'date-fns';
+
 
 const Calendar = () => {
   const [sessions, setSessions] = useState([]);
@@ -37,11 +39,10 @@ const Calendar = () => {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
-
+        const today = new Date();
+        const weekEnd = addDays(today, 7);
       const params = {
-        startDate: format(weekStart, 'yyyy-MM-dd'),
+        startDate: format(today, 'yyyy-MM-dd'),
         endDate: format(weekEnd, 'yyyy-MM-dd')
       };
 
@@ -54,6 +55,8 @@ const Calendar = () => {
 
       setSessions(response.data.sessions || []);
       setError(null);
+      console.log('Sessions chargées :', response.data.sessions);
+
     } catch (err) {
       console.error('Erreur chargement sessions:', err);
       setError('Impossible de charger les sessions');
@@ -239,6 +242,8 @@ const Calendar = () => {
     try {
       // Dupliquer la session sur chaque date sélectionnée
       for (const date of selectedDates) {
+        console.log('Duplication sur :', date);
+
         const sessionData = {
           date: new Date(date).toISOString(),
           timeSlot: sessionToDuplicate.timeSlot,

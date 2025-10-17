@@ -90,13 +90,20 @@ const CanyonDetails = () => {
   };
 
   const getAvailableSpots = (session) => {
-    const total = session.products.reduce((sum, sp) => sum + sp.product.maxCapacity, 0);
-    const booked = session.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
+    const currentProduct = session.products.find(p => p.product.id === product.id);
+    if (!currentProduct) return 0;
+
+    const total = currentProduct.product.maxCapacity;
+
+    const booked = session.bookings
+      .filter(b => b.productId === product.id)
+      .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
     return total - booked;
   };
 
   const handleBookSession = (sessionId) => {
-    navigate(`/client/book/${sessionId}`);
+    navigate(`/client/book/${sessionId}?productId=${product.id}`);
   };
 
   if (loading) {
