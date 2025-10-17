@@ -51,6 +51,7 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
         numberOfPeople: response.data.booking.numberOfPeople || 0,
         totalPrice: response.data.booking.totalPrice || 0
       });
+      
       // Charger les participants
       await loadParticipants();
     } catch (error) {
@@ -60,7 +61,7 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
       setLoading(false);
     }
   };
-
+console.log(booking)
   const loadParticipants = async () => {
     try {
       const response = await participantsAPI.getByBooking(bookingId);
@@ -70,7 +71,6 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
       // Ne pas afficher d'erreur si aucun participant n'existe
     }
   };
-  console.log(participants)
   const handleSaveParticipants = async (data) => {
     try {
       await participantsAPI.upsert(bookingId, {
@@ -195,21 +195,15 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   };
 
   const handleSendClientRequest = async () => {
-    if (!clientRequestText.trim()) {
-      alert('Veuillez entrer un message à envoyer au client');
-      return;
-    }
-
     try {
       await emailAPI.sendCustomEmail({
         bookingId: bookingId,
         to: booking.clientEmail,
         subject: 'Demande d\'information - Votre réservation',
-        message: clientRequestText
+        content: clientRequestText
       });
       alert('Email envoyé avec succès au client !');
       setShowClientRequest(false);
-      setClientRequestText('');
     } catch (error) {
       console.error('Erreur envoi email client:', error);
       alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
@@ -247,21 +241,46 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
 
   const generateActivityEmailTemplate = () => {
     const unitPrice = booking.totalPrice / booking.numberOfPeople;
-    return `Bonjour ${booking.clientFirstName} ${booking.clientLastName},
+    return `Bonjour ${booking.clientFirstName} ${booking.clientLastName},<br><br>
 
-Voici les informations concernant votre activité :
+Voici les informations concernant votre activité :<br><br>
 
-Activité : ${booking.product?.name || 'N/A'}
-Date : ${format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr })}
-Horaire : ${session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1)} - ${session.startTime}
-Nombre de personnes : ${booking.numberOfPeople}
-Prix unitaire : ${unitPrice.toFixed(2)}€ par personne
-Prix total : ${booking.totalPrice}€
+Activité : ${booking.product?.name || 'N/A'}<br>
+Date : ${format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr })}<br>
+Horaire : ${session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1)} - ${session.startTime}<br>
+Nombre de personnes : ${booking.numberOfPeople}<br>
+Prix unitaire : ${unitPrice.toFixed(2)}€ par personne<br>
+Prix total : ${booking.totalPrice}€<br><br><br>
+
 
 Nous vous attendons avec plaisir !
+À très bientôt pour cette aventure inoubliable !<br>
+L'équipe Canyon Life 🌊<br><br>
 
-Cordialement,
-L'équipe`;
+<small style="color:gray;">
+Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+</small>
+`;
+  };
+
+const generateAskEmailTemplate = () => {
+    const formattedDate = format(new Date(booking.session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+    return `
+    Bonjour ${booking.clientFirstName} ${booking.clientLastName},<br><br>
+
+Suite à votre réservation du ${formattedDate} ${booking.session.startTime} pour le canyon ${booking.product.name},
+veuillez compléter le formulaire des participants  :<br>
+<a href="https://canyonlife.fr/client/my-booking/${booking.id}" target="_blank" style="color:#007bff;">
+Ma réservation</a><br><br>
+
+À très bientôt pour cette aventure inoubliable !<br>
+L'équipe Canyon Life 🌊<br><br>
+
+<small style="color:gray;">
+Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+</small>
+`;
+
   };
 
   if (loading) {
@@ -334,7 +353,9 @@ L'équipe`;
                   <h3>👤 Informations Client</h3>
                   <button
                     className={styles.btnSecondary}
-                    onClick={() => setShowClientRequest(!showClientRequest)}
+                    onClick={() => {
+                      setClientRequestText(generateAskEmailTemplate());
+                      setShowClientRequest(!showClientRequest)}}
                   >
                     ✉️ Demande au client
                   </button>
@@ -452,8 +473,7 @@ L'équipe`;
                       className={styles.textarea}
                       value={clientRequestText}
                       onChange={(e) => setClientRequestText(e.target.value)}
-                      placeholder="Entrez votre message ici..."
-                      rows={5}
+                      rows={12}
                     />
                     <div className={styles.formActions}>
                       <button className={styles.btnPrimary} onClick={handleSendClientRequest}>
@@ -461,10 +481,7 @@ L'équipe`;
                       </button>
                       <button
                         className={styles.btnSecondary}
-                        onClick={() => {
-                          setShowClientRequest(false);
-                          setClientRequestText('');
-                        }}
+                        onClick={() => setShowClientRequest(false)}
                       >
                         Annuler
                       </button>

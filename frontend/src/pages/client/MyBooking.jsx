@@ -16,8 +16,13 @@ const MyBooking = () => {
 
   useEffect(() => {
     loadBooking();
-    loadParticipants();
   }, [bookingId]);
+
+  useEffect(() => {
+    if (booking) {
+      loadParticipants();
+    }
+  }, [booking]);
 
   const loadBooking = async () => {
     try {
@@ -404,6 +409,12 @@ const MyBooking = () => {
             <p><strong>Nom :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
             <p><strong>Email :</strong> {booking.clientEmail}</p>
             <p><strong>Téléphone :</strong> {booking.clientPhone}</p>
+            <p><strong>Nationalité : </strong>
+                <img
+                  src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
+                  alt={booking.clientNationality}
+                />
+              </p>
           </div>
         </div>
 

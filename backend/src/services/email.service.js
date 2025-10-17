@@ -158,6 +158,12 @@ const bookingConfirmationTemplate = (booking) => {
         ` : ''}
 
         <div class="info-box">
+          <h3>Gérer sa réservation</h3>
+          <p>Vous pouvez visualiser et compléter votre réservation en cliquant sur ce lien,</p>
+          <a href='http://localhost:3000/client/my-booking/${booking.id}'>Ma réservation</a>
+        </div>
+
+        <div class="info-box">
           <h3>📞 Contact</h3>
           <p>Pour toute question, n'hésitez pas à nous contacter :</p>
           <p>Email: ${defaultFrom}</p>
@@ -477,12 +483,11 @@ const paymentConfirmationTemplate = (booking, amountPaid) => {
 export const sendPaymentConfirmation = async (booking, amountPaid) => {
   try {
     const isFullyPaid = booking.amountPaid >= booking.totalPrice;
-
     const mailOptions = {
       from: defaultFrom,
       to: booking.clientEmail,
       subject: isFullyPaid
-        ? `✅ Paiement confirmé - ${booking.product.name}`
+        ? `✅ Paiement confirmé - ${booking.product.name} `
         : `💳 Paiement de ${amountPaid}€ confirmé - ${booking.product.name}`,
       html: paymentConfirmationTemplate(booking, amountPaid)
     };

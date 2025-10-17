@@ -23,6 +23,7 @@ const BookingForm = () => {
     clientLastName: '',
     clientEmail: '',
     clientPhone: '',
+    clientNationality:'',
     voucherCode: '',
     paymentMethod: 'online', // 'online' ou 'onsite'
     fillParticipantsNow: false
@@ -145,7 +146,7 @@ const BookingForm = () => {
     e.preventDefault();
 
     // Validation
-    if (!formData.clientFirstName || !formData.clientLastName  || !formData.clientEmail || !formData.clientPhone) {
+    if (!formData.clientFirstName || !formData.clientLastName  || !formData.clientEmail || !formData.clientPhone || !formData.clientNationality) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -182,6 +183,7 @@ const BookingForm = () => {
         clientLastName: formData.clientLastName,
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
+        clientNationality: formData.clientNationality,
         totalPrice: total,
         amountPaid: formData.paymentMethod === 'online' ? total : 0,
         status: formData.paymentMethod === 'online' ? 'confirmed' : 'pending',
@@ -348,6 +350,38 @@ const BookingForm = () => {
                 placeholder="06 12 34 56 78"
                 required
               />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Nationalité *</label>
+              <select
+                value={formData.clientNationality}
+                onChange={(e) => handleChange('clientNationality', e.target.value)}
+                required
+              >
+                <option value="">-- Sélectionnez une nationalité --</option>
+                <option value="FR">Française</option>
+                <option value="IT">Italienne</option>
+                <option value="ES">Espagnole</option>
+                <option value="DE">Allemande</option>
+                <option value="BE">Belge</option>
+                <option value="CH">Suisse</option>
+                <option value="GB">Britannique</option>
+                <option value="US">Américaine</option>
+                <option value="CA">Canadienne</option>
+                <option value="NL">Néerlandaise</option>
+                <option value="PT">Portugaise</option>
+                <option value="SE">Suédoise</option>
+                <option value="NO">Norvégienne</option>
+                <option value="DK">Danoise</option>
+                <option value="AU">Australienne</option>
+                <option value="NZ">Néo-Zélandaise</option>
+                <option value="JP">Japonaise</option>
+                <option value="CN">Chinoise</option>
+                <option value="BR">Brésilienne</option>
+                <option value="AR">Argentine</option>
+                {/* Ajoute d'autres pays si besoin */}
+              </select>
             </div>
 
 

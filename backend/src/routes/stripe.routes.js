@@ -68,14 +68,59 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
     const session = await retrieveCheckoutSession(sessionId);
 
     if (session.payment_status === 'paid') {
-      // Le paiement est confirmé
-      res.json({
-        success: true,
-        paid: true,
-        bookingId: session.client_reference_id,
-        amount: session.amount_total / 100 // Convertir de centimes en euros
-      });
-    } else {
+  const bookingId = session.client_reference_id;
+
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  if (!booking) throw new AppError('Réservation introuvable', 404);
+
+  const amountPaid = session.amount_total / 100;
+  const newTotalPaid = booking.amountPaid + amountPaid;
+
+  await prisma.payment.create({
+    data: {
+      amount: amountPaid,
+      method: 'stripe',
+      notes: `Payment Intent: ${session.payment_intent}`,
+      bookingId
+    }
+  });
+
+  const updatedBooking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      amountPaid: newTotalPaid,
+      status: newTotalPaid >= booking.totalPrice ? 'confirmed' : booking.status
+    },
+    include: {
+    product: true,
+    session: {
+      include: {
+        guide: true // si tu veux aussi le guide dans l’email
+      }
+    }
+  }
+  });
+
+  await prisma.bookingHistory.create({
+    data: {
+      action: 'payment',
+      details: `Paiement Stripe de ${amountPaid}€`,
+      bookingId
+    }
+  });
+
+  sendPaymentConfirmation(updatedBooking, amountPaid).catch(err => {
+    console.log(updatedBooking)
+    console.error('Erreur envoi email:', err);
+  });
+
+  return res.json({
+    success: true,
+    paid: true,
+    bookingId,
+    amount: amountPaid
+  });
+} else {
       res.json({
         success: true,
         paid: false,
