@@ -89,10 +89,10 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
           </button>
         </div>
 
-        {/* Filtres */}
+        {/* Filtres sur une ligne */}
         <div className={styles.filtersContainer}>
           <label htmlFor="dateInput" className={styles.filtersLabel}>
-            Aller à la date
+            Aller à la date →
           </label>
           <input
             id="dateInput"

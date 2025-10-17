@@ -119,7 +119,7 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
               }
             }}
           >
-            <span className={styles.numberOfPeople}>{numberOfPeople}</span>
+            {numberOfPeople > 1 && <span className={styles.numberOfPeople}>{numberOfPeople}</span>}
             {booking.clientNationality && (
               <img
                 src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}

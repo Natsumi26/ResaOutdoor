@@ -164,6 +164,7 @@ model Booking {
   payments                  Payment[]
   history                   BookingHistory[]
   participants              Participant[]
+  notes                     BookingNote[]
 
   @@map("bookings")
 }
@@ -250,4 +251,18 @@ model Participant {
   updatedAt     DateTime @updatedAt
 
   @@map("participants")
+}
+
+// Notes de réservation
+model BookingNote {
+  id          String   @id @default(uuid())
+  content     String   // Contenu de la note
+
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("booking_notes")
 }

@@ -87,7 +87,12 @@ export const bookingsAPI = {
   cancel: (id) => api.post(`/bookings/${id}/cancel`),
   move: (id, data) => api.post(`/bookings/${id}/move`, data),
   markProductDetailsSent: (id) => api.post(`/bookings/${id}/mark-product-details-sent`),
-  delete: (id) => api.delete(`/bookings/${id}`)
+  delete: (id) => api.delete(`/bookings/${id}`),
+  // Notes
+  getNotes: (id) => api.get(`/bookings/${id}/notes`),
+  addNote: (id, data) => api.post(`/bookings/${id}/notes`, data),
+  updateNote: (id, noteId, data) => api.put(`/bookings/${id}/notes/${noteId}`, data),
+  deleteNote: (id, noteId) => api.delete(`/bookings/${id}/notes/${noteId}`)
 };
 
 // Gift Vouchers

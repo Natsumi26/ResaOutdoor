@@ -20,7 +20,15 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [clientRequestText, setClientRequestText] = useState('');
   const [showActivityEmail, setShowActivityEmail] = useState(false);
   const [activityEmailText, setActivityEmailText] = useState('');
-  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
+  const [editedPrice, setEditedPrice] = useState(0);
+  const [discountType, setDiscountType] = useState('none'); // 'none', 'percentage', 'amount'
+  const [discountValue, setDiscountValue] = useState(0);
+  const [notes, setNotes] = useState([]);
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState(null);
   const [editedClientData, setEditedClientData] = useState({
     clientFirstName: '',
     clientLastName: '',
@@ -50,9 +58,11 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
         numberOfPeople: response.data.booking.numberOfPeople || 0,
         totalPrice: response.data.booking.totalPrice || 0
       });
-      
+
       // Charger les participants
       await loadParticipants();
+      // Charger les notes
+      await loadNotes();
     } catch (error) {
       console.error('Erreur chargement réservation:', error);
       alert('Impossible de charger la réservation');
@@ -69,6 +79,68 @@ console.log(booking)
       console.error('Erreur chargement participants:', error);
       // Ne pas afficher d'erreur si aucun participant n'existe
     }
+  };
+
+  const loadNotes = async () => {
+    try {
+      const response = await bookingsAPI.getNotes(bookingId);
+      setNotes(response.data.notes || []);
+    } catch (error) {
+      console.error('Erreur chargement notes:', error);
+      setNotes([]);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!noteText.trim()) {
+      alert('Veuillez saisir une note');
+      return;
+    }
+
+    try {
+      if (editingNoteId) {
+        // Modifier une note existante
+        await bookingsAPI.updateNote(bookingId, editingNoteId, { content: noteText });
+        alert('Note modifiée avec succès !');
+      } else {
+        // Ajouter une nouvelle note
+        await bookingsAPI.addNote(bookingId, { content: noteText });
+        alert('Note ajoutée avec succès !');
+      }
+
+      setNoteText('');
+      setEditingNoteId(null);
+      setShowNoteForm(false);
+      await loadNotes();
+    } catch (error) {
+      console.error('Erreur sauvegarde note:', error);
+      alert('Impossible de sauvegarder la note: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setNoteText(note.content);
+    setEditingNoteId(note.id);
+    setShowNoteForm(true);
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('Voulez-vous vraiment supprimer cette note ?')) return;
+
+    try {
+      await bookingsAPI.deleteNote(bookingId, noteId);
+      alert('Note supprimée avec succès !');
+      await loadNotes();
+    } catch (error) {
+      console.error('Erreur suppression note:', error);
+      alert('Impossible de supprimer la note: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleCancelNote = () => {
+    setNoteText('');
+    setEditingNoteId(null);
+    setShowNoteForm(false);
   };
   const handleSaveParticipants = async (data) => {
     try {
@@ -88,12 +160,12 @@ console.log(booking)
     }
   };
 
-  const handleEditClient = () => {
-    setIsEditingClient(true);
+  const handleOpenEditModal = () => {
+    setShowEditModal(true);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditingClient(false);
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
     // Réinitialiser avec les données actuelles
     setEditedClientData({
       clientFirstName: booking.clientFirstName || '',
@@ -104,6 +176,39 @@ console.log(booking)
       numberOfPeople: booking.numberOfPeople || 0,
       totalPrice: booking.totalPrice || 0
     });
+  };
+
+  const handleEditPrice = () => {
+    setEditedPrice(booking.totalPrice);
+    setDiscountType('none');
+    setDiscountValue(0);
+    setIsEditingPrice(true);
+  };
+
+  const handleCancelPriceEdit = () => {
+    setIsEditingPrice(false);
+    setEditedPrice(0);
+    setDiscountType('none');
+    setDiscountValue(0);
+  };
+
+  const calculateFinalPrice = () => {
+    const basePrice = booking.totalPrice;
+
+    if (discountType === 'percentage') {
+      return basePrice * (1 - discountValue / 100);
+    } else if (discountType === 'amount') {
+      return basePrice - discountValue;
+    }
+
+    return editedPrice;
+  };
+
+  const handleApplyDiscount = () => {
+    const finalPrice = calculateFinalPrice();
+    setEditedPrice(parseFloat(finalPrice.toFixed(2)));
+    setDiscountType('none');
+    setDiscountValue(0);
   };
 
   const handleNumberOfPeopleChange = (newNumberOfPeople) => {
@@ -119,15 +224,28 @@ console.log(booking)
     });
   };
 
-  const handleSaveClient = async () => {
+  const handleSavePrice = async () => {
     try {
-      await bookingsAPI.update(bookingId, editedClientData);
-      alert('Informations client mises à jour avec succès !');
-      setIsEditingClient(false);
+      await bookingsAPI.update(bookingId, { totalPrice: editedPrice });
+      alert('Prix mis à jour avec succès !');
+      setIsEditingPrice(false);
       await loadBooking();
       onUpdate?.();
     } catch (error) {
-      console.error('Erreur mise à jour client:', error);
+      console.error('Erreur mise à jour prix:', error);
+      alert('Impossible de mettre à jour le prix: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleSaveClient = async () => {
+    try {
+      await bookingsAPI.update(bookingId, editedClientData);
+      alert('Informations mises à jour avec succès !');
+      setShowEditModal(false);
+      await loadBooking();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur mise à jour réservation:', error);
       alert('Impossible de mettre à jour les informations: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -329,19 +447,11 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
         {/* Header avec infos client - couleur selon tâches */}
         <div className={`${styles.header} ${hasPendingTasks ? styles.headerPending : styles.headerComplete}`}>
           <div className={styles.headerLeft}>
-            <div className={styles.clientBadge}>
+            <div className={`${styles.clientBadge} ${hasPendingTasks ? styles.badgePending : styles.badgeComplete}`}>
               <span className={styles.clientNumber}>{booking.numberOfPeople}</span>
             </div>
             <div className={styles.clientInfo}>
-              <div className={styles.clientNameRow}>
-                <h2 className={styles.clientName}>{booking.clientLastName.toUpperCase()}</h2>
-                <span
-                  className={styles.viewClientLink}
-                  onClick={() => alert('Fiche client (à implémenter)')}
-                >
-                  Voir la fiche client
-                </span>
-              </div>
+              <h2 className={styles.clientName}>{booking.clientLastName.toUpperCase()}</h2>
               <p className={styles.clientFirstName}>{booking.clientFirstName}</p>
             </div>
           </div>
@@ -485,6 +595,15 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
             <div className={`${styles.activityHeader} ${booking.productDetailsSent ? styles.activityComplete : styles.activityIncomplete}`}>
               <span className={styles.blockIcon}>{booking.productDetailsSent ? '✓' : '○'}</span>
               <span className={styles.blockTitle}>Détails de l'activité {booking.productDetailsSent ? 'envoyés' : 'non envoyés'}</span>
+              {!booking.productDetailsSent && (
+                <span
+                  className={styles.quickValidateIcon}
+                  onClick={handleMarkProductDetailsSent}
+                  title="Marquer comme envoyé"
+                >
+                  ✅
+                </span>
+              )}
             </div>
 
             {/* Ligne 2 : Contenu blanc/grisé - 2 colonnes */}
@@ -538,64 +657,175 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               <div className={styles.blockHeader}>
                 <span className={styles.blockIcon}>💵</span>
                 <span className={styles.blockTitle}>Tarif</span>
-                <button className={styles.btnModify} onClick={handleEditClient}>
-                  Modifier
-                </button>
+                {!isEditingPrice && (
+                  <button className={styles.btnModify} onClick={handleEditPrice}>
+                    Modifier
+                  </button>
+                )}
               </div>
+
               <table className={styles.pricingTable}>
                 <thead>
                   <tr>
                     <th>Libellé</th>
-                    <th>Taux TVA</th>
-                    <th>Prix TTC</th>
+                    <th>Prix</th>
                     <th>Quantité</th>
+                    <th>Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>Par personne</td>
-                    <td>0 %</td>
-                    <td>{(booking.totalPrice / booking.numberOfPeople).toFixed(2)} €</td>
-                    <td>&lt; {booking.numberOfPeople}</td>
+                    <td>{(() => {
+                      // Calculer le coût total des chaussures
+                      const shoeCount = participants.filter(p => p.shoeRental).length;
+                      const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
+                      // Prix de l'activité sans chaussures
+                      const activityPrice = booking.totalPrice - shoesTotalCost;
+                      const pricePerPerson = activityPrice / booking.numberOfPeople;
+                      return pricePerPerson.toFixed(2);
+                    })()} €</td>
+                    <td>{booking.numberOfPeople}</td>
+                    <td>{(() => {
+                      const shoeCount = participants.filter(p => p.shoeRental).length;
+                      const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
+                      const activityPrice = booking.totalPrice - shoesTotalCost;
+                      return activityPrice.toFixed(2);
+                    })()} €</td>
                   </tr>
+                  {participants && participants.length > 0 && participants.some(p => p.shoeRental) && (
+                    <tr>
+                      <td>Location de chaussures</td>
+                      <td>{(booking.session?.shoeRentalPrice || 5).toFixed(2)} €</td>
+                      <td>{participants.filter(p => p.shoeRental).length}</td>
+                      <td>{(() => {
+                        const shoeCount = participants.filter(p => p.shoeRental).length;
+                        const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
+                        return shoesTotalCost.toFixed(2);
+                      })()} €</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
-              <div className={styles.totalPrice}>
-                <span>Total TTC :</span>
-                <span className={styles.totalValue}>{booking.totalPrice} €</span>
-              </div>
+
+              {isEditingPrice ? (
+                <div className={styles.editPriceForm}>
+                  <div className={styles.priceOriginal}>
+                    <span>Prix actuel :</span>
+                    <strong>{booking.totalPrice} €</strong>
+                  </div>
+
+                  <div className={styles.discountSection}>
+                    <label>Appliquer une réduction</label>
+                    <div className={styles.discountControls}>
+                      <select
+                        value={discountType}
+                        onChange={(e) => setDiscountType(e.target.value)}
+                        className={styles.discountTypeSelect}
+                      >
+                        <option value="none">Pas de réduction</option>
+                        <option value="percentage">Réduction en %</option>
+                        <option value="amount">Réduction en €</option>
+                      </select>
+
+                      {discountType !== 'none' && (
+                        <>
+                          <input
+                            type="number"
+                            step={discountType === 'percentage' ? '1' : '0.01'}
+                            min="0"
+                            max={discountType === 'percentage' ? '100' : booking.totalPrice}
+                            value={discountValue}
+                            onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                            placeholder={discountType === 'percentage' ? '%' : '€'}
+                            className={styles.discountInput}
+                          />
+                          <button
+                            className={styles.btnApplyDiscount}
+                            onClick={handleApplyDiscount}
+                            type="button"
+                          >
+                            Appliquer
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {discountType !== 'none' && discountValue > 0 && (
+                      <div className={styles.discountPreview}>
+                        <span>Nouveau prix : </span>
+                        <strong>{calculateFinalPrice().toFixed(2)} €</strong>
+                        <span className={styles.discountAmount}>
+                          (-{discountType === 'percentage'
+                            ? `${discountValue}%`
+                            : `${discountValue.toFixed(2)}€`})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Prix final (€)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editedPrice}
+                      onChange={(e) => setEditedPrice(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+
+                  <div className={styles.formActions}>
+                    <button className={styles.btnBlue} onClick={handleSavePrice}>
+                      Enregistrer
+                    </button>
+                    <button className={styles.btnGray} onClick={handleCancelPriceEdit}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.totalPrice}>
+                  <span>Total :</span>
+                  <span className={styles.totalValue}>{booking.totalPrice} €</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Colonne droite */}
           <div className={styles.rightColumn}>
-            {/* Bloc Paiements (VIOLET) */}
-          <div className={styles.blockPayments}>
-            <div className={styles.blockHeader}>
+            {/* Bloc Paiements - Tableau 3 lignes (VIOLET) */}
+          <div className={styles.blockPaymentsTable}>
+            {/* Ligne 1 : Header violet avec titre et bouton */}
+            <div className={styles.paymentsHeader}>
               <span className={styles.blockIcon}>💳</span>
               <span className={styles.blockTitle}>Paiements</span>
-              <button className={styles.btnViewPayments} onClick={() => alert('Voir les paiements (à implémenter)')}>
+              <button className={styles.btnViewPaymentsNew} onClick={() => alert('Voir les paiements (à implémenter)')}>
                 Voir les paiements
               </button>
             </div>
-            <div className={styles.paymentAmounts}>
-              <div className={styles.paymentMain}>
-                <span className={styles.paymentLabel}>Encaissé :</span>
-                <span className={styles.paymentValue}>{booking.amountPaid} €</span>
+
+            {/* Ligne 2 : Tableau 2 colonnes avec bordures grises */}
+            <div className={styles.paymentsAmountsRow}>
+              <div className={styles.paymentColumn}>
+                <span className={styles.paymentLabelNew}>Encaissé</span>
+                <span className={styles.paymentValueNew}>{booking.amountPaid} €</span>
               </div>
-              <div className={styles.paymentRemaining}>
-                <span className={styles.paymentLabel}>Reste à régler</span>
-                <span className={styles.paymentValue}>{remainingAmount} €</span>
+              <div className={styles.paymentColumn}>
+                <span className={styles.paymentLabelNew}>Reste à régler</span>
+                <span className={styles.paymentValueNew}>{remainingAmount} €</span>
               </div>
             </div>
+
+            {/* Ligne 3 : Bouton nouvel encaissement */}
             <button
-              className={styles.btnAddPayment}
+              className={styles.btnNewPayment}
               onClick={() => setShowPaymentForm(!showPaymentForm)}
             >
               + Nouvel encaissement
             </button>
 
-            {/* Formulaire paiement */}
+            {/* Formulaire paiement (en dehors du tableau) */}
             {showPaymentForm && (
               <form className={styles.paymentForm} onSubmit={handleAddPayment}>
                 <div className={styles.formRow}>
@@ -656,27 +886,70 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
             )}
           </div>
 
-            {/* Bloc Notes (BLANC) - Compact si vide */}
-            <div className={styles.blockNotesCompact}>
-              <span className={styles.blockIcon}>📝</span>
-              <span className={styles.blockTitle}>Note</span>
-              <button className={styles.btnAdd} onClick={() => alert('Ajouter note (à implémenter)')}>
-                Ajouter
-              </button>
-            </div>
+            {/* Bloc Notes (BLANC) */}
+            {notes.length === 0 && !showNoteForm ? (
+              <div className={styles.blockNotesCompact}>
+                <span className={styles.blockIcon}>📝</span>
+                <span className={styles.blockTitle}>Note</span>
+                <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
+                  Ajouter
+                </button>
+              </div>
+            ) : (
+              <div className={styles.blockNotes}>
+                <div className={styles.blockHeader}>
+                  <span className={styles.blockIcon}>📝</span>
+                  <span className={styles.blockTitle}>Notes ({notes.length})</span>
+                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
+                    + Ajouter
+                  </button>
+                </div>
 
-            {/* Bloc Stocks (BLANC) - Compact si vide */}
-            <div className={styles.blockStocksCompact}>
-              <span className={styles.blockIcon}>📦</span>
-              <span className={styles.blockTitle}>Stocks</span>
-              <button className={styles.btnModify} onClick={() => alert('Modifier stocks (à implémenter)')}>
-                Modifier
-              </button>
-            </div>
+                {/* Liste des notes */}
+                {notes.map((note) => (
+                  <div key={note.id} className={styles.noteItem}>
+                    <div className={styles.noteContent}>{note.content}</div>
+                    <div className={styles.noteActions}>
+                      <button className={styles.btnEditNote} onClick={() => handleEditNote(note)}>
+                        ✏️
+                      </button>
+                      <button className={styles.btnDeleteNote} onClick={() => handleDeleteNote(note.id)}>
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulaire d'ajout/modification de note */}
+            {showNoteForm && (
+              <div className={styles.noteFormOverlay}>
+                <div className={styles.noteForm}>
+                  <h3>{editingNoteId ? 'Modifier la note' : 'Ajouter une note'}</h3>
+                  <textarea
+                    className={styles.noteTextarea}
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Saisir votre note..."
+                    rows={5}
+                    autoFocus
+                  />
+                  <div className={styles.noteFormActions}>
+                    <button className={styles.btnBlue} onClick={handleAddNote}>
+                      {editingNoteId ? 'Modifier' : 'Ajouter'}
+                    </button>
+                    <button className={styles.btnGray} onClick={handleCancelNote}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Liens texte pour actions */}
             <div className={styles.bookingActions}>
-              <span className={styles.linkModify} onClick={() => alert('Modifier réservation (à implémenter)')}>
+              <span className={styles.linkModify} onClick={handleOpenEditModal}>
                 <span className={styles.emojiBlue}>✏️</span> Modifier la réservation
               </span>
               <span className={styles.linkDelete} onClick={handleDeleteBooking}>
@@ -684,6 +957,84 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               </span>
             </div>
           </div>
+
+          {/* Modal d'édition de réservation */}
+          {showEditModal && (
+            <div className={styles.editModalOverlay}>
+              <div className={styles.editModalContent}>
+                <h3>Modifier la réservation</h3>
+                <div className={styles.editForm}>
+                  <div className={styles.formGroup}>
+                    <label>Prénom</label>
+                    <input
+                      type="text"
+                      value={editedClientData.clientFirstName}
+                      onChange={(e) => setEditedClientData({...editedClientData, clientFirstName: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Nom</label>
+                    <input
+                      type="text"
+                      value={editedClientData.clientLastName}
+                      onChange={(e) => setEditedClientData({...editedClientData, clientLastName: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      value={editedClientData.clientEmail}
+                      onChange={(e) => setEditedClientData({...editedClientData, clientEmail: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Téléphone</label>
+                    <input
+                      type="tel"
+                      value={editedClientData.clientPhone}
+                      onChange={(e) => setEditedClientData({...editedClientData, clientPhone: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Nationalité (code pays, ex: FR)</label>
+                    <input
+                      type="text"
+                      value={editedClientData.clientNationality}
+                      onChange={(e) => setEditedClientData({...editedClientData, clientNationality: e.target.value})}
+                      maxLength={2}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Nombre de personnes</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editedClientData.numberOfPeople}
+                      onChange={(e) => handleNumberOfPeopleChange(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Prix total (€)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editedClientData.totalPrice}
+                      onChange={(e) => setEditedClientData({...editedClientData, totalPrice: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className={styles.formActions}>
+                    <button className={styles.btnBlue} onClick={handleSaveClient}>
+                      Enregistrer
+                    </button>
+                    <button className={styles.btnGray} onClick={handleCloseEditModal}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bloc Historique pleine largeur en bas */}
           <div className={styles.fullWidthSection}>

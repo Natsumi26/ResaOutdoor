@@ -713,3 +713,133 @@ export const markProductDetailsSent = async (req, res, next) => {
     }
   }
 };
+
+// Obtenir toutes les notes d'une réservation
+export const getNotes = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const notes = await prisma.bookingNote.findMany({
+      where: { bookingId: id },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      notes
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Ajouter une note à une réservation
+export const addNote = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      throw new AppError('Le contenu de la note est requis', 400);
+    }
+
+    // Vérifier que la réservation existe
+    const booking = await prisma.booking.findUnique({
+      where: { id }
+    });
+
+    if (!booking) {
+      throw new AppError('Réservation non trouvée', 404);
+    }
+
+    const note = await prisma.bookingNote.create({
+      data: {
+        content: content.trim(),
+        bookingId: id
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      note
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Modifier une note
+export const updateNote = async (req, res, next) => {
+  try {
+    const { id, noteId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      throw new AppError('Le contenu de la note est requis', 400);
+    }
+
+    // Vérifier que la note existe et appartient à cette réservation
+    const existingNote = await prisma.bookingNote.findUnique({
+      where: { id: noteId }
+    });
+
+    if (!existingNote) {
+      throw new AppError('Note non trouvée', 404);
+    }
+
+    if (existingNote.bookingId !== id) {
+      throw new AppError('Cette note n\'appartient pas à cette réservation', 403);
+    }
+
+    const note = await prisma.bookingNote.update({
+      where: { id: noteId },
+      data: { content: content.trim() }
+    });
+
+    res.json({
+      success: true,
+      note
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      next(new AppError('Note non trouvée', 404));
+    } else {
+      next(error);
+    }
+  }
+};
+
+// Supprimer une note
+export const deleteNote = async (req, res, next) => {
+  try {
+    const { id, noteId } = req.params;
+
+    // Vérifier que la note existe et appartient à cette réservation
+    const existingNote = await prisma.bookingNote.findUnique({
+      where: { id: noteId }
+    });
+
+    if (!existingNote) {
+      throw new AppError('Note non trouvée', 404);
+    }
+
+    if (existingNote.bookingId !== id) {
+      throw new AppError('Cette note n\'appartient pas à cette réservation', 403);
+    }
+
+    await prisma.bookingNote.delete({
+      where: { id: noteId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Note supprimée avec succès'
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      next(new AppError('Note non trouvée', 404));
+    } else {
+      next(error);
+    }
+  }
+};

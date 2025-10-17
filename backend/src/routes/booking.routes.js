@@ -8,7 +8,11 @@ import {
   cancelBooking,
   moveBooking,
   deleteBooking,
-  markProductDetailsSent
+  markProductDetailsSent,
+  getNotes,
+  addNote,
+  updateNote,
+  deleteNote
 } from '../controllers/booking.controller.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -25,5 +29,11 @@ router.post('/:id/cancel', cancelBooking);
 router.post('/:id/move', moveBooking);
 router.post('/:id/mark-product-details-sent', markProductDetailsSent);
 router.delete('/:id', deleteBooking);
+
+// Routes pour les notes
+router.get('/:id/notes', getNotes);
+router.post('/:id/notes', addNote);
+router.put('/:id/notes/:noteId', updateNote);
+router.delete('/:id/notes/:noteId', deleteNote);
 
 export default router;
