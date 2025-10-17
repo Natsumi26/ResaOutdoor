@@ -10,7 +10,8 @@
       "Bash(npx prisma db execute:*)",
       "Bash(npx prisma generate:*)",
       "Bash(rm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

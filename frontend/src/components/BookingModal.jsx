@@ -8,7 +8,6 @@ import styles from './BookingModal.module.css';
 const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('info'); // 'info', 'participants', 'payments', 'history'
   const [participants, setParticipants] = useState([]);
   const [showParticipantForm, setShowParticipantForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -299,574 +298,424 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
   const remainingAmount = booking.totalPrice - booking.amountPaid;
   const paymentPercentage = (booking.amountPaid / booking.totalPrice) * 100;
 
+  // Vérifier s'il reste des tâches à faire
+  const hasPendingTasks = !booking.participantsFormCompleted || !booking.productDetailsSent;
+
+  // Fonction pour formater le numéro de téléphone
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return '';
+    // Supprimer tous les espaces et caractères spéciaux
+    const cleaned = phone.replace(/\D/g, '');
+
+    // Si le numéro commence par 0, le remplacer par +33
+    let formatted = cleaned;
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+      formatted = '33' + cleaned.substring(1);
+    } else if (!cleaned.startsWith('33')) {
+      formatted = '33' + cleaned;
+    }
+
+    // Formater : +33 06 88 78 81 86
+    if (formatted.startsWith('33') && formatted.length >= 11) {
+      return `+${formatted.substring(0, 2)} ${formatted.substring(2, 3)} ${formatted.substring(3, 5)} ${formatted.substring(5, 7)} ${formatted.substring(7, 9)} ${formatted.substring(9, 11)}`;
+    }
+
+    return phone; // Retourner le numéro original si le format n'est pas reconnu
+  };
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className={styles.header}>
-          <div className={styles.headerTitle}>
-            <h2>Réservation #{booking.id.slice(0, 8)}</h2>
-            <span className={`${styles.statusBadge} ${styles[booking.status]}`}>
-              {booking.status === 'pending' ? 'En attente' :
-               booking.status === 'confirmed' ? 'Confirmée' : 'Annulée'}
-            </span>
+        {/* Header avec infos client - couleur selon tâches */}
+        <div className={`${styles.header} ${hasPendingTasks ? styles.headerPending : styles.headerComplete}`}>
+          <div className={styles.headerLeft}>
+            <div className={styles.clientBadge}>
+              <span className={styles.clientNumber}>{booking.numberOfPeople}</span>
+            </div>
+            <div className={styles.clientInfo}>
+              <div className={styles.clientNameRow}>
+                <h2 className={styles.clientName}>{booking.clientLastName.toUpperCase()}</h2>
+                <span
+                  className={styles.viewClientLink}
+                  onClick={() => alert('Fiche client (à implémenter)')}
+                >
+                  Voir la fiche client
+                </span>
+              </div>
+              <p className={styles.clientFirstName}>{booking.clientFirstName}</p>
+            </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
-        </div>
-
-        {/* Tabs */}
-        <div className={styles.tabs}>
-          <button
-            className={`${styles.tab} ${activeTab === 'info' ? styles.active : ''}`}
-            onClick={() => setActiveTab('info')}
-          >
-            📋 Informations
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'participants' ? styles.active : ''}`}
-            onClick={() => setActiveTab('participants')}
-          >
-            👥 Participants {participants.length > 0 && `(${participants.length})`}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'payments' ? styles.active : ''}`}
-            onClick={() => setActiveTab('payments')}
-          >
-            💳 Paiements
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            📜 Historique
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className={styles.content}>
-          {/* Onglet Informations */}
-          {activeTab === 'info' && (
-            <div className={styles.infoTab}>
-              {/* Client */}
-              <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>👤 Informations Client</h3>
-                  <button
-                    className={styles.btnSecondary}
-                    onClick={() => {
-                      setClientRequestText(generateAskEmailTemplate());
-                      setShowClientRequest(!showClientRequest)}}
-                  >
-                    ✉️ Demande au client
-                  </button>
-                </div>
-
-                {!isEditingClient ? (
-                  <div className={styles.infoGrid}>
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Prénom</span>
-                      <span className={styles.value}>{booking.clientFirstName}</span>
-                    </div>
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Nom</span>
-                      <span className={styles.value}>{booking.clientLastName}</span>
-                    </div>
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Email</span>
-                      <span className={styles.value}>{booking.clientEmail}</span>
-                    </div>
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Téléphone</span>
-                      <span className={styles.value}>{booking.clientPhone}</span>
-                    </div>
-                    {booking.clientNationality && (
-                      <div className={styles.infoItem}>
-                        <span className={styles.label}>Nationalité</span>
-                        <span className={styles.value}>{booking.clientNationality}</span>
-                      </div>
-                    )}
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Nombre de personnes</span>
-                      <span className={styles.value}>{booking.numberOfPeople}</span>
-                    </div>
-                    <div className={styles.infoItem}>
-                      <span className={styles.label}>Prix total</span>
-                      <span className={styles.value}>{booking.totalPrice} €</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.editForm}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Prénom</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={editedClientData.clientFirstName}
-                        onChange={(e) => setEditedClientData({...editedClientData, clientFirstName: e.target.value})}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Nom</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={editedClientData.clientLastName}
-                        onChange={(e) => setEditedClientData({...editedClientData, clientLastName: e.target.value})}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Email</label>
-                      <input
-                        type="email"
-                        className={styles.input}
-                        value={editedClientData.clientEmail}
-                        onChange={(e) => setEditedClientData({...editedClientData, clientEmail: e.target.value})}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Téléphone</label>
-                      <input
-                        type="tel"
-                        className={styles.input}
-                        value={editedClientData.clientPhone}
-                        onChange={(e) => setEditedClientData({...editedClientData, clientPhone: e.target.value})}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Nationalité (code pays, ex: FR)</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={editedClientData.clientNationality}
-                        onChange={(e) => setEditedClientData({...editedClientData, clientNationality: e.target.value.toUpperCase()})}
-                        maxLength="2"
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Nombre de personnes</label>
-                      <input
-                        type="number"
-                        className={styles.input}
-                        min="1"
-                        value={editedClientData.numberOfPeople}
-                        onChange={(e) => handleNumberOfPeopleChange(parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Prix total</label>
-                      <input
-                        type="number"
-                        className={styles.input}
-                        value={editedClientData.totalPrice}
-                        onChange={(e) => setEditedClientData({...editedClientData, totalPrice: parseFloat(e.target.value)})}
-                        step="0.01"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Formulaire demande client */}
-                {showClientRequest && (
-                  <div className={styles.emailForm}>
-                    <label className={styles.label}>Message à envoyer au client</label>
-                    <textarea
-                      className={styles.textarea}
-                      value={clientRequestText}
-                      onChange={(e) => setClientRequestText(e.target.value)}
-                      rows={12}
-                    />
-                    <div className={styles.formActions}>
-                      <button className={styles.btnPrimary} onClick={handleSendClientRequest}>
-                        📧 Envoyer
-                      </button>
-                      <button
-                        className={styles.btnSecondary}
-                        onClick={() => setShowClientRequest(false)}
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Session & Activité */}
-              <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h3>🏔️ Activité & Session</h3>
-                  <button
-                    className={styles.btnSecondary}
-                    onClick={() => {
-                      setActivityEmailText(generateActivityEmailTemplate());
-                      setShowActivityEmail(!showActivityEmail);
-                    }}
-                  >
-                    📧 Envoyer au client
-                  </button>
-                </div>
-                <div className={styles.infoGrid}>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Activité</span>
-                    <span className={styles.value}>{booking.product?.name || 'N/A'}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Catégorie</span>
-                    <span className={styles.value}>{booking.product?.category?.name || 'N/A'}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Date</span>
-                    <span className={styles.value}>
-                      {format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr })}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Créneau</span>
-                    <span className={styles.value}>
-                      {session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1)} - {session.startTime}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Guide</span>
-                    <span className={styles.value}>{session.guide?.login}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Prix unitaire</span>
-                    <span className={styles.value}>
-                      {(booking.totalPrice / booking.numberOfPeople).toFixed(2)}€ / pers.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Formulaire email activité */}
-                {showActivityEmail && (
-                  <div className={styles.emailForm}>
-                    <label className={styles.label}>Email à envoyer au client (modifiable)</label>
-                    <textarea
-                      className={styles.textarea}
-                      value={activityEmailText}
-                      onChange={(e) => setActivityEmailText(e.target.value)}
-                      rows={12}
-                    />
-                    <div className={styles.formActions}>
-                      <button className={styles.btnPrimary} onClick={handleSendActivityEmail}>
-                        📧 Envoyer
-                      </button>
-                      <button
-                        className={styles.btnSecondary}
-                        onClick={() => setShowActivityEmail(false)}
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Détails réservation */}
-              <div className={styles.section}>
-                <h3>📊 Détails Réservation</h3>
-                <div className={styles.infoGrid}>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Nombre de personnes</span>
-                    <span className={styles.value}>{booking.numberOfPeople} pers.</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Prix total</span>
-                    <span className={styles.value}>{booking.totalPrice}€</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Montant payé</span>
-                    <span className={styles.value} style={{ color: '#10b981' }}>
-                      {booking.amountPaid}€
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Reste à payer</span>
-                    <span className={styles.value} style={{ color: remainingAmount > 0 ? '#ef4444' : '#10b981' }}>
-                      {remainingAmount}€
-                    </span>
-                  </div>
-                </div>
-
-                {/* Barre de progression paiement */}
-                <div className={styles.paymentProgress}>
-                  <div className={styles.progressLabel}>
-                    <span>Paiement</span>
-                    <span>{paymentPercentage.toFixed(0)}%</span>
-                  </div>
-                  <div className={styles.progressBar}>
-                    <div
-                      className={styles.progressFill}
-                      style={{
-                        width: `${paymentPercentage}%`,
-                        backgroundColor: paymentPercentage >= 100 ? '#10b981' : '#f59e0b'
+          <div className={styles.headerRight}>
+            <div className={styles.contactWrapper}>
+              <div className={styles.contactInfo}>
+                <a href={`tel:${booking.clientPhone.replace(/\s/g, '')}`} className={styles.phoneNumber}>
+                  {booking.clientNationality && (
+                    <img
+                      src={`https://flagcdn.com/24x18/${booking.clientNationality.toLowerCase()}.png`}
+                      alt={booking.clientNationality}
+                      className={styles.flagImage}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
                       }}
                     />
-                  </div>
-                </div>
+                  )}
+                  {formatPhoneNumber(booking.clientPhone)}
+                </a>
+                <a href={`mailto:${booking.clientEmail}`} className={styles.emailLink}>
+                  {booking.clientEmail}
+                </a>
               </div>
+              <button className={styles.closeBtn} onClick={onClose}>✕</button>
+            </div>
+          </div>
+        </div>
 
-              {/* Statuts de complétion */}
-              <div className={styles.section}>
-                <h3>✅ Statuts de Complétion</h3>
-                <div className={styles.infoGrid}>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Formulaire participants</span>
-                    <span className={styles.value} style={{ color: booking.participantsFormCompleted ? '#10b981' : '#f59e0b' }}>
-                      {booking.participantsFormCompleted ? '✓ Complété' : '○ En attente'}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.label}>Détails produit envoyés</span>
-                    <span className={styles.value} style={{ color: booking.productDetailsSent ? '#10b981' : '#f59e0b' }}>
-                      {booking.productDetailsSent ? '✓ Envoyés' : '○ Non envoyés'}
-                    </span>
-                  </div>
+        {/* Content - Structure en 2 colonnes */}
+        <div className={styles.content}>
+          {/* Colonne gauche */}
+          <div className={styles.leftColumn}>
+            {/* Bloc 1 - Rotation - Tableau 2 lignes */}
+            <div className={styles.blockRotationTable}>
+              {/* Ligne 1 : Header coloré */}
+              <div className={styles.rotationHeader}>
+                <div className={styles.rotationHeaderLeft}>
+                  <span className={styles.blockIcon}>✓</span>
+                  <span className={styles.blockTitle}>Rotation</span>
                 </div>
-                {!booking.productDetailsSent && (
-                  <button
-                    className={styles.btnPrimary}
-                    onClick={handleMarkProductDetailsSent}
-                    style={{ marginTop: '10px' }}
-                  >
-                    ✓ Marquer les détails produit comme envoyés
-                  </button>
-                )}
+                <button className={styles.btnRotation} onClick={() => alert('Déplacer réservation (à implémenter)')}>
+                  Déplacer cette réservation
+                </button>
+              </div>
+              {/* Ligne 2 : Contenu blanc/grisé */}
+              <div className={styles.rotationContent}>
+                <span className={styles.rotationActivity}>{booking.product?.name || 'N/A'}</span>
+                <span className={styles.rotationDate}>
+                  — {format(new Date(session.date), 'EEEE dd/MM/yy', { locale: fr })} ({session.startTime})
+                </span>
               </div>
             </div>
-          )}
 
-          {/* Onglet Participants */}
-          {activeTab === 'participants' && (
-            <div className={styles.participantsTab}>
-              {!showParticipantForm ? (
+          {/* Bloc 2 - Infos de groupe - Tableau 2 lignes */}
+          <div className={styles.blockGroupInfoTable}>
+            {/* Ligne 1 : Header coloré (jaune ou vert) */}
+            <div className={`${styles.groupInfoHeader} ${booking.participantsFormCompleted ? styles.groupComplete : styles.groupIncomplete}`}>
+              <span className={styles.blockIcon}>{booking.participantsFormCompleted ? '✓' : '⚠'}</span>
+              <span className={styles.blockTitle}>Infos de groupe {booking.participantsFormCompleted ? 'complètes' : 'incomplètes'}</span>
+            </div>
+
+            {/* Ligne 2 : Contenu blanc/grisé - 2 colonnes */}
+            <div className={styles.groupInfoContent}>
+              {!booking.participantsFormCompleted ? (
                 <>
-                  <div className={styles.sectionHeader}>
-                    <h3>👥 Participants ({participants.length}/{booking.numberOfPeople})</h3>
+                  <div className={styles.groupInfoText}>
+                    <p>Demandez au client de renseigner lui-même les infos de son groupe.</p>
+                  </div>
+                  <div className={styles.groupInfoButtons}>
                     <button
-                      className={styles.btnAdd}
+                      className={styles.btnBlue}
+                      onClick={() => {
+                        setClientRequestText(generateAskEmailTemplate());
+                        setShowClientRequest(!showClientRequest);
+                      }}
+                    >
+                      ⚡ Demander au client
+                    </button>
+                    <button
+                      className={styles.btnGray}
                       onClick={() => setShowParticipantForm(true)}
                     >
-                      {participants.length > 0 ? '✏️ Modifier' : '+ Ajouter'}
+                      Saisir à la main
                     </button>
                   </div>
-
-                  {participants.length > 0 ? (
-                    <div className={styles.participantsList}>
-                      {participants.map((participant, index) => (
-                        <div key={participant.id} className={styles.participantCard}>
-                          <div className={styles.participantHeader}>
-                            <span className={styles.participantName}>
-                              {index + 1}. {participant.firstName}
-                            </span>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span className={styles.wetsuitBadge}>
-                                {participant.wetsuitSize}
-                              </span>
-                            </div>
-                          </div>
-                          <div className={styles.participantDetails}>
-                            <span>👤 {participant.age} ans</span>
-                            <span>📏 {participant.height} cm</span>
-                            <span>⚖️ {participant.weight} kg</span>
-                            {participant.shoeRental && (
-                              <span className={styles.shoeRental}>
-                                👟 Pointure {participant.shoeSize}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <p>Aucun participant enregistré</p>
-                      <p className={styles.emptyHint}>
-                        Cliquez sur "Ajouter" pour renseigner les informations des participants
-                      </p>
-                    </div>
-                  )}
                 </>
               ) : (
-                <ParticipantForm
-                  booking={booking}
-                  shoeRentalAvailable={booking.session?.shoeRentalAvailable}
-                  shoeRentalPrice={booking.session?.shoeRentalPrice}
-                  initialParticipants={participants}
-                  onSubmit={handleSaveParticipants}
-                  onCancel={() => setShowParticipantForm(false)}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Onglet Paiements */}
-          {activeTab === 'payments' && (
-            <div className={styles.paymentsTab}>
-              <div className={styles.sectionHeader}>
-                <h3>💳 Paiements ({payments.length})</h3>
-                {!showPaymentForm && (
+                <div className={styles.groupInfoButtonsFull}>
                   <button
-                    className={styles.btnAdd}
-                    onClick={() => setShowPaymentForm(true)}
+                    className={styles.btnGreen}
+                    onClick={() => setShowParticipantForm(true)}
                   >
-                    + Ajouter un paiement
+                    📋 Voir le formulaire
                   </button>
-                )}
-              </div>
-
-              {/* Formulaire ajout paiement */}
-              {showPaymentForm && (
-                <form className={styles.paymentForm} onSubmit={handleAddPayment}>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <label>Montant (€)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={paymentData.amount}
-                        onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                        required
-                        placeholder={`Reste: ${remainingAmount}€`}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Méthode</label>
-                      <select
-                        value={paymentData.method}
-                        onChange={(e) => setPaymentData({...paymentData, method: e.target.value})}
-                      >
-                        <option value="CB">Carte Bancaire</option>
-                        <option value="espèces">Espèces</option>
-                        <option value="virement">Virement</option>
-                        <option value="stripe">Stripe</option>
-                        <option value="other">Autre</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>Notes (optionnel)</label>
-                    <input
-                      type="text"
-                      value={paymentData.notes}
-                      onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
-                      placeholder="Commentaire..."
-                    />
-                  </div>
-                  <div className={styles.formActions}>
-                    <button type="submit" className={styles.btnPrimary}>
-                      Enregistrer
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.btnSecondary}
-                      onClick={() => setShowPaymentForm(false)}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
+                </div>
               )}
-
-              {/* Liste des paiements */}
-              <div className={styles.paymentsList}>
-                {payments.length === 0 ? (
-                  <div className={styles.emptyState}>Aucun paiement enregistré</div>
-                ) : (
-                  payments.map(payment => (
-                    <div key={payment.id} className={styles.paymentItem}>
-                      <div className={styles.paymentIcon}>💰</div>
-                      <div className={styles.paymentDetails}>
-                        <div className={styles.paymentAmount}>{payment.amount}€</div>
-                        <div className={styles.paymentMethod}>{payment.method}</div>
-                        {payment.notes && (
-                          <div className={styles.paymentNotes}>{payment.notes}</div>
-                        )}
-                      </div>
-                      <div className={styles.paymentDate}>
-                        {format(new Date(payment.createdAt), 'dd/MM/yyyy HH:mm')}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
-          )}
 
-          {/* Onglet Historique */}
-          {activeTab === 'history' && (
-              <div className={styles.historyTab}>
-                <h3>📜 Historique des modifications</h3>
-                <div className={styles.timeline}>
-                  {history.length === 0 ? (
-                    <div className={styles.emptyState}>Aucun historique</div>
-                  ) : (
-                    history.map((item, index) => (
-                      <div key={item.id} className={styles.timelineItem}>
-                        <div className={styles.timelineDot}></div>
-                        {index < history.length - 1 && <div className={styles.timelineLine}></div>}
-                        <div className={styles.timelineContent}>
-                          <div className={styles.timelineAction}>{item.action}</div>
-                          <div className={styles.timelineDetails}>{item.details}</div>
-                          <div className={styles.timelineDate}>
-                            {format(new Date(item.createdAt), 'dd/MM/yyyy à HH:mm', { locale: fr })}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+            {/* Formulaire demande client */}
+            {showClientRequest && (
+              <div className={styles.emailForm}>
+                <label className={styles.label}>Message à envoyer au client</label>
+                <textarea
+                  className={styles.textarea}
+                  value={clientRequestText}
+                  onChange={(e) => setClientRequestText(e.target.value)}
+                  rows={10}
+                />
+                <div className={styles.formActions}>
+                  <button className={styles.btnBlue} onClick={handleSendClientRequest}>
+                    📧 Envoyer
+                  </button>
+                  <button
+                    className={styles.btnGray}
+                    onClick={() => setShowClientRequest(false)}
+                  >
+                    Annuler
+                  </button>
                 </div>
               </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Footer Actions */}
-        <div className={styles.footer}>
-          <div className={styles.footerLeft}>
-            <button className={styles.btnEmail} onClick={handleSendEmail}>
-              📧 Envoyer email
+          {/* Modal Participant Form */}
+          {showParticipantForm && (
+            <div className={styles.participantFormOverlay}>
+              <ParticipantForm
+                booking={booking}
+                shoeRentalAvailable={booking.session?.shoeRentalAvailable}
+                shoeRentalPrice={booking.session?.shoeRentalPrice}
+                initialParticipants={participants}
+                onSubmit={handleSaveParticipants}
+                onCancel={() => setShowParticipantForm(false)}
+              />
+            </div>
+          )}
+
+          {/* Bloc 3 - Détails de l'activité - Tableau 2 lignes */}
+          <div className={styles.blockActivityTable}>
+            {/* Ligne 1 : Header coloré (jaune ou vert) */}
+            <div className={`${styles.activityHeader} ${booking.productDetailsSent ? styles.activityComplete : styles.activityIncomplete}`}>
+              <span className={styles.blockIcon}>{booking.productDetailsSent ? '✓' : '○'}</span>
+              <span className={styles.blockTitle}>Détails de l'activité {booking.productDetailsSent ? 'envoyés' : 'non envoyés'}</span>
+            </div>
+
+            {/* Ligne 2 : Contenu blanc/grisé - 2 colonnes */}
+            <div className={styles.activityContent}>
+              <div className={styles.activityText}>
+                <p>Envoyez un email récapitulatif de l'activité au client. Vous pouvez y ajouter un message personnalisé.</p>
+              </div>
+              <div className={styles.activityButtons}>
+                <button
+                  className={styles.btnBlue}
+                  onClick={() => {
+                    setActivityEmailText(generateActivityEmailTemplate());
+                    setShowActivityEmail(!showActivityEmail);
+                  }}
+                >
+                  📧 Envoyer par email
+                </button>
+                <button className={styles.btnText} onClick={() => setShowActivityEmail(!showActivityEmail)}>
+                  Ajouter un message
+                </button>
+              </div>
+            </div>
+
+            {/* Formulaire email activité */}
+            {showActivityEmail && (
+              <div className={styles.emailForm}>
+                <label className={styles.label}>Email à envoyer au client (modifiable)</label>
+                <textarea
+                  className={styles.textarea}
+                  value={activityEmailText}
+                  onChange={(e) => setActivityEmailText(e.target.value)}
+                  rows={10}
+                />
+                <div className={styles.formActions}>
+                  <button className={styles.btnBlue} onClick={handleSendActivityEmail}>
+                    📧 Envoyer
+                  </button>
+                  <button
+                    className={styles.btnGray}
+                    onClick={() => setShowActivityEmail(false)}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+            {/* Bloc 4 - Tarif (BLANC/BLEU CLAIR) */}
+            <div className={styles.blockPricing}>
+              <div className={styles.blockHeader}>
+                <span className={styles.blockIcon}>💵</span>
+                <span className={styles.blockTitle}>Tarif</span>
+                <button className={styles.btnModify} onClick={handleEditClient}>
+                  Modifier
+                </button>
+              </div>
+              <table className={styles.pricingTable}>
+                <thead>
+                  <tr>
+                    <th>Libellé</th>
+                    <th>Taux TVA</th>
+                    <th>Prix TTC</th>
+                    <th>Quantité</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Par personne</td>
+                    <td>0 %</td>
+                    <td>{(booking.totalPrice / booking.numberOfPeople).toFixed(2)} €</td>
+                    <td>&lt; {booking.numberOfPeople}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className={styles.totalPrice}>
+                <span>Total TTC :</span>
+                <span className={styles.totalValue}>{booking.totalPrice} €</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Colonne droite */}
+          <div className={styles.rightColumn}>
+            {/* Bloc Paiements (VIOLET) */}
+          <div className={styles.blockPayments}>
+            <div className={styles.blockHeader}>
+              <span className={styles.blockIcon}>💳</span>
+              <span className={styles.blockTitle}>Paiements</span>
+              <button className={styles.btnViewPayments} onClick={() => alert('Voir les paiements (à implémenter)')}>
+                Voir les paiements
+              </button>
+            </div>
+            <div className={styles.paymentAmounts}>
+              <div className={styles.paymentMain}>
+                <span className={styles.paymentLabel}>Encaissé :</span>
+                <span className={styles.paymentValue}>{booking.amountPaid} €</span>
+              </div>
+              <div className={styles.paymentRemaining}>
+                <span className={styles.paymentLabel}>Reste à régler</span>
+                <span className={styles.paymentValue}>{remainingAmount} €</span>
+              </div>
+            </div>
+            <button
+              className={styles.btnAddPayment}
+              onClick={() => setShowPaymentForm(!showPaymentForm)}
+            >
+              + Nouvel encaissement
             </button>
+
+            {/* Formulaire paiement */}
+            {showPaymentForm && (
+              <form className={styles.paymentForm} onSubmit={handleAddPayment}>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label>Montant (€)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={paymentData.amount}
+                      onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                      required
+                      placeholder={`Reste: ${remainingAmount}€`}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Méthode</label>
+                    <select
+                      value={paymentData.method}
+                      onChange={(e) => setPaymentData({...paymentData, method: e.target.value})}
+                    >
+                      <option value="CB">Carte Bancaire</option>
+                      <option value="espèces">Espèces</option>
+                      <option value="virement">Virement</option>
+                      <option value="stripe">Stripe</option>
+                      <option value="other">Autre</option>
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Notes (optionnel)</label>
+                  <input
+                    type="text"
+                    value={paymentData.notes}
+                    onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                    placeholder="Commentaire..."
+                  />
+                </div>
+                <div className={styles.formActions}>
+                  <button type="submit" className={styles.btnBlue}>
+                    Enregistrer
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnGray}
+                    onClick={() => setShowPaymentForm(false)}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Bouton Stripe pour paiement */}
             {remainingAmount > 0 && booking.status !== 'cancelled' && (
-              <button className={styles.btnPay} onClick={handlePayWithStripe}>
-                💳 Payer {remainingAmount}€ avec Stripe
+              <button className={styles.btnStripe} onClick={handlePayWithStripe}>
+                💳 Demander un paiement Stripe
               </button>
             )}
           </div>
-          <div className={styles.footerActions}>
-            {!isEditingClient ? (
-              <button
-                className={styles.btnPrimary}
-                onClick={handleEditClient}
-              >
-                ✏️ Modifier
+
+            {/* Bloc Notes (BLANC) - Compact si vide */}
+            <div className={styles.blockNotesCompact}>
+              <span className={styles.blockIcon}>📝</span>
+              <span className={styles.blockTitle}>Note</span>
+              <button className={styles.btnAdd} onClick={() => alert('Ajouter note (à implémenter)')}>
+                Ajouter
               </button>
-            ) : (
-              <>
-                <button
-                  className={styles.btnSuccess}
-                  onClick={handleSaveClient}
-                >
-                  ✓ Enregistrer
-                </button>
-                <button
-                  className={styles.btnSecondary}
-                  onClick={handleCancelEdit}
-                >
-                  ✕ Annuler
-                </button>
-              </>
-            )}
-            <button
-              className={styles.btnDelete}
-              onClick={handleDeleteBooking}
-            >
-              🗑️ Supprimer
-            </button>
-            <button className={styles.btnSecondary} onClick={onClose}>
-              Fermer
-            </button>
+            </div>
+
+            {/* Bloc Stocks (BLANC) - Compact si vide */}
+            <div className={styles.blockStocksCompact}>
+              <span className={styles.blockIcon}>📦</span>
+              <span className={styles.blockTitle}>Stocks</span>
+              <button className={styles.btnModify} onClick={() => alert('Modifier stocks (à implémenter)')}>
+                Modifier
+              </button>
+            </div>
+
+            {/* Liens texte pour actions */}
+            <div className={styles.bookingActions}>
+              <span className={styles.linkModify} onClick={() => alert('Modifier réservation (à implémenter)')}>
+                <span className={styles.emojiBlue}>✏️</span> Modifier la réservation
+              </span>
+              <span className={styles.linkDelete} onClick={handleDeleteBooking}>
+                <span className={styles.emojiRed}>🗑️</span> Supprimer la réservation
+              </span>
+            </div>
+          </div>
+
+          {/* Bloc Historique pleine largeur en bas */}
+          <div className={styles.fullWidthSection}>
+          {/* Bloc Historique (GRIS CLAIR) */}
+          <div className={styles.blockHistory}>
+            <div className={styles.blockHeader}>
+              <span className={styles.blockIcon}>🕐</span>
+              <span className={styles.blockTitle}>Historique de la réservation</span>
+            </div>
+            <div className={styles.historyList}>
+              {history.length === 0 ? (
+                <div className={styles.emptyState}>Aucun historique disponible</div>
+              ) : (
+                history.slice(0, 5).map((item) => (
+                  <div key={item.id} className={styles.historyItem}>
+                    <span className={styles.historyTime}>
+                      {format(new Date(item.createdAt), 'HH:mm', { locale: fr })}
+                    </span>
+                    <span className={styles.historyIcon}>✏️</span>
+                    <div className={styles.historyContent}>
+                      <span className={styles.historyAction}>{item.action}</span>
+                      {item.details && <span className={styles.historyDetails}>{item.details}</span>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
+        {/* Fin de .content */}
+      </div>
+
       </div>
     </div>
   );
