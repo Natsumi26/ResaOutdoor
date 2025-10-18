@@ -130,6 +130,24 @@ model ProductCategory {
   @@map("product_categories")
 }
 
+// Revendeurs
+model Reseller {
+  id          String    @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  website     String?   // Lien vers le site web du revendeur
+  commission  Float?    // Commission en pourcentage (optionnel)
+  notes       String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
+
+  @@map("resellers")
+}
+
 // Réservations
 model Booking {
   id                        String      @id @default(uuid())
@@ -150,6 +168,10 @@ model Booking {
   // Statuts de complétion pour le badge
   participantsFormCompleted Boolean     @default(false) // Le formulaire participants est complété
   productDetailsSent        Boolean     @default(false) // Les détails du produit ont été envoyés par le guide
+
+  // Revendeur (optionnel)
+  resellerId                String?
+  reseller                  Reseller?   @relation(fields: [resellerId], references: [id], onDelete: SetNull)
 
   // Relations : Le client réserve pour UN produit (canyon) spécifique
   sessionId                 String

@@ -57,12 +57,16 @@ const WetsuitSummary = ({ sessionId, onClose }) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2>📊 Synthèse des équipements</h2>
-        <p className={styles.subtitle}>
-          {summary.totalParticipants} participant{summary.totalParticipants > 1 ? 's' : ''} · {summary.totalBookings} réservation{summary.totalBookings > 1 ? 's' : ''}
-        </p>
-      </div>
+      {/* Indicateur de complétion des formulaires */}
+      {summary.allFormsCompleted ? (
+        <div className={styles.statusComplete}>
+          ✓ Tous les formulaires participants ont été complétés ({summary.completedForms}/{summary.totalBookings})
+        </div>
+      ) : (
+        <div className={styles.statusIncomplete}>
+          ⚠ Formulaires incomplets : {summary.completedForms}/{summary.totalBookings} complétés
+        </div>
+      )}
 
       <div className={styles.content}>
         {/* Synthèse des combinaisons */}
@@ -89,7 +93,7 @@ const WetsuitSummary = ({ sessionId, onClose }) => {
             <div className={styles.shoesGrid}>
               {summary.shoeRentalSummary.map(({ size, count }) => (
                 <div key={size} className={styles.shoeCard}>
-                  <div className={styles.shoeSize}>Pointure {size}</div>
+                  <div className={styles.shoeSize}>{size}</div>
                   <div className={styles.shoeCount}>×{count}</div>
                 </div>
               ))}

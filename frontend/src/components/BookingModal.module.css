@@ -125,6 +125,28 @@
   text-decoration: underline;
 }
 
+.headerComplete .resellerBadge {
+  background: white;
+  color: #64A217;
+  border-color: white;
+}
+
+.headerComplete .resellerBadge:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #4a7c0f;
+}
+
+.headerPending .resellerBadge {
+  background: white;
+  color: #ECB000;
+  border-color: white;
+}
+
+.headerPending .resellerBadge:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #d19d00;
+}
+
 .headerLeft {
   display: flex;
   gap: 1rem;
@@ -176,6 +198,54 @@
   font-weight: 700;
   color: #1f2937;
   letter-spacing: 0.5px;
+}
+
+.resellerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  user-select: none;
+  transition: all 0.2s;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.resellerBadge:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #7c3aed;
+}
+
+.resellerLink {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+  cursor: pointer !important;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
+  user-select: none;
+  display: inline-block;
+}
+
+.resellerLink:hover {
+  color: #7c3aed;
+  text-decoration: underline;
+  cursor: pointer !important;
+}
+
+.resellerName {
+  color: #8b5cf6;
+  font-weight: 600;
 }
 
 .viewClientLink {
@@ -493,7 +563,7 @@
 .groupInfoButtonsFull {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 /* ============================================ */

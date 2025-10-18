@@ -207,7 +207,6 @@ const Reservations = () => {
         ) : (
           <div className={styles.table}>
             <div className={styles.tableHeader}>
-              <div className={styles.colId}>ID</div>
               <div className={styles.colClient}>Client</div>
               <div className={styles.colActivity}>Activité</div>
               <div className={styles.colDate}>Date & Heure</div>
@@ -215,7 +214,6 @@ const Reservations = () => {
               <div className={styles.colPrice}>Prix</div>
               <div className={styles.colPayment}>Paiement</div>
               <div className={styles.colStatus}>Statut</div>
-              <div className={styles.colActions}>Actions</div>
             </div>
             {filteredBookings.map(booking => {
               const paymentStatus = getPaymentStatus(booking);
@@ -225,9 +223,6 @@ const Reservations = () => {
                   className={styles.tableRow}
                   onClick={() => setSelectedBookingId(booking.id)}
                 >
-                  <div className={styles.colId}>
-                    #{booking.id.slice(0, 8)}
-                  </div>
                   <div className={styles.colClient}>
                     <div className={styles.clientName}>
                       {booking.clientFirstName} {booking.clientLastName}
@@ -264,17 +259,6 @@ const Reservations = () => {
                   </div>
                   <div className={styles.colStatus}>
                     {getStatusBadge(booking.status)}
-                  </div>
-                  <div className={styles.colActions}>
-                    <button
-                      className={styles.viewBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBookingId(booking.id);
-                      }}
-                    >
-                      👁️ Voir
-                    </button>
                   </div>
                 </div>
               );

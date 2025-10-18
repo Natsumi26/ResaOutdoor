@@ -16,7 +16,8 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(tasklist:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(npx prisma studio)"
     ],
     "deny": [],
     "ask": []

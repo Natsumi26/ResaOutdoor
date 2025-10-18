@@ -26,6 +26,14 @@ export const getAllBookings = async (req, res, next) => {
         },
         product: {
         },
+        reseller: {
+          select: {
+            id: true,
+            name: true,
+            website: true,
+            commission: true
+          }
+        },
         payments: true,
         history: {
           orderBy: { createdAt: 'desc' }
@@ -69,6 +77,16 @@ export const getBookingById = async (req, res, next) => {
         },
         product: {
         },
+        reseller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            website: true,
+            commission: true
+          }
+        },
         payments: {
           orderBy: { createdAt: 'desc' }
         },
@@ -105,10 +123,11 @@ export const createBooking = async (req, res, next) => {
       amountPaid,
       status,
       sessionId,
-      productId  // Le client choisit un produit spécifique
+      productId,  // Le client choisit un produit spécifique
+      resellerId  // Revendeur optionnel
     } = req.body;
 
-    if (!clientFirstName || !clientLastName || !clientEmail || !clientPhone ||
+    if (!clientFirstName || !clientLastName ||
         !numberOfPeople || !totalPrice || !sessionId || !productId) {
       throw new AppError('Champs requis manquants', 400);
     }
@@ -189,7 +208,8 @@ export const createBooking = async (req, res, next) => {
           amountPaid: amountPaid ? parseFloat(amountPaid) : 0,
           status: status || 'pending',
           sessionId,
-          productId
+          productId,
+          resellerId: resellerId || null
         },
         include: {
           session: {

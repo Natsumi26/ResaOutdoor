@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { resellersAPI } from '../services/api';
 import styles from './BookingForm.module.css';
 
 const BookingForm = ({ session, onSubmit, onCancel }) => {
@@ -12,12 +13,29 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     productId: '',
     totalPrice: 0,
     amountPaid: 0,
-    status: 'pending'
+    status: 'pending',
+    resellerId: null
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [resellers, setResellers] = useState([]);
+  const [isResellerBooking, setIsResellerBooking] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    // Charger les revendeurs
+    const loadResellers = async () => {
+      try {
+        const response = await resellersAPI.getAll();
+        setResellers(response.data.resellers || []);
+      } catch (error) {
+        console.error('Erreur chargement revendeurs:', error);
+      }
+    };
+    loadResellers();
+  }, []);
+
   useEffect(() => {
     if (session) {
       // Calculer les produits disponibles avec leurs places restantes
@@ -58,12 +76,12 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
 
       setAvailableProducts(products);
 
-      // Présélectionner le premier produit disponible
-      const firstAvailable = products.find(p => p.isAvailable);
-      if (firstAvailable) {
-        setFormData(prev => ({ ...prev, productId: firstAvailable.id }));
-        setSelectedProduct(firstAvailable);
-      }
+      // Ne pas présélectionner automatiquement - laisser l'utilisateur choisir
+      // const firstAvailable = products.find(p => p.isAvailable);
+      // if (firstAvailable) {
+      //   setFormData(prev => ({ ...prev, productId: firstAvailable.id }));
+      //   setSelectedProduct(firstAvailable);
+      // }
     }
   }, [session]);
 
@@ -117,19 +135,22 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     if (!formData.clientLastName.trim()) {
       newErrors.clientLastName = 'Nom requis';
     }
-    if (!formData.clientEmail.trim()) {
-      newErrors.clientEmail = 'Email requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.clientEmail)) {
+    // Email optionnel, mais si rempli, doit être valide
+    if (formData.clientEmail.trim() && !/\S+@\S+\.\S+/.test(formData.clientEmail)) {
       newErrors.clientEmail = 'Email invalide';
     }
-    if (!formData.clientPhone.trim()) {
-      newErrors.clientPhone = 'Téléphone requis';
-    }
+    // Téléphone optionnel
+    // if (!formData.clientPhone.trim()) {
+    //   newErrors.clientPhone = 'Téléphone requis';
+    // }
     if (!formData.numberOfPeople || formData.numberOfPeople < 1) {
       newErrors.numberOfPeople = 'Nombre de personnes invalide';
     }
     if (!formData.productId) {
       newErrors.productId = 'Sélectionnez un canyon';
+    }
+    if (isResellerBooking && !formData.resellerId) {
+      newErrors.resellerId = 'Sélectionnez un revendeur';
     }
 
     setErrors(newErrors);
@@ -196,29 +217,48 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
         <div className={styles.section}>
           <h3>🏞️ Canyon</h3>
 
-          <div className={styles.formGroup}>
-            <label>Canyon *</label>
-            <select
-              name="productId"
-              value={formData.productId}
-              onChange={handleChange}
-              className={errors.productId ? styles.error : ''}
-            >
-              <option value="">Sélectionner...</option>
-              {availableProducts.map(product => (
-                <option
-                  key={product.id}
-                  value={product.id}
-                  disabled={!product.isAvailable}
-                >
-                  {product.name} - {product.isAvailable
-                    ? `${product.placesLeft} places disponibles`
-                    : product.blockedReason
-                  }
-                </option>
-              ))}
-            </select>
-            {errors.productId && <span className={styles.errorMsg}>{errors.productId}</span>}
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Canyon *</label>
+              <select
+                name="productId"
+                value={formData.productId}
+                onChange={handleChange}
+                className={errors.productId ? styles.error : ''}
+              >
+                <option value="">Sélectionner...</option>
+                {availableProducts.map(product => (
+                  <option
+                    key={product.id}
+                    value={product.id}
+                    disabled={!product.isAvailable}
+                  >
+                    {product.name} - {product.isAvailable
+                      ? `${product.placesLeft} places disponibles`
+                      : product.blockedReason
+                    }
+                  </option>
+                ))}
+              </select>
+              {errors.productId && <span className={styles.errorMsg}>{errors.productId}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Nombre de personnes *</label>
+              <input
+                type="number"
+                name="numberOfPeople"
+                value={formData.numberOfPeople}
+                onChange={handleChange}
+                min="1"
+                max={selectedProduct?.placesLeft || 1}
+                className={errors.numberOfPeople ? styles.error : ''}
+              />
+              {errors.numberOfPeople && <span className={styles.errorMsg}>{errors.numberOfPeople}</span>}
+              {selectedProduct && (
+                <small>Max : {selectedProduct.placesLeft} places</small>
+              )}
+            </div>
           </div>
 
           {selectedProduct && (
@@ -227,35 +267,56 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
                 <strong>{selectedProduct.name}</strong>
                 <p>{selectedProduct.shortDescription}</p>
                 <div className={styles.priceInfo}>
-                  <span>💰 Prix individuel : {selectedProduct.priceIndividual}€</span>
+                  <span>💰 {selectedProduct.priceIndividual}€/pers</span>
                   {selectedProduct.priceGroup && (
                     <span className={styles.groupPrice}>
-                      💵 Prix groupe (≥{selectedProduct.priceGroup.min} pers.) : {selectedProduct.priceGroup.price}€/pers.
+                      💵 Groupe (≥{selectedProduct.priceGroup.min}) : {selectedProduct.priceGroup.price}€/pers
                     </span>
                   )}
-                  <span>👥 Capacité max : {selectedProduct.maxCapacity}</span>
-                  <span>⏱️ Durée : {selectedProduct.duration}min</span>
+                  <span>👥 Max : {selectedProduct.maxCapacity}</span>
+                  <span>⏱️ {selectedProduct.duration}min</span>
                 </div>
               </div>
             </div>
           )}
+        </div>
 
-          <div className={styles.formGroup}>
-            <label>Nombre de personnes *</label>
+        {/* Revendeur - version compacte */}
+        <div className={styles.resellerSection}>
+          <label className={styles.checkboxLabel}>
             <input
-              type="number"
-              name="numberOfPeople"
-              value={formData.numberOfPeople}
-              onChange={handleChange}
-              min="1"
-              max={selectedProduct?.placesLeft || 1}
-              className={errors.numberOfPeople ? styles.error : ''}
+              type="checkbox"
+              checked={isResellerBooking}
+              onChange={(e) => {
+                setIsResellerBooking(e.target.checked);
+                if (!e.target.checked) {
+                  setFormData(prev => ({ ...prev, resellerId: null }));
+                }
+              }}
+              className={styles.checkbox}
             />
-            {errors.numberOfPeople && <span className={styles.errorMsg}>{errors.numberOfPeople}</span>}
-            {selectedProduct && (
-              <small>Maximum : {selectedProduct.placesLeft} places disponibles</small>
-            )}
-          </div>
+            <span>Réservation revendeur</span>
+          </label>
+
+          {isResellerBooking && (
+            <div className={styles.resellerSelect}>
+              <select
+                name="resellerId"
+                value={formData.resellerId || ''}
+                onChange={handleChange}
+                className={errors.resellerId ? styles.error : ''}
+              >
+                <option value="">-- Sélectionner un revendeur --</option>
+                {resellers.map(reseller => (
+                  <option key={reseller.id} value={reseller.id}>
+                    {reseller.name}
+                    {reseller.commission && ` (${reseller.commission}%)`}
+                  </option>
+                ))}
+              </select>
+              {errors.resellerId && <span className={styles.errorMsg}>{errors.resellerId}</span>}
+            </div>
+          )}
         </div>
 
         {/* Informations client */}
@@ -288,28 +349,30 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
             </div>
           </div>
 
-          <div className={styles.formGroup}>
-            <label>Email *</label>
-            <input
-              type="email"
-              name="clientEmail"
-              value={formData.clientEmail}
-              onChange={handleChange}
-              className={errors.clientEmail ? styles.error : ''}
-            />
-            {errors.clientEmail && <span className={styles.errorMsg}>{errors.clientEmail}</span>}
-          </div>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Email</label>
+              <input
+                type="email"
+                name="clientEmail"
+                value={formData.clientEmail}
+                onChange={handleChange}
+                className={errors.clientEmail ? styles.error : ''}
+              />
+              {errors.clientEmail && <span className={styles.errorMsg}>{errors.clientEmail}</span>}
+            </div>
 
-          <div className={styles.formGroup}>
-            <label>Téléphone *</label>
-            <input
-              type="tel"
-              name="clientPhone"
-              value={formData.clientPhone}
-              onChange={handleChange}
-              className={errors.clientPhone ? styles.error : ''}
-            />
-            {errors.clientPhone && <span className={styles.errorMsg}>{errors.clientPhone}</span>}
+            <div className={styles.formGroup}>
+              <label>Téléphone</label>
+              <input
+                type="tel"
+                name="clientPhone"
+                value={formData.clientPhone}
+                onChange={handleChange}
+                className={errors.clientPhone ? styles.error : ''}
+              />
+              {errors.clientPhone && <span className={styles.errorMsg}>{errors.clientPhone}</span>}
+            </div>
           </div>
 
           <div className={styles.formGroup}>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { stripeAPI } from '../services/api';
+import ResellerManagement from '../components/ResellerManagement';
 import styles from './Common.module.css';
 
 const Settings = () => {
@@ -208,6 +209,17 @@ const Settings = () => {
               <li>100% des paiements vont directement sur votre compte</li>
             </ol>
           </div>
+        </div>
+
+        {/* Section Revendeurs */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <ResellerManagement />
         </div>
       </div>
     </div>

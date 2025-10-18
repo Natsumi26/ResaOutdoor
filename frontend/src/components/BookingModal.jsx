@@ -72,7 +72,11 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
       setLoading(false);
     }
   };
-console.log(booking)
+console.log('Booking data:', booking);
+  if (booking?.reseller) {
+    console.log('Reseller data:', booking.reseller);
+    console.log('Reseller website:', booking.reseller.website);
+  }
   const loadParticipants = async () => {
     try {
       const response = await participantsAPI.getByBooking(bookingId);
@@ -453,7 +457,33 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               <span className={styles.clientNumber}>{booking.numberOfPeople}</span>
             </div>
             <div className={styles.clientInfo}>
-              <h2 className={styles.clientName}>{booking.clientLastName.toUpperCase()}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <h2 className={styles.clientName}>
+                  {booking.clientLastName.toUpperCase()}
+                </h2>
+                {booking.reseller && booking.reseller.website && (
+                  <a
+                    href={booking.reseller.website.startsWith('http') ? booking.reseller.website : `https://${booking.reseller.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.resellerBadge}
+                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Clicked on reseller badge!');
+                      console.log('Website URL:', booking.reseller.website);
+                    }}
+                  >
+                    via {booking.reseller.name}
+                  </a>
+                )}
+                {booking.reseller && !booking.reseller.website && (
+                  <span className={styles.resellerBadge}>
+                    via {booking.reseller.name}
+                  </span>
+                )}
+              </div>
               <p className={styles.clientFirstName}>{booking.clientFirstName}</p>
             </div>
           </div>
@@ -543,7 +573,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               ) : (
                 <div className={styles.groupInfoButtonsFull}>
                   <button
-                    className={styles.btnGreen}
+                    className={styles.btnBlue}
                     onClick={() => setShowParticipantForm(true)}
                   >
                     📋 Voir le formulaire

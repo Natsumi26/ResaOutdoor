@@ -193,7 +193,11 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
         sessionId,
         status: { in: ['confirmed', 'pending'] }
       },
-      include: {
+      select: {
+        id: true,
+        clientFirstName: true,
+        clientLastName: true,
+        participantsFormCompleted: true,
         participants: true,
         product: {
           select: {
@@ -269,6 +273,10 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
         count
       }));
 
+    // Calculer le statut de complétion des formulaires
+    const completedForms = bookings.filter(b => b.participantsFormCompleted).length;
+    const allFormsCompleted = bookings.length > 0 && completedForms === bookings.length;
+
     res.json({
       success: true,
       summary: {
@@ -276,7 +284,9 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
         shoeRentalSummary,
         participantsByProduct: Object.values(participantsByProduct),
         totalParticipants: bookings.reduce((sum, b) => sum + b.participants.length, 0),
-        totalBookings: bookings.length
+        totalBookings: bookings.length,
+        completedForms,
+        allFormsCompleted
       }
     });
   } catch (error) {

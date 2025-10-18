@@ -139,4 +139,12 @@ export const participantsAPI = {
   delete: (id) => api.delete(`/participants/${id}`)
 };
 
+// Resellers
+export const resellersAPI = {
+  getAll: () => api.get('/resellers'),
+  create: (data) => api.post('/resellers', data),
+  update: (id, data) => api.put(`/resellers/${id}`, data),
+  delete: (id) => api.delete(`/resellers/${id}`)
+};
+
 export default api;
