@@ -18,6 +18,10 @@ const Settings = () => {
       console.log(stripeAccount)
     } catch (error) {
       console.error('Erreur chargement compte Stripe:', error);
+      // Si c'est une erreur d'authentification Stripe, afficher un message clair
+      if (error.response?.status === 401) {
+        alert('⚠️ Erreur de configuration Stripe\n\nVotre clé API Stripe est invalide ou a expiré.\n\nVeuillez vérifier votre configuration dans le fichier .env du backend :\n- STRIPE_SECRET_KEY\n- STRIPE_PUBLISHABLE_KEY');
+      }
     } finally {
       setLoading(false);
     }

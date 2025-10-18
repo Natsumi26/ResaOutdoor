@@ -457,6 +457,7 @@ const Calendar = () => {
             setShowDuplicateDialog(true);
           }}
           onDelete={handleDeleteSession}
+          onUpdate={loadSessions}
         />
       )}
 

@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import WetsuitSummary from './WetsuitSummary';
+import MoveBookingModal from './MoveBookingModal';
+import { bookingsAPI } from '../services/api';
 import styles from './SessionDetailModal.module.css';
 
-const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplicate, onDelete }) => {
+const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplicate, onDelete, onUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'clients', 'equipment', 'communication'
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [selectedBookings, setSelectedBookings] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
 
   if (!session) return null;
 console.log(session)
@@ -156,19 +161,84 @@ console.log(session)
     }
   };
 
+  // Gestion de la sélection multiple
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedBookings([]);
+  };
+
+  const toggleBookingSelection = (bookingId) => {
+    setSelectedBookings(prev => {
+      if (prev.includes(bookingId)) {
+        return prev.filter(id => id !== bookingId);
+      } else {
+        return [...prev, bookingId];
+      }
+    });
+  };
+
+  const selectAllBookings = () => {
+    if (selectedBookings.length === confirmedBookings.length) {
+      setSelectedBookings([]);
+    } else {
+      setSelectedBookings(confirmedBookings.map(b => b.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBookings.length === 0) {
+      alert('Aucune réservation sélectionnée');
+      return;
+    }
+
+    if (!window.confirm(`Voulez-vous vraiment supprimer ${selectedBookings.length} réservation(s) ?`)) {
+      return;
+    }
+
+    try {
+      // Supprimer chaque réservation sélectionnée
+      await Promise.all(
+        selectedBookings.map(bookingId => bookingsAPI.delete(bookingId))
+      );
+
+      alert(`${selectedBookings.length} réservation(s) supprimée(s) avec succès !`);
+      setSelectedBookings([]);
+      setSelectionMode(false);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur lors de la suppression groupée:', error);
+      alert('Erreur lors de la suppression des réservations: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleBulkMove = () => {
+    if (selectedBookings.length === 0) {
+      alert('Aucune réservation sélectionnée');
+      return;
+    }
+    setShowBulkMoveModal(true);
+  };
+
+  const handleBulkMoveSuccess = () => {
+    setSelectedBookings([]);
+    setSelectionMode(false);
+    setShowBulkMoveModal(false);
+    onUpdate?.();
+  };
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        {/* Header avec couleur du produit */}
+        {/* Header avec couleur du produit - Compact */}
         <div className={styles.modalHeader} style={{ backgroundColor: getProductColor() }}>
-          <div className={styles.headerContent}>
-            <h2>{getSessionName()}</h2>
-            <p className={styles.sessionDateTime}>
-              {formatDate(date)} - {startTime}
-            </p>
-            <p className={styles.sessionGuide}>
-              Guide : {guide?.login || 'Non assigné'}
-            </p>
+          <div className={styles.headerContentCompact}>
+            <span className={styles.headerProductName}>{getSessionName()}</span>
+            <span className={styles.headerDivider}>•</span>
+            <span className={styles.headerDate}>{format(new Date(date), 'EEEE dd/MM', { locale: fr })}</span>
+            <span className={styles.headerDivider}>•</span>
+            <span className={styles.headerTime}>{startTime}</span>
+            <span className={styles.headerDivider}>•</span>
+            <span className={styles.headerGuide}>{guide?.login || 'Non assigné'}</span>
           </div>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
@@ -180,12 +250,6 @@ console.log(session)
             onClick={() => setActiveTab('overview')}
           >
             Vue d'ensemble
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'clients' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('clients')}
-          >
-            Clients ({confirmedBookings.length})
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'equipment' ? styles.tabActive : ''}`}
@@ -246,131 +310,114 @@ console.log(session)
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className={styles.actions}>
-                <button className={styles.btnPrimary} onClick={() => onEdit(session)}>
-                  ✏️ Modifier
-                </button>
-                <button className={styles.btnSecondary} onClick={handleDuplicateSession}>
-                  📋 Dupliquer
-                </button>
-                <button className={styles.btnSecondary} onClick={handleDownloadPDF}>
-                  📄 PDF Info résa
-                </button>
-                <button className={styles.btnDanger} onClick={handleDeleteSession}>
-                  🗑️ Supprimer
-                </button>
-              </div>
-
               {/* Aperçu des réservations */}
               <div className={styles.bookingsPreview}>
-                <h3>Réservations confirmées</h3>
+                <div className={styles.bookingsPreviewHeader}>
+                  <h3>Réservations confirmées</h3>
+                  <div className={styles.bookingsHeaderActions}>
+                    {!selectionMode ? (
+                      <button
+                        className={styles.btnSelect}
+                        onClick={toggleSelectionMode}
+                        disabled={confirmedBookings.length === 0}
+                      >
+                        ☑ Sélectionner
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.btnSelectAll}
+                          onClick={selectAllBookings}
+                        >
+                          {selectedBookings.length === confirmedBookings.length ? '☐ Tout désélectionner' : '☑ Tout sélectionner'}
+                        </button>
+                        <button
+                          className={styles.btnCancelSelection}
+                          onClick={toggleSelectionMode}
+                        >
+                          ✕ Annuler
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {confirmedBookings.length === 0 ? (
                   <p className={styles.emptyState}>Aucune réservation pour cette session</p>
                 ) : (
-                  <div className={styles.bookingsList}>
-                    {confirmedBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className={styles.bookingPreviewCard}
-                        onClick={() => onBookingClick(booking.id)}
-                      >
-                        <div className={styles.bookingPreviewLeft}>
-                          <div className={styles.bookingPreviewName}>
-                            {booking.clientFirstName} {booking.clientLastName}
-                          </div>
-                          <div className={styles.bookingPreviewDetails}>
-                            {booking.numberOfPeople} pers. • {booking.clientPhone}
-                          </div>
-                        </div>
-                        <div className={styles.bookingPreviewRight}>
-                          <div className={styles.bookingPreviewPrice}>{booking.totalPrice} €</div>
-                          <div className={`${styles.bookingPreviewStatus} ${styles[getPaymentStatus(booking)]}`}>
-                            {getPaymentStatus(booking) === 'paid' && '✓ Payé'}
-                            {getPaymentStatus(booking) === 'partial' && '◐ Partiel'}
-                            {getPaymentStatus(booking) === 'unpaid' && '○ Non payé'}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'clients' && (
-            <div className={styles.clientsTab}>
-              <div className={styles.clientsHeader}>
-                <h3>Détails des clients</h3>
-              </div>
-
-              {confirmedBookings.length === 0 ? (
-                <p className={styles.emptyState}>Aucun client pour cette session</p>
-              ) : (
-                <div className={styles.clientsTable}>
-                  {confirmedBookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className={styles.clientCard}
-                    >
-                      <div className={styles.clientCardHeader}>
-                        <div className={styles.clientName}>
-                          {booking.clientFirstName} {booking.clientLastName}
-                          {booking.clientNationality && (
-                            <img
-                              src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
-                              alt={booking.clientNationality}
-                              className={styles.clientFlag}
-                            />
+                  <>
+                    <div className={styles.bookingsList}>
+                      {confirmedBookings.map((booking) => (
+                        <div
+                          key={booking.id}
+                          className={`${styles.bookingPreviewCard} ${
+                            selectionMode ? styles.bookingPreviewCardSelectable : ''
+                          } ${
+                            selectedBookings.includes(booking.id) ? styles.bookingPreviewCardSelected : ''
+                          }`}
+                          onClick={() => {
+                            if (selectionMode) {
+                              toggleBookingSelection(booking.id);
+                            } else {
+                              onBookingClick(booking.id);
+                            }
+                          }}
+                        >
+                          {selectionMode && (
+                            <div className={styles.bookingCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={selectedBookings.includes(booking.id)}
+                                onChange={() => toggleBookingSelection(booking.id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
                           )}
-                        </div>
-                        <div className={styles.clientCardActions}>
-                          <div className={`${styles.clientPaymentBadge} ${styles[getPaymentStatus(booking)]}`}>
-                            {getPaymentStatus(booking) === 'paid' && '✓ Payé'}
-                            {getPaymentStatus(booking) === 'partial' && '◐ Partiel'}
-                            {getPaymentStatus(booking) === 'unpaid' && '○ Non payé'}
+                          <div className={styles.bookingPreviewLeft}>
+                            <div className={styles.bookingPreviewName}>
+                              {booking.clientFirstName} {booking.clientLastName}
+                            </div>
+                            <div className={styles.bookingPreviewDetails}>
+                              {booking.numberOfPeople} pers. • {booking.clientPhone}
+                            </div>
                           </div>
+                          <div className={styles.bookingPreviewRight}>
+                            <div className={styles.bookingPreviewPrice}>{booking.totalPrice} €</div>
+                            <div className={`${styles.bookingPreviewStatus} ${styles[getPaymentStatus(booking)]}`}>
+                              {getPaymentStatus(booking) === 'paid' && '✓ Payé'}
+                              {getPaymentStatus(booking) === 'partial' && '◐ Partiel'}
+                              {getPaymentStatus(booking) === 'unpaid' && '○ Non payé'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Barre d'actions groupées */}
+                    {selectionMode && selectedBookings.length > 0 && (
+                      <div className={styles.bulkActionsBar}>
+                        <div className={styles.bulkActionsInfo}>
+                          {selectedBookings.length} réservation(s) sélectionnée(s)
+                        </div>
+                        <div className={styles.bulkActionsButtons}>
                           <button
-                            className={styles.btnEditClient}
-                            onClick={() => onBookingClick(booking.id)}
-                            title="Voir/Modifier la réservation"
+                            className={styles.btnBulkMove}
+                            onClick={handleBulkMove}
                           >
-                            ✏️ Modifier
+                            🔄 Déplacer
+                          </button>
+                          <button
+                            className={styles.btnBulkDelete}
+                            onClick={handleBulkDelete}
+                          >
+                            🗑️ Supprimer
                           </button>
                         </div>
                       </div>
-
-                      <div className={styles.clientCardBody}>
-                        <div className={styles.clientInfo}>
-                          <span className={styles.clientInfoLabel}>📞 Téléphone :</span>
-                          <span className={styles.clientInfoValue}>{booking.clientPhone || 'N/A'}</span>
-                        </div>
-                        <div className={styles.clientInfo}>
-                          <span className={styles.clientInfoLabel}>👥 Participants :</span>
-                          <span className={styles.clientInfoValue}>{booking.numberOfPeople} personne(s)</span>
-                        </div>
-                        <div className={styles.clientInfo}>
-                          <span className={styles.clientInfoLabel}>💰 Prix :</span>
-                          <span className={styles.clientInfoValue}>{booking.totalPrice} €</span>
-                        </div>
-                        <div className={styles.clientInfo}>
-                          <span className={styles.clientInfoLabel}>✓ Encaissé :</span>
-                          <span className={styles.clientInfoValue}>{booking.amountPaid} €</span>
-                        </div>
-                        {booking.totalPrice - booking.amountPaid > 0 && (
-                          <div className={styles.clientInfo}>
-                            <span className={styles.clientInfoLabel}>⚠️ Reste :</span>
-                            <span className={styles.clientInfoValue} style={{ color: '#f59e0b', fontWeight: 'bold' }}>
-                              {(booking.totalPrice - booking.amountPaid).toFixed(2)} €
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -470,6 +517,302 @@ console.log(session)
               </div>
             </div>
           )}
+        </div>
+
+        {/* Footer fixe avec actions */}
+        <div className={styles.modalFooter}>
+          <button className={styles.btnSecondary} onClick={handleDownloadPDF}>
+            📄 PDF Info résa
+          </button>
+          <button className={styles.btnSecondary} onClick={handleDuplicateSession}>
+            📋 Dupliquer
+          </button>
+          <span className={styles.textLink} onClick={() => onEdit(session)}>
+            Modifier
+          </span>
+          <span className={styles.textLinkDanger} onClick={handleDeleteSession}>
+            Supprimer
+          </span>
+        </div>
+
+        {/* Modal de déplacement groupé */}
+        {showBulkMoveModal && selectedBookings.length > 0 && (
+          <BulkMoveModal
+            bookingIds={selectedBookings}
+            currentSession={session}
+            onClose={() => setShowBulkMoveModal(false)}
+            onSuccess={handleBulkMoveSuccess}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Composant pour le déplacement groupé
+const BulkMoveModal = ({ bookingIds, currentSession, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [availableSessions, setAvailableSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [needsProductSelection, setNeedsProductSelection] = useState(false);
+  const [availableProducts, setAvailableProducts] = useState([]);
+
+  useEffect(() => {
+    loadAvailableSessions();
+  }, []);
+
+  const loadAvailableSessions = async () => {
+    try {
+      setLoading(true);
+      const { sessionsAPI } = await import('../services/api');
+      const response = await sessionsAPI.getAll();
+
+      // Filtrer pour exclure la session actuelle et ne garder que les sessions futures
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const futureSessions = response.data.sessions.filter(session => {
+        const sessionDate = new Date(session.date);
+        return session.id !== currentSession.id && sessionDate >= today;
+      });
+
+      console.log('📊 Sessions futures disponibles:', futureSessions.length);
+      console.log('📦 Détails des sessions:', futureSessions.map(s => ({
+        date: s.date,
+        time: s.startTime,
+        products: s.products?.map(p => p.product?.name),
+        bookings: s.bookings?.map(b => b.product?.name)
+      })));
+
+      setAvailableSessions(futureSessions);
+    } catch (error) {
+      console.error('Erreur chargement sessions:', error);
+      alert('Impossible de charger les sessions disponibles');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSessionChange = (sessionId) => {
+    setSelectedSessionId(sessionId);
+    setSelectedProductId('');
+    setNeedsProductSelection(false);
+    setAvailableProducts([]);
+
+    if (!sessionId) return;
+
+    // Trouver la session sélectionnée
+    const selectedSession = availableSessions.find(s => s.id === sessionId);
+    if (!selectedSession) return;
+
+    // Vérifier si la session a déjà des réservations
+    const hasBookings = selectedSession.bookings && selectedSession.bookings.filter(b => b.status !== 'cancelled').length > 0;
+
+    if (hasBookings) {
+      // Session avec réservations - le produit est déjà fixé
+      setNeedsProductSelection(false);
+    } else if (selectedSession.products && selectedSession.products.length > 1) {
+      // Session vide avec plusieurs produits - demander le choix
+      setNeedsProductSelection(true);
+      setAvailableProducts(selectedSession.products.map(sp => ({
+        id: sp.product.id,
+        name: sp.product.name,
+        price: sp.product.priceIndividual
+      })));
+    } else if (selectedSession.products && selectedSession.products.length === 1) {
+      // Session vide avec un seul produit - sélectionner automatiquement
+      setSelectedProductId(selectedSession.products[0].product.id);
+      setNeedsProductSelection(false);
+    }
+  };
+
+  const handleBulkMove = async () => {
+    if (!selectedSessionId) {
+      alert('Veuillez sélectionner une session de destination');
+      return;
+    }
+
+    if (needsProductSelection && !selectedProductId) {
+      alert('Veuillez sélectionner un produit pour cette session');
+      return;
+    }
+
+    if (!window.confirm(`Déplacer ${bookingIds.length} réservation(s) vers la nouvelle session ?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      console.log('🚀 Déplacement groupé:', {
+        bookingIds,
+        newSessionId: selectedSessionId,
+        selectedProductId: selectedProductId || null,
+        count: bookingIds.length
+      });
+
+      // Déplacer chaque réservation vers la nouvelle session
+      const results = await Promise.all(
+        bookingIds.map(bookingId =>
+          bookingsAPI.move(bookingId, {
+            newSessionId: selectedSessionId,
+            selectedProductId: selectedProductId || null
+          })
+        )
+      );
+
+      console.log('✅ Résultats du déplacement:', results.map(r => r.data));
+
+      alert(`${bookingIds.length} réservation(s) déplacée(s) avec succès !`);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Erreur déplacement groupé:', error);
+      alert('Erreur lors du déplacement: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.bulkMoveOverlay} onClick={onClose}>
+      <div className={styles.bulkMoveModal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.bulkMoveHeader}>
+          <h3>Déplacer {bookingIds.length} réservation(s)</h3>
+          <button className={styles.closeButton} onClick={onClose}>×</button>
+        </div>
+
+        <div className={styles.bulkMoveBody}>
+          <div className={styles.bulkMoveInfo}>
+            <p>
+              <strong>Session actuelle :</strong>{' '}
+              {format(new Date(currentSession.date), 'EEEE dd/MM', { locale: fr })} - {currentSession.startTime.substring(0, 5).replace(':', 'h')}
+            </p>
+          </div>
+
+          {loading && <div className={styles.loading}>Chargement...</div>}
+
+          {!loading && availableSessions.length === 0 && (
+            <div className={styles.emptyState}>Aucune session future disponible</div>
+          )}
+
+          {!loading && availableSessions.length > 0 && (
+            <>
+              <div className={styles.formGroup}>
+                <label>Sélectionner la session de destination</label>
+                <select
+                  value={selectedSessionId}
+                  onChange={(e) => handleSessionChange(e.target.value)}
+                  className={styles.select}
+                >
+                <option value="">-- Choisir une session --</option>
+                {(() => {
+                  // Grouper les sessions par date
+                  const sessionsByDate = {};
+                  availableSessions.forEach(session => {
+                    const dateKey = format(new Date(session.date), 'yyyy-MM-dd');
+                    if (!sessionsByDate[dateKey]) {
+                      sessionsByDate[dateKey] = {
+                        dateLabel: format(new Date(session.date), 'EEEE dd/MM', { locale: fr }),
+                        sessions: []
+                      };
+                    }
+                    sessionsByDate[dateKey].sessions.push(session);
+                  });
+
+                  // Trier par date
+                  const sortedDates = Object.keys(sessionsByDate).sort();
+
+                  return sortedDates.map(dateKey => {
+                    const { dateLabel, sessions } = sessionsByDate[dateKey];
+                    return [
+                      <option key={`date-${dateKey}`} disabled style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
+                        {dateLabel} :
+                      </option>,
+                      ...sessions.map(session => {
+                        // Déterminer le nom du produit ou des produits
+                        let productName;
+
+                        // Si la session a déjà des réservations, utiliser le produit dominant
+                        if (session.bookings && session.bookings.length > 0) {
+                          const confirmedBookings = session.bookings.filter(b => b.status !== 'cancelled');
+                          if (confirmedBookings.length > 0) {
+                            productName = confirmedBookings[0].product?.name || 'Session';
+                          }
+                        }
+
+                        // Si pas de réservations, regarder les produits disponibles
+                        if (!productName && session.products && session.products.length > 0) {
+                          if (session.products.length === 1) {
+                            // Un seul produit
+                            productName = session.products[0].product?.name || 'Sessions';
+                          } else {
+                            // Plusieurs produits - choix multiple
+                            productName = 'Sessions';
+                          }
+                        }
+
+                        // Fallback
+                        if (!productName) {
+                          productName = 'Sessions';
+                        }
+
+                        const guideName = session.guide?.login || 'Pas de guide';
+                        const time = session.startTime.substring(0, 5); // "09:00" -> "09h00"
+                        const timeFormatted = time.replace(':', 'h');
+
+                        return (
+                          <option key={session.id} value={session.id}>
+                            &nbsp;&nbsp;&nbsp;{timeFormatted} - {productName} ({guideName})
+                          </option>
+                        );
+                      })
+                    ];
+                  }).flat();
+                })()}
+                </select>
+              </div>
+
+              {/* Sélection du produit si nécessaire */}
+              {needsProductSelection && availableProducts.length > 0 && (
+                <div className={styles.formGroup}>
+                  <label>Sélectionner le produit</label>
+                  <select
+                    value={selectedProductId}
+                    onChange={(e) => setSelectedProductId(e.target.value)}
+                    className={styles.select}
+                  >
+                    <option value="">-- Choisir un produit --</option>
+                    {availableProducts.map(product => (
+                      <option key={product.id} value={product.id}>
+                        {product.name} - {product.price}€/personne
+                      </option>
+                    ))}
+                  </select>
+                  <p className={styles.productSelectionNote}>
+                    ⚠️ Cette session propose plusieurs canyons. Veuillez choisir le canyon de destination.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className={styles.bulkMoveFooter}>
+          <button
+            className={styles.btnSecondary}
+            onClick={onClose}
+            disabled={loading}
+          >
+            Annuler
+          </button>
+          <button
+            className={styles.btnPrimary}
+            onClick={handleBulkMove}
+            disabled={loading || !selectedSessionId || (needsProductSelection && !selectedProductId)}
+          >
+            {loading ? 'Déplacement...' : 'Déplacer'}
+          </button>
         </div>
       </div>
     </div>

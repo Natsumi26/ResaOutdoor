@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1500;
   padding: 1rem;
 }
 
@@ -132,7 +132,6 @@
 }
 
 .clientBadge {
-  background: #f97316;
   color: white;
   width: 40px;
   height: 40px;
@@ -143,6 +142,16 @@
   font-size: 1.25rem;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+/* Badge orange quand les infos sont incomplètes */
+.badgePending {
+  background: #f97316;
+}
+
+/* Badge vert foncé quand tout est complété */
+.badgeComplete {
+  background: #4a7c0f;
 }
 
 .clientNumber {

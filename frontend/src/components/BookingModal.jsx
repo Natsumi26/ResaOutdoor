@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { bookingsAPI, emailAPI, stripeAPI, participantsAPI } from '../services/api';
 import ParticipantForm from './ParticipantForm';
+import MoveBookingModal from './MoveBookingModal';
 import styles from './BookingModal.module.css';
 
 const BookingModal = ({ bookingId, onClose, onUpdate }) => {
@@ -29,6 +30,7 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [editingNoteId, setEditingNoteId] = useState(null);
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const [editedClientData, setEditedClientData] = useState({
     clientFirstName: '',
     clientLastName: '',
@@ -492,7 +494,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   <span className={styles.blockIcon}>✓</span>
                   <span className={styles.blockTitle}>Rotation</span>
                 </div>
-                <button className={styles.btnRotation} onClick={() => alert('Déplacer réservation (à implémenter)')}>
+                <button className={styles.btnRotation} onClick={() => setShowMoveModal(true)}>
                   Déplacer cette réservation
                 </button>
               </div>
@@ -957,6 +959,18 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               </span>
             </div>
           </div>
+
+          {/* Modal de déplacement de réservation */}
+          {showMoveModal && (
+            <MoveBookingModal
+              booking={booking}
+              onClose={() => setShowMoveModal(false)}
+              onSuccess={() => {
+                loadBooking();
+                onUpdate?.();
+              }}
+            />
+          )}
 
           {/* Modal d'édition de réservation */}
           {showEditModal && (
