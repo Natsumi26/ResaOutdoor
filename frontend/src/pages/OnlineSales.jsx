@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { stripeAPI } from '../services/api';
-import ResellerManagement from '../components/ResellerManagement';
 import styles from './Common.module.css';
 
-const Settings = () => {
+const OnlineSales = () => {
   const [stripeAccount, setStripeAccount] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -72,7 +71,8 @@ const Settings = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>⚙️ Paramètres</h1>
+        <h1>💳 Vente en ligne</h1>
+        <p>Configuration de la connexion Stripe pour les paiements en ligne</p>
       </div>
 
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -210,20 +210,9 @@ const Settings = () => {
             </ol>
           </div>
         </div>
-
-        {/* Section Revendeurs */}
-        <div className={styles.section} style={{
-          background: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
-        }}>
-          <ResellerManagement />
-        </div>
       </div>
     </div>
   );
 };
 
-export default Settings;
+export default OnlineSales;

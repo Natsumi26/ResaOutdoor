@@ -8,7 +8,9 @@ import Users from './pages/Users';
 import Products from './pages/Products';
 import GiftVouchers from './pages/GiftVouchers';
 import Reservations from './pages/Reservations';
-import Settings from './pages/Settings';
+import Emails from './pages/Emails';
+import OnlineSales from './pages/OnlineSales';
+import Resellers from './pages/Resellers';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
@@ -64,7 +66,9 @@ const AppRoutes = () => {
         <Route path="products" element={<Products />} />
         <Route path="reservations" element={<Reservations />} />
         <Route path="gift-vouchers" element={<GiftVouchers />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="settings/emails" element={<Emails />} />
+        <Route path="settings/online-sales" element={<OnlineSales />} />
+        <Route path="settings/resellers" element={<Resellers />} />
       </Route>
     </Routes>
   );

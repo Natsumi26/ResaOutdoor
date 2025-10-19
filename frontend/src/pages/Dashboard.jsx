@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Détecter si on est sur mobile et gérer l'état du sidebar
   useEffect(() => {
@@ -109,15 +111,57 @@ const Dashboard = () => {
             {sidebarOpen && <span>Bons cadeaux</span>}
           </NavLink>
 
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <span className={styles.icon}>⚙️</span>
-            {sidebarOpen && <span>Paramètres</span>}
-          </NavLink>
+          {/* Menu déroulant Paramètres */}
+          <div className={styles.navDropdown}>
+            <div
+              className={`${styles.navItem} ${styles.navDropdownToggle} ${location.pathname.startsWith('/settings') ? styles.active : ''}`}
+              onClick={() => setSettingsOpen(!settingsOpen)}
+            >
+              <span className={styles.icon}>⚙️</span>
+              {sidebarOpen && (
+                <>
+                  <span>Paramètres</span>
+                  <span className={`${styles.dropdownArrow} ${settingsOpen ? styles.open : ''}`}>
+                    ▼
+                  </span>
+                </>
+              )}
+            </div>
+
+            {settingsOpen && sidebarOpen && (
+              <div className={styles.subMenu}>
+                <NavLink
+                  to="/settings/emails"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>📧</span>
+                  <span>Emails</span>
+                </NavLink>
+
+                <NavLink
+                  to="/settings/online-sales"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>💳</span>
+                  <span>Vente en ligne</span>
+                </NavLink>
+
+                <NavLink
+                  to="/settings/resellers"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>🏪</span>
+                  <span>Revendeurs</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className={styles.sidebarFooter}>

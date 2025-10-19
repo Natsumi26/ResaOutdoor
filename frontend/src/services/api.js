@@ -122,6 +122,16 @@ export const emailAPI = {
   sendCustomEmail: (data) => api.post('/email/custom', data)
 };
 
+// Email Templates
+export const emailTemplatesAPI = {
+  getAll: () => api.get('/email-templates'),
+  getByType: (type) => api.get(`/email-templates/${type}`),
+  create: (data) => api.post('/email-templates', data),
+  update: (id, data) => api.put(`/email-templates/${id}`, data),
+  delete: (id) => api.delete(`/email-templates/${id}`),
+  getAvailableVariables: () => api.get('/email-templates/variables')
+};
+
 // Stripe
 export const stripeAPI = {
   createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),

@@ -18,7 +18,12 @@
       "Bash(tasklist:*)",
       "Bash(powershell -Command:*)",
       "Bash(npx prisma studio)",
-      "Bash(timeout /t 3)"
+      "Bash(timeout /t 3)",
+      "Bash(rd /s /q \"D:\\Users\\Gamer\\Documents\\GitHub\\logiciel-de-resa\\backend\\prisma\\migrations\\20251018161117_add_email_templates\")",
+      "Bash(npx prisma db push)",
+      "Bash(npx prisma db push --accept-data-loss)",
+      "Bash(curl http://localhost:5000/api/email-templates/variables)",
+      "Bash(curl -s http://localhost:5000/api/email-templates)"
     ],
     "deny": [],
     "ask": []

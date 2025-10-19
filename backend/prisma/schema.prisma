@@ -288,3 +288,20 @@ model BookingNote {
 
   @@map("booking_notes")
 }
+
+// Templates d'emails
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique // "booking_confirmation", "booking_reminder", "payment_confirmation", etc.
+  name        String   // Nom du template (ex: "Confirmation de réservation")
+  subject     String   // Sujet de l'email
+  htmlContent String   @db.Text // Contenu HTML du template
+  textContent String?  @db.Text // Version texte (optionnel)
+  variables   String?  @db.Text // Liste des variables disponibles (JSON)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_templates")
+}
