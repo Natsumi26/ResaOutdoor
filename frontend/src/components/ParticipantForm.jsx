@@ -12,23 +12,35 @@ const ParticipantForm = ({
   const [participants, setParticipants] = useState([]);
 
   useEffect(() => {
-    // Si des participants existent déjà, les charger
-    if (initialParticipants.length > 0) {
-      setParticipants(initialParticipants);
-    } else {
-      // Sinon, créer des participants vides selon le nombre de personnes
-      const emptyParticipants = Array.from({ length: booking.numberOfPeople }, (_, i) => ({
-        id: `temp-${i}`,
-        firstName: '',
-        age: '',
-        height: '',
-        weight: '',
-        shoeRental: false,
-        shoeSize: ''
-      }));
-      setParticipants(emptyParticipants);
+    const numberOfPeople = booking.numberOfPeople;
+
+    // Commencer avec les participants existants ou un tableau vide
+    let updatedParticipants = [...initialParticipants];
+
+    // Si on a moins de participants que nécessaire, ajouter des participants vides
+    if (updatedParticipants.length < numberOfPeople) {
+      const additionalParticipants = Array.from(
+        { length: numberOfPeople - updatedParticipants.length },
+        (_, i) => ({
+          id: `temp-${updatedParticipants.length + i}`,
+          firstName: '',
+          age: '',
+          height: '',
+          weight: '',
+          shoeRental: false,
+          shoeSize: ''
+        })
+      );
+      updatedParticipants = [...updatedParticipants, ...additionalParticipants];
     }
-  }, [booking.numberOfPeople, initialParticipants]);
+
+    // Si on a trop de participants, garder seulement le bon nombre
+    if (updatedParticipants.length > numberOfPeople) {
+      updatedParticipants = updatedParticipants.slice(0, numberOfPeople);
+    }
+
+    setParticipants(updatedParticipants);
+  }, [booking.numberOfPeople, initialParticipants.length]);
 
   const handleParticipantChange = (index, field, value) => {
     const updated = [...participants];

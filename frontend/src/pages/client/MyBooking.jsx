@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { bookingsAPI, participantsAPI, stripeAPI } from '../../services/api';
+import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -11,8 +11,8 @@ const MyBooking = () => {
   const [booking, setBooking] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tooltipVisible, setTooltipVisible] = useState({});
 
   useEffect(() => {
     loadBooking();
@@ -71,6 +71,13 @@ const MyBooking = () => {
     setParticipants(newParticipants);
   };
 
+  const toggleTooltip = (participantIndex) => {
+    setTooltipVisible(prev => ({
+      ...prev,
+      [participantIndex]: !prev[participantIndex]
+    }));
+  };
+
   const handleSaveParticipants = async () => {
     try {
       setSaving(true);
@@ -95,49 +102,12 @@ const MyBooking = () => {
         await loadBooking();
       }
 
-      setEditMode(false);
-      alert('Informations des participants enregistrées avec succès !');
+      alert('✅ Informations enregistrées avec succès ! Merci.');
     } catch (error) {
       console.error('Erreur sauvegarde participants:', error);
-      alert('Erreur lors de la sauvegarde');
+      alert('❌ Erreur lors de la sauvegarde. Veuillez réessayer.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handlePayBalance = async () => {
-    if (!booking) return;
-
-    const balance = booking.totalPrice - booking.amountPaid;
-    if (balance <= 0) {
-      alert('Votre réservation est déjà entièrement payée');
-      return;
-    }
-
-    try {
-      const response = await stripeAPI.createCheckoutSession({
-        bookingId: booking.id,
-        amount: balance
-      });
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error('Erreur paiement:', error);
-      alert('Erreur lors de la création de la session de paiement');
-    }
-  };
-
-  const handleCancelBooking = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
-      return;
-    }
-
-    try {
-      await bookingsAPI.cancel(bookingId);
-      alert('Réservation annulée avec succès');
-      loadBooking();
-    } catch (error) {
-      console.error('Erreur annulation:', error);
-      alert(error.response?.data?.error || 'Erreur lors de l\'annulation');
     }
   };
 
@@ -153,9 +123,6 @@ const MyBooking = () => {
     );
   }
 
-  const isPaid = booking.amountPaid >= booking.totalPrice;
-  const balance = booking.totalPrice - booking.amountPaid;
-  const isCancelled = booking.status === 'cancelled';
   const allParticipantsFilled = participants.every(p => {
     const basicInfoFilled = p.firstName && p.age && p.weight && p.height;
     // La pointure est obligatoire uniquement si location de chaussures
@@ -166,308 +133,155 @@ const MyBooking = () => {
   return (
     <div className={styles.clientContainer}>
       <div className={styles.myBookingContainer}>
-        {/* En-tête */}
-        <div className={styles.bookingHeader}>
-          <div>
-            <h1>Ma réservation</h1>
-            <p className={styles.bookingRef}>
-              Référence : <strong>{booking.id.slice(0, 8).toUpperCase()}</strong>
-            </p>
-          </div>
-          <div className={styles.bookingStatus}>
-            {isCancelled ? (
-              <span className={styles.statusCancelled}>Annulée</span>
-            ) : isPaid ? (
-              <span className={styles.statusPaid}>Payée</span>
-            ) : (
-              <span className={styles.statusPending}>En attente de paiement</span>
-            )}
-          </div>
+        {/* En-tête simplifié */}
+        <div className={styles.compactHeader}>
+          <h1>Informations de votre groupe</h1>
+          <p className={styles.bookingDate}>
+            {booking.product.name} - {format(new Date(booking.session.date), 'EEEE d MMMM yyyy', { locale: fr })}
+          </p>
         </div>
 
-        {/* Détails de la réservation */}
-        <div className={styles.bookingDetailsCard}>
-          <h2>Détails de la réservation</h2>
-
-          <div className={styles.bookingInfo}>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Canyon</span>
-              <strong>{booking.product.name}</strong>
+        {/* Texte explicatif compact */}
+        <div className={styles.compactInfoBox}>
+          <div className={styles.infoRow}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon}>📏</span>
+              <span>Pour vous fournir une <strong>combinaison adaptée</strong></span>
             </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Date</span>
-              <strong>
-                {format(new Date(booking.session.date), 'EEEE d MMMM yyyy', { locale: fr })}
-              </strong>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Horaire</span>
-              <strong>{booking.session.timeSlot} - {booking.session.startTime}</strong>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Guide</span>
-              <strong>{booking.session.guide.login}</strong>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Nombre de personnes</span>
-              <strong>{booking.numberOfPeople} personne{booking.numberOfPeople > 1 ? 's' : ''}</strong>
+            <div className={styles.infoItem}>
+              <span className={styles.infoIcon}>👟</span>
+              <span>
+                Chaussures <strong>fermées type baskets</strong> requises
+                {booking.session.shoeRentalAvailable && ` (location ${booking.session.shoeRentalPrice}€ optionnelle)`}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Paiement */}
-        <div className={styles.bookingDetailsCard}>
-          <h2>Paiement</h2>
+        {/* Formulaire participants compact */}
+        <div className={styles.compactParticipantsForm}>
+          {participants.map((participant, index) => (
+            <div key={index} className={styles.compactParticipantCard}>
+              <div className={styles.participantHeader}>
+                <span className={styles.participantNumber}>Participant {index + 1}</span>
+              </div>
 
-          <div className={styles.paymentInfo}>
-            <div className={styles.paymentRow}>
-              <span>Prix total</span>
-              <strong>{booking.totalPrice}€</strong>
-            </div>
-            <div className={styles.paymentRow}>
-              <span>Montant payé</span>
-              <strong className={styles.paidAmount}>{booking.amountPaid}€</strong>
-            </div>
-            {!isPaid && !isCancelled && (
-              <>
-                <div className={`${styles.paymentRow} ${styles.balance}`}>
-                  <strong>Solde restant</strong>
-                  <strong>{balance}€</strong>
+              {/* Grille compacte avec les 4 champs de base seulement */}
+              <div className={styles.compactFieldsGrid}>
+                <div className={styles.formGroup}>
+                  <label>Prénom *</label>
+                  <input
+                    type="text"
+                    value={participant.firstName || ''}
+                    onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
+                    placeholder="Prénom"
+                  />
                 </div>
-                <button
-                  onClick={handlePayBalance}
-                  className={styles.btnPrimary}
-                  style={{ marginTop: '1rem', width: '100%' }}
-                >
-                  Payer le solde ({balance}€)
-                </button>
-              </>
-            )}
-            {isPaid && (
-              <div className={styles.paymentSuccess}>
-                ✓ Réservation entièrement payée
+
+                <div className={styles.formGroup}>
+                  <label>Âge *</label>
+                  <input
+                    type="number"
+                    value={participant.age || ''}
+                    onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
+                    placeholder="Âge"
+                    min="1"
+                    max="120"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Poids (kg) *</label>
+                  <input
+                    type="number"
+                    value={participant.weight || ''}
+                    onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
+                    placeholder="kg"
+                    min="1"
+                    max="300"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Taille (cm) *</label>
+                  <input
+                    type="number"
+                    value={participant.height || ''}
+                    onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
+                    placeholder="cm"
+                    min="50"
+                    max="250"
+                  />
+                </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Informations participants */}
-        <div className={styles.bookingDetailsCard}>
-          <div className={styles.cardHeader}>
-            <h2>Informations des participants</h2>
-            {!isCancelled && !editMode && (
-              <button
-                onClick={() => setEditMode(true)}
-                className={styles.btnSecondary}
-              >
-                {allParticipantsFilled ? 'Modifier' : 'Remplir'}
-              </button>
-            )}
-          </div>
-
-          {!allParticipantsFilled && !editMode && (
-            <div className={styles.warningBox}>
-              ⚠️ Veuillez remplir les informations de tous les participants pour la préparation du matériel
-            </div>
-          )}
-
-          <div className={styles.participantsList}>
-            {participants.map((participant, index) => (
-              <div key={index} className={styles.participantItem}>
-                <h4>Participant {index + 1}</h4>
-                {editMode ? (
-                  <div className={styles.participantEditGrid}>
-                    <div className={styles.formGroup}>
-                      <label >Prénom *</label>
-                      <input
-                        type="text"
-                        value={participant.firstName || ''}
-                        onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Poids (kg) *</label>
-                      <input
-                        type="number"
-                        value={participant.weight || ''}
-                        onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Taille (cm) *</label>
-                      <input
-                        type="number"
-                        value={participant.height || ''}
-                        onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label>Âge *</label>
-                      <input
-                        type="number"
-                        value={participant.age || ''}
-                        onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
-                      />
-                    </div>
-
-                    {/* Location de chaussures */}
-                    {booking.session.shoeRentalAvailable && (
-                      <div className={styles.shoeRentalSection} style={{ gridColumn: '1 / -1' }}>
-                        <label className={styles.checkboxLabel}>
-                          <input
-                            type="checkbox"
-                            checked={participant.shoeRental || false}
-                            onChange={(e) => handleParticipantChange(index, 'shoeRental', e.target.checked)}
-                          />
-                          Location de chaussures (+{booking.session.shoeRentalPrice}€)
-                        </label>
-
-                        {participant.shoeRental && (
-                          <div className={styles.formGroup}>
-                            <label>Pointure *</label>
-                            <input
-                              type="number"
-                              value={participant.shoeSize || ''}
-                              onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
-                              placeholder="Ex: 42"
-                              min="20"
-                              max="50"
-                              required
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className={styles.participantViewGrid}>
-                    {participant.firstName ? (
-                      <>
-                        <p><strong>Nom :</strong> {participant.firstName}</p>
-                        <p><strong>Âge :</strong> {participant.age} ans</p>
-                        <p><strong>Poids :</strong> {participant.weight} kg</p>
-                        <p><strong>Taille :</strong> {participant.height} cm</p>
-                        {participant.shoeRental && (
-                          <p><strong>Location chaussures :</strong> Oui - Pointure {participant.shoeSize}</p>
-                        )}
-                        {!participant.shoeRental && booking.session.shoeRentalAvailable && (
-                          <p><strong>Location chaussures :</strong> Non</p>
-                        )}
-                      </>
-                    ) : (
-                      <p className={styles.notFilled}>Non renseigné</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {editMode && (
-            <>
+              {/* Section location de chaussures compacte sur une ligne */}
               {booking.session.shoeRentalAvailable && (
-                <div className={styles.shoePriceInfo}>
-                  <p>
-                    <strong>Locations de chaussures :</strong> {participants.filter(p => p.shoeRental).length} × {booking.session.shoeRentalPrice}€
-                    {' = '} {participants.filter(p => p.shoeRental).length * booking.session.shoeRentalPrice}€
-                  </p>
-                  {participants.filter(p => p.shoeRental).length !== (booking.shoeRentalCount || 0) && (
-                    <p className={styles.priceChange}>
-                      ⚠️ Le prix total sera mis à jour selon le nombre de locations de chaussures
-                    </p>
+                <div className={styles.shoeRentalCompactLine}>
+                  <div className={styles.tooltipContainer}>
+                    <span
+                      className={styles.tooltipIcon}
+                      onClick={() => toggleTooltip(index)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <path d="M8 7V11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <circle cx="8" cy="5" r="0.75" fill="currentColor"/>
+                      </svg>
+                    </span>
+                    <div className={`${styles.tooltip} ${tooltipVisible[index] ? styles.visible : ''}`}>
+                      Si vous n'avez pas de chaussures adaptées, je propose des chaussures montantes et agripantes
+                    </div>
+                  </div>
+
+                  <div className={styles.shoeRentalLabel}>
+                    Location de chaussure (+{booking.session.shoeRentalPrice}€)
+                  </div>
+
+                  <div className={styles.shoeCheckboxLine}>
+                    <input
+                      type="checkbox"
+                      id={`shoe-rental-${index}`}
+                      checked={participant.shoeRental || false}
+                      onChange={(e) => handleParticipantChange(index, 'shoeRental', e.target.checked)}
+                    />
+                  </div>
+
+                  {participant.shoeRental && (
+                    <div className={styles.shoeSizeInline}>
+                      <label htmlFor={`shoe-size-${index}`}>Pointure *</label>
+                      <input
+                        type="number"
+                        id={`shoe-size-${index}`}
+                        value={participant.shoeSize || ''}
+                        onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
+                        placeholder="Ex: 42"
+                        min="20"
+                        max="50"
+                      />
+                    </div>
                   )}
                 </div>
               )}
+            </div>
+          ))}
+        </div>
 
-              <div className={styles.editActions}>
-                <button
-                  onClick={() => {
-                    setEditMode(false);
-                    loadParticipants(); // Réinitialiser
-                  }}
-                  className={styles.btnSecondary}
-                  disabled={saving}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSaveParticipants}
-                  className={styles.btnPrimary}
-                  disabled={saving}
-                >
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
-                </button>
-              </div>
-            </>
+        {/* Bouton de sauvegarde */}
+        <div className={styles.saveSection}>
+          <button
+            onClick={handleSaveParticipants}
+            className={styles.btnSave}
+            disabled={saving || !allParticipantsFilled}
+          >
+            {saving ? 'Enregistrement en cours...' : 'Enregistrer les informations'}
+          </button>
+          {!allParticipantsFilled && (
+            <p className={styles.validationMessage}>
+              ⚠️ Veuillez remplir tous les champs obligatoires (*)
+            </p>
           )}
         </div>
-
-        {/* Informations contact */}
-        <div className={styles.bookingDetailsCard}>
-          <h2>Vos informations</h2>
-          <div className={styles.contactInfo}>
-            <p><strong>Nom :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
-            <p><strong>Email :</strong> {booking.clientEmail}</p>
-            <p><strong>Téléphone :</strong> {booking.clientPhone}</p>
-            <p><strong>Nationalité : </strong>
-                <img
-                  src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
-                  alt={booking.clientNationality}
-                />
-              </p>
-          </div>
-        </div>
-
-        {/* Message du guide */}
-        {booking.product.postBookingMessage && (
-          <div className={styles.bookingDetailsCard}>
-            <h2>Message du guide</h2>
-            <p>{booking.product.postBookingMessage}</p>
-          </div>
-        )}
-
-        {/* Lieu de rendez-vous */}
-        {(booking.product.wazeLink || booking.product.googleMapsLink) && (
-          <div className={styles.bookingDetailsCard}>
-            <h2>Lieu de rendez-vous</h2>
-            <div className={styles.locationLinks}>
-              {booking.product.wazeLink && (
-                <a
-                  href={booking.product.wazeLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.linkBtn}
-                >
-                  🗺️ Ouvrir dans Waze
-                </a>
-              )}
-              {booking.product.googleMapsLink && (
-                <a
-                  href={booking.product.googleMapsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.linkBtn}
-                >
-                  📍 Ouvrir dans Google Maps
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Actions d'annulation */}
-        {!isCancelled && (
-          <div className={styles.dangerZone}>
-            <h3>Annuler la réservation</h3>
-            <p>Si vous souhaitez annuler votre réservation, veuillez contacter le guide ou cliquer ci-dessous.</p>
-            <button
-              onClick={handleCancelBooking}
-              className={styles.btnDanger}
-            >
-              Annuler ma réservation
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

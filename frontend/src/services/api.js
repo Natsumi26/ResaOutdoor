@@ -29,12 +29,14 @@ api.interceptors.response.use(
   (error) => {
     // Ne déconnecter que si c'est une erreur d'authentification de l'application
     // Pas si c'est une erreur Stripe ou autre service externe
+    // Ou si on est sur une page client publique
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
       const isStripeError = url.includes('/stripe/');
+      const isClientPage = window.location.pathname.startsWith('/client/');
 
-      // Si ce n'est pas une erreur Stripe, c'est probablement un problème d'auth
-      if (!isStripeError) {
+      // Si ce n'est pas une erreur Stripe et qu'on n'est pas sur une page client, c'est probablement un problème d'auth
+      if (!isStripeError && !isClientPage) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

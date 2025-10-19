@@ -160,7 +160,7 @@ const bookingConfirmationTemplate = (booking) => {
         <div class="info-box">
           <h3>Gérer sa réservation</h3>
           <p>Vous pouvez visualiser et compléter votre réservation en cliquant sur ce lien,</p>
-          <a href='http://localhost:3000/client/my-booking/${booking.id}'>Ma réservation</a>
+          <a href='${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}'>Ma réservation</a>
         </div>
 
         <div class="info-box">

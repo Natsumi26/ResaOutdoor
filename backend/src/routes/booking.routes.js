@@ -18,22 +18,23 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.use(authMiddleware);
-
-router.get('/', getAllBookings);
+// Routes publiques (accessibles sans authentification)
 router.get('/:id', getBookingById);
 router.post('/', createBooking);
 router.put('/:id', updateBooking);
-router.post('/:id/payment', addPayment);
 router.post('/:id/cancel', cancelBooking);
-router.post('/:id/move', moveBooking);
-router.post('/:id/mark-product-details-sent', markProductDetailsSent);
-router.delete('/:id', deleteBooking);
 
-// Routes pour les notes
-router.get('/:id/notes', getNotes);
-router.post('/:id/notes', addNote);
-router.put('/:id/notes/:noteId', updateNote);
-router.delete('/:id/notes/:noteId', deleteNote);
+// Routes protégées (authentification requise)
+router.get('/', authMiddleware, getAllBookings);
+router.post('/:id/payment', authMiddleware, addPayment);
+router.post('/:id/move', authMiddleware, moveBooking);
+router.post('/:id/mark-product-details-sent', authMiddleware, markProductDetailsSent);
+router.delete('/:id', authMiddleware, deleteBooking);
+
+// Routes pour les notes (protégées)
+router.get('/:id/notes', authMiddleware, getNotes);
+router.post('/:id/notes', authMiddleware, addNote);
+router.put('/:id/notes/:noteId', authMiddleware, updateNote);
+router.delete('/:id/notes/:noteId', authMiddleware, deleteNote);
 
 export default router;

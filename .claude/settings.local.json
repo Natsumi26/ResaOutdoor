@@ -17,7 +17,8 @@
       "Bash(taskkill:*)",
       "Bash(tasklist:*)",
       "Bash(powershell -Command:*)",
-      "Bash(npx prisma studio)"
+      "Bash(npx prisma studio)",
+      "Bash(timeout /t 3)"
     ],
     "deny": [],
     "ask": []

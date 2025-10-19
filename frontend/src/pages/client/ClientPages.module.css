@@ -1322,6 +1322,479 @@
   color: #721c24;
   margin-bottom: 1.5rem;
 }
+
+/* ========== VERSION SIMPLIFIÉE - MA RÉSERVATION ========== */
+
+.simpleHeader {
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.simpleHeader h1 {
+  color: #2c3e50;
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+}
+
+.bookingDate {
+  color: #3498db;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ========== VERSION COMPACTE - MA RÉSERVATION ========== */
+
+.compactHeader {
+  text-align: center;
+  background: white;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+}
+
+.compactHeader h1 {
+  color: #2c3e50;
+  margin: 0 0 0.4rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.compactHeader .bookingDate {
+  color: #3498db;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.compactInfoBox {
+  background: #e8f4f8;
+  border-left: 3px solid #3498db;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.compactInfoBox .infoRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.compactInfoBox .infoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.compactInfoBox .infoIcon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.compactParticipantsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.compactParticipantCard {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+}
+
+.compactParticipantCard .participantHeader {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.compactParticipantCard .participantNumber {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.compactFieldsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.compactFieldsGrid .formGroup {
+  margin-bottom: 0;
+}
+
+.compactFieldsGrid .formGroup label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: #495057;
+  font-size: 0.85rem;
+}
+
+.compactFieldsGrid .formGroup input[type="text"],
+.compactFieldsGrid .formGroup input[type="number"] {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.compactFieldsGrid .formGroup input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.inlineCheckbox {
+  display: flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #495057;
+  margin-top: 0.35rem;
+}
+
+.inlineCheckbox input[type="checkbox"] {
+  cursor: pointer;
+  width: auto !important;
+  margin: 0;
+}
+
+.inlineCheckbox span {
+  white-space: nowrap;
+}
+
+.infoBox {
+  background: #e8f4f8;
+  border-left: 4px solid #3498db;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.infoBox h2 {
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+}
+
+.infoBox p {
+  color: #495057;
+  line-height: 1.6;
+  margin: 0.5rem 0;
+}
+
+.shoesInfo {
+  background: rgba(52, 152, 219, 0.08);
+  border-left: 4px solid #2980b9;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.shoesIcon {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.shoesContent {
+  flex: 1;
+}
+
+.shoesInfo h3 {
+  color: #2c3e50;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.shoesInfo p {
+  color: #495057;
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.rentalNote {
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.875rem 1rem;
+  border-radius: 6px;
+  margin-top: 0.75rem !important;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+  font-size: 0.95rem;
+}
+
+.participantsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.participantsForm .participantCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e9ecef;
+  transition: border-color 0.2s;
+}
+
+.participantsForm .participantCard:hover {
+  border-color: #3498db;
+}
+
+.participantsForm .participantCard h3 {
+  color: #2c3e50;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.participantFields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.participantFields .formGroup {
+  margin-bottom: 0;
+}
+
+.participantFields .formGroup label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.participantFields .formGroup input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.participantFields .formGroup input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.shoeRentalBox {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  margin-top: 0.5rem;
+}
+
+.shoeRentalBox .checkboxLabel {
+  margin-bottom: 0;
+}
+
+.shoeRentalBox .checkboxLabel span {
+  font-weight: 600;
+  color: #495057;
+}
+
+.saveSection {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  position: sticky;
+  bottom: 1rem;
+  z-index: 10;
+}
+
+.btnSave {
+  padding: 0.875rem 2.5rem;
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
+  width: 100%;
+  max-width: 350px;
+}
+
+.btnSave:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+.btnSave:disabled {
+  background: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.validationMessage {
+  color: #856404;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Section location de chaussures compacte sur une ligne */
+.shoeRentalCompactLine {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.shoeRentalLabel {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.tooltipContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltipIcon {
+  cursor: help;
+  user-select: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  color: #6c757d;
+  line-height: 1;
+}
+
+.tooltipIcon:hover {
+  transform: scale(1.15);
+  color: #3498db;
+}
+
+.tooltipIcon svg {
+  display: block;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  background: #2c3e50;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 350px;
+  white-space: normal;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #2c3e50;
+}
+
+.tooltipContainer:hover .tooltip,
+.tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.shoeCheckboxLine {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.shoeCheckboxLine input[type="checkbox"] {
+  cursor: pointer;
+  width: auto !important;
+  margin: 0;
+}
+
+.shoeSizeInline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shoeSizeInline label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.shoeSizeInline input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 80px;
+}
+
+.shoeSizeInline input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
 /* ========== PAGE MA DISPORESA ========== */
 .dispo-container {
   max-width: 800px;
@@ -1469,5 +1942,74 @@ input[type="number"] {
   .confirmationActions .btnPrimary,
   .confirmationActions .btnSecondary {
     width: 100%;
+  }
+
+  .participantFields {
+    grid-template-columns: 1fr;
+  }
+
+  .simpleHeader h1 {
+    font-size: 1.5rem;
+  }
+
+  .bookingDate {
+    font-size: 1rem;
+  }
+
+  .infoBox {
+    padding: 1.5rem;
+  }
+
+  .infoBox h2 {
+    font-size: 1.1rem;
+  }
+
+  .shoesInfo {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .shoesIcon {
+    font-size: 2rem;
+  }
+
+  .participantsForm .participantCard {
+    padding: 1.5rem;
+  }
+
+  .saveSection {
+    padding: 1.5rem;
+  }
+
+  .btnSave {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+  }
+
+  /* Compact form responsive */
+  .compactFieldsGrid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .compactHeader h1 {
+    font-size: 1.25rem;
+  }
+
+  .compactHeader .bookingDate {
+    font-size: 0.85rem;
+  }
+
+  .compactInfoBox {
+    padding: 0.875rem 1rem;
+  }
+
+  .compactInfoBox .infoItem {
+    font-size: 0.85rem;
+  }
+
+  .compactParticipantCard {
+    padding: 0.875rem;
   }
 }

@@ -295,6 +295,16 @@ export const updateBooking = async (req, res, next) => {
     }
 
     const booking = await prisma.$transaction(async (tx) => {
+      // Récupérer la réservation actuelle pour comparer
+      const currentBooking = await tx.booking.findUnique({
+        where: { id }
+      });
+
+      // Si le nombre de personnes augmente, marquer les infos de groupe comme incomplètes
+      if (updateData.numberOfPeople && updateData.numberOfPeople > currentBooking.numberOfPeople) {
+        updateData.participantsFormCompleted = false;
+      }
+
       const updatedBooking = await tx.booking.update({
         where: { id },
         data: updateData,

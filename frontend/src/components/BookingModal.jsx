@@ -388,12 +388,13 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
 const generateAskEmailTemplate = () => {
     const formattedDate = format(new Date(booking.session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
     return `
     Bonjour ${booking.clientFirstName} ${booking.clientLastName},<br><br>
 
 Suite à votre réservation du ${formattedDate} ${booking.session.startTime} pour le canyon ${booking.product.name},
 veuillez compléter le formulaire des participants  :<br>
-<a href="https://canyonlife.fr/client/my-booking/${booking.id}" target="_blank" style="color:#007bff;">
+<a href="${frontendUrl}/client/my-booking/${booking.id}" target="_blank" style="color:#007bff;">
 Ma réservation</a><br><br>
 
 À très bientôt pour cette aventure inoubliable !<br>
@@ -547,39 +548,30 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
             {/* Ligne 2 : Contenu blanc/grisé - 2 colonnes */}
             <div className={styles.groupInfoContent}>
-              {!booking.participantsFormCompleted ? (
-                <>
-                  <div className={styles.groupInfoText}>
-                    <p>Demandez au client de renseigner lui-même les infos de son groupe.</p>
-                  </div>
-                  <div className={styles.groupInfoButtons}>
-                    <button
-                      className={styles.btnBlue}
-                      onClick={() => {
-                        setClientRequestText(generateAskEmailTemplate());
-                        setShowClientRequest(!showClientRequest);
-                      }}
-                    >
-                      ⚡ Demander au client
-                    </button>
-                    <button
-                      className={styles.btnGray}
-                      onClick={() => setShowParticipantForm(true)}
-                    >
-                      Saisir à la main
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className={styles.groupInfoButtonsFull}>
-                  <button
-                    className={styles.btnBlue}
-                    onClick={() => setShowParticipantForm(true)}
-                  >
-                    📋 Voir le formulaire
-                  </button>
-                </div>
-              )}
+              <div className={styles.groupInfoText}>
+                <p>
+                  {!booking.participantsFormCompleted
+                    ? "Demandez au client de renseigner lui-même les infos de son groupe."
+                    : "Les informations sont complètes. Vous pouvez les consulter ou les modifier."}
+                </p>
+              </div>
+              <div className={styles.groupInfoButtons}>
+                <button
+                  className={styles.btnBlue}
+                  onClick={() => setShowParticipantForm(true)}
+                >
+                  📋 {booking.participantsFormCompleted ? 'Voir le formulaire' : 'Saisir à la main'}
+                </button>
+                <button
+                  className={styles.btnGray}
+                  onClick={() => {
+                    setClientRequestText(generateAskEmailTemplate());
+                    setShowClientRequest(!showClientRequest);
+                  }}
+                >
+                  ⚡ Demander au client
+                </button>
+              </div>
             </div>
 
             {/* Formulaire demande client */}
