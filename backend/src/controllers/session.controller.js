@@ -1,6 +1,100 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+// Obtenir les prochaines dates disponibles
+export const getNextAvailableDates = async (req, res, next) => {
+  try {
+    const { participants } = req.query;
+    const participantCount = participants ? parseInt(participants) : 1;
+
+    // Récupérer toutes les sessions futures ouvertes
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sessions = await prisma.session.findMany({
+      where: {
+        date: {
+          gte: today
+        },
+        status: { in: ['open', 'full'] }
+      },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          where: {
+            status: { not: 'cancelled' }
+          },
+          include: {
+            product: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      },
+      take: 50 // Limiter pour optimiser la performance
+    });
+
+    // Analyser les sessions pour trouver celles avec disponibilité
+    const availableDates = [];
+    const seenDates = new Set();
+
+    for (const session of sessions) {
+      // Si on a déjà 2 dates, on arrête
+      if (availableDates.length >= 2) break;
+
+      const dateKey = session.date.toISOString().split('T')[0];
+
+      // Si on a déjà cette date, on passe
+      if (seenDates.has(dateKey)) continue;
+
+      // Vérifier s'il y a au moins un produit disponible pour le nombre de participants
+      let hasAvailability = false;
+      let availableProduct = null;
+
+      for (const sp of session.products) {
+        const product = sp.product;
+
+        // Calculer les places réservées pour ce produit dans cette session
+        const bookedForProduct = session.bookings
+          .filter(b => b.productId === product.id)
+          .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+        const availableCapacity = product.maxCapacity - bookedForProduct;
+
+        if (availableCapacity >= participantCount) {
+          hasAvailability = true;
+          availableProduct = {
+            id: product.id,
+            name: product.name,
+            region: product.region
+          };
+          break;
+        }
+      }
+
+      if (hasAvailability) {
+        seenDates.add(dateKey);
+        availableDates.push({
+          date: dateKey,
+          product: availableProduct
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      dates: availableDates
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Rechercher les produits disponibles selon les filtres (pour les clients)
 export const searchAvailableProducts = async (req, res, next) => {
   try {
@@ -52,9 +146,19 @@ export const searchAvailableProducts = async (req, res, next) => {
     const productAvailability = {};
 
     sessions.forEach(session => {
+      // Déterminer le produit verrouillé par la première réservation (rotation magique)
+      const lockedProductId = session.bookings.length > 0
+        ? session.bookings[0].productId
+        : null;
+
       session.products.forEach(sp => {
         const product = sp.product;
         const productId = product.id;
+
+            // Si un produit est verrouillé, ignorer les autres
+          if (lockedProductId && productId !== lockedProductId) {
+            return;
+          }
 
         // Calculer le nombre de places réservées pour ce produit dans cette session
         const bookedForProduct = session.bookings

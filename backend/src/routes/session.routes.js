@@ -1,11 +1,12 @@
 import express from 'express';
-import { getAllSessions, getSessionById, createSession, updateSession, deleteSession, searchAvailableProducts } from '../controllers/session.controller.js';
+import { getAllSessions, getSessionById, createSession, updateSession, deleteSession, searchAvailableProducts, getNextAvailableDates } from '../controllers/session.controller.js';
 import { authMiddleware, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Route publique pour la recherche client (sans authentification requise)
+// Routes publiques pour les clients (sans authentification requise)
 router.get('/search/available', optionalAuth, searchAvailableProducts);
+router.get('/next-available', optionalAuth, getNextAvailableDates);
 
 // Routes protégées
 router.use(authMiddleware);

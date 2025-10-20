@@ -6,7 +6,6 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
   const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, participantsFormCompleted, productDetailsSent } = booking;
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 1024); // Désactiver tooltip sur mobile et tablette
@@ -28,22 +27,6 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
     // Orange sinon
     return '#f59e0b'; // Orange
   };
-
-  // Icônes selon le statut
-  const getIcon = () => {
-    if (status === 'cancelled') return '✕';
-
-    // Vert si TOUT est complété
-    if (participantsFormCompleted && productDetailsSent) {
-      return '✓';
-    }
-
-    // Orange sinon
-    return '○';
-  };
-
-  // Format du nom
-  const displayName = `${clientFirstName} ${clientLastName.charAt(0)}.`;
 
   // Formater le numéro de téléphone avec indicatif pays et espaces
   const formatPhoneNumber = (phone, countryCode) => {

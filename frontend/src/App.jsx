@@ -20,6 +20,7 @@ import CanyonDetails from './pages/client/CanyonDetails';
 import BookingForm from './pages/client/BookingForm';
 import BookingConfirmation from './pages/client/BookingConfirmation';
 import MyBooking from './pages/client/MyBooking';
+import GiftVoucherPurchase from './pages/client/GiftVoucherPurchase';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -51,6 +52,7 @@ const AppRoutes = () => {
       <Route path="/client/book/:sessionId" element={<BookingForm />} />
       <Route path="/client/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
       <Route path="/client/my-booking/:bookingId" element={<MyBooking />} />
+      <Route path="/client/gift-voucher" element={<GiftVoucherPurchase />} />
 
       {/* Routes admin/guide - authentification requise */}
       <Route

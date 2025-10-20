@@ -69,28 +69,6 @@ const Dashboard = () => {
             {sidebarOpen && <span>Calendrier</span>}
           </NavLink>
 
-          {isAdmin && (
-            <NavLink
-              to="/users"
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.active : ''}`
-              }
-            >
-              <span className={styles.icon}>👥</span>
-              {sidebarOpen && <span>Utilisateurs</span>}
-            </NavLink>
-          )}
-
-          <NavLink
-            to="/products"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <span className={styles.icon}>🏞️</span>
-            {sidebarOpen && <span>Produits</span>}
-          </NavLink>
-
           <NavLink
             to="/reservations"
             className={({ isActive }) =>
@@ -130,6 +108,27 @@ const Dashboard = () => {
 
             {settingsOpen && sidebarOpen && (
               <div className={styles.subMenu}>
+              {isAdmin && (
+                  <NavLink
+                    to="/users"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>👥</span>
+                    {sidebarOpen && <span>Utilisateurs</span>}
+                  </NavLink>
+                )}
+
+                <NavLink
+                  to="/products"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>🏞️</span>
+                  {sidebarOpen && <span>Produits</span>}
+                </NavLink>
                 <NavLink
                   to="/settings/emails"
                   className={({ isActive }) =>

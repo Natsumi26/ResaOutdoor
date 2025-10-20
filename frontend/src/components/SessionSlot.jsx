@@ -22,7 +22,6 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDele
   const totalPeople = bookings.reduce((sum, booking) =>
     booking.status !== 'cancelled' ? sum + (booking.numberOfPeople || 0) : sum, 0
   );
-
   // Nom de la session / du produit
   const getSessionName = () => {
     if (session.products?.length === 1) {
