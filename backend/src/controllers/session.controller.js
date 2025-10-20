@@ -47,16 +47,25 @@ export const getNextAvailableDates = async (req, res, next) => {
       // Si on a déjà 2 dates, on arrête
       if (availableDates.length >= 2) break;
 
-      const dateKey = session.date.toISOString().split('T')[0];
+      const dateKey = session.date.toLocaleDateString('fr-CA'); // format YYYY-MM-DD
 
       // Si on a déjà cette date, on passe
       if (seenDates.has(dateKey)) continue;
+        
+      // 🔒 Rotation magique : produit verrouillé ?
+      const lockedProductId = session.bookings.length > 0
+        ? session.bookings[0].productId
+        : null;
+
+      const relevantProducts = lockedProductId
+        ? session.products.filter(sp => sp.product.id === lockedProductId)
+        : session.products;
 
       // Vérifier s'il y a au moins un produit disponible pour le nombre de participants
       let hasAvailability = false;
       let availableProduct = null;
 
-      for (const sp of session.products) {
+      for (const sp of relevantProducts) {
         const product = sp.product;
 
         // Calculer les places réservées pour ce produit dans cette session
