@@ -9,9 +9,10 @@ import {
   createConnectAccountLink,
   createConnectAccountLinkForExisting,
   getConnectAccount,
-  createLoginLink
+  createLoginLink,
+  createGiftVoucherCheckoutSession
 } from '../services/stripe.service.js';
-import { sendPaymentConfirmation } from '../services/email.service.js';
+import { sendPaymentConfirmation, sendGiftVoucherEmail } from '../services/email.service.js';
 
 const router = express.Router();
 
@@ -140,29 +141,96 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
 router.post('/', async (req, res) => {
   const signature = req.headers['stripe-signature'];
 
+  let event;
   try {
     // Vérifier la signature du webhook
-    const event = constructWebhookEvent(req.body, signature);
+    event = constructWebhookEvent(req.body, signature);
+  } catch (error) {
+    console.error('Erreur de signature Stripe:', error.message);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
+  }
 
-    console.log('Webhook Stripe reçu:', event.type);
+  // ✅ Réponse immédiate à Stripe
+  res.status(200).send('ok');
 
-    // Gérer les différents types d'événements
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
+  // 🔁 Traiter l'événement en arrière-plan
+  setImmediate(async () => {
+    try {
+      console.log('Webhook Stripe reçu:', event.type);
 
-        // Récupérer la réservation
+      // Gérer les différents types d'événements
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object;
+
+          // Vérifier si c'est un achat de bon cadeau
+          if (session.metadata && session.metadata.type === 'gift_voucher') {
+            try {
+              const paymentIntentId = session.payment_intent;
+              const buyerEmail = session.metadata?.buyerEmail;
+              const amount = parseFloat(session.metadata?.amount);
+
+              if (!buyerEmail || !amount || !paymentIntentId) {
+                console.warn('Données manquantes pour le bon cadeau');
+                return;
+              }
+
+              // Vérifier si un bon existe déjà pour ce paiement
+              const existingVoucher = await prisma.giftVoucher.findFirst({
+                where: { notes: paymentIntentId }
+              });
+
+              if (existingVoucher) {
+                console.log('🎁 Bon cadeau déjà généré pour ce paiement');
+                return;
+              }
+              // Générer un code unique
+              const generateCode = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+              };
+
+              let code;
+              let isUnique = false;
+
+              while (!isUnique) {
+                code = generateCode();
+                const existing = await prisma.giftVoucher.findUnique({ where: { code } });
+                if (!existing) isUnique = true;
+              }
+              // Créer le bon cadeau
+              const voucher = await prisma.giftVoucher.create({
+                data: {
+                  code,
+                  amount,
+                  discountType: 'fixed',
+                  type: 'voucher',
+                  maxUsages: 1,
+                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 an
+                  notes: paymentIntentId
+                }
+              });
+
+              console.log('✅ Bon cadeau créé :', code, 'pour', amount, '€');
+
+              // Envoyer l’email
+              await sendGiftVoucherEmail(buyerEmail, code, amount, session.metadata);
+              console.log('📧 Email envoyé à', buyerEmail);
+            } catch (error) {
+              console.error('💥 Erreur dans handleGiftVoucher:', error);
+            }
+
+            break;
+          }
+
+        // Sinon, c'est un paiement de réservation classique
         const bookingId = session.client_reference_id || session.metadata.bookingId;
-
         if (!bookingId) {
           console.error('Aucun bookingId dans la session Stripe');
           break;
         }
 
-        const booking = await prisma.booking.findUnique({
-          where: { id: bookingId }
-        });
-
+        const booking = await prisma.booking.findUnique({where: { id: bookingId }});
         if (!booking) {
           console.error('Réservation non trouvée:', bookingId);
           break;
@@ -230,14 +298,12 @@ router.post('/', async (req, res) => {
       default:
         console.log('Événement non géré:', event.type);
     }
-
-    // Répondre à Stripe que le webhook a été reçu
-    res.json({ received: true });
   } catch (error) {
     console.error('Erreur traitement webhook Stripe:', error);
-    res.status(400).send(`Webhook Error: ${error.message}`);
   }
 });
+});
+
 
 /**
  * Connecter un compte Stripe pour un guide
@@ -373,6 +439,87 @@ router.post('/connect/disconnect', authMiddleware, async (req, res, next) => {
       success: true,
       message: 'Compte Stripe déconnecté'
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Créer une session de paiement Stripe pour l'achat d'un bon cadeau
+ * POST /api/stripe/create-gift-voucher-checkout
+ */
+router.post('/create-gift-voucher-checkout', async (req, res, next) => {
+  try {
+    const { amount, buyerEmail, recipientEmail, recipientName, message } = req.body;
+
+    if (!amount || amount <= 0) {
+      throw new AppError('Montant invalide', 400);
+    }
+
+    if (!buyerEmail) {
+      throw new AppError('Email de l\'acheteur requis', 400);
+    }
+
+    // Créer la session Stripe pour le bon cadeau
+    const checkoutSession = await createGiftVoucherCheckoutSession(
+      parseFloat(amount),
+      buyerEmail,
+      recipientEmail,
+      recipientName,
+      message
+    );
+
+    res.json({
+      success: true,
+      sessionId: checkoutSession.sessionId,
+      url: checkoutSession.url
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Vérifier le paiement d'un bon cadeau après redirection
+ * GET /api/stripe/verify-gift-voucher-payment/:sessionId
+ */
+router.get('/verify-gift-voucher-payment/:sessionId', async (req, res, next) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await retrieveCheckoutSession(sessionId);
+
+    if (session.payment_status === 'paid') {
+      // Chercher le bon cadeau par le payment_intent
+      const voucher = await prisma.giftVoucher.findFirst({
+        where: {
+          notes: session.payment_intent
+        }
+      });
+
+      if (voucher) {
+        return res.json({
+          success: true,
+          paid: true,
+          voucher
+        });
+      }
+
+      // Le bon cadeau n'a pas encore été créé par le webhook
+      // Cela peut arriver si le webhook est en retard
+      return res.json({
+        success: true,
+        paid: true,
+        pending: true,
+        message: 'Paiement confirmé, le bon cadeau est en cours de création'
+      });
+    } else {
+      res.json({
+        success: true,
+        paid: false,
+        status: session.payment_status
+      });
+    }
   } catch (error) {
     next(error);
   }

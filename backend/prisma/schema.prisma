@@ -230,6 +230,7 @@ model GiftVoucher {
   type          String              @default("voucher") // "voucher" (à usage unique) ou "promo" (utilisations multiples)
   maxUsages     Int?                // Nombre max d'utilisations (null = illimité)
   usageCount    Int                 @default(0) // Nombre d'utilisations actuelles
+  notes         String?             // Notes (utilisé pour stocker le payment_intent Stripe)
 
   createdAt     DateTime            @default(now())
   expiresAt     DateTime?

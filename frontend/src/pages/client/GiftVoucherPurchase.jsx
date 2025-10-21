@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
 
 const GiftVoucherPurchase = () => {
@@ -44,17 +45,36 @@ const GiftVoucherPurchase = () => {
     setLoading(true);
 
     try {
-      // Appel API pour créer le bon cadeau et initier le paiement
-      // const response = await api.createGiftVoucher(formData);
-      // navigate(`/payment?voucherId=${response.data.id}`);
+      // Calculer le montant total (bon cadeau + frais de livraison si applicable)
+      const voucherAmount = parseFloat(formData.amount);
+      const deliveryFee = formData.deliveryMethod === 'postal' ? 5 : 0;
+      const totalAmount = voucherAmount + deliveryFee;
 
-      console.log('Données du bon cadeau:', formData);
+      // Préparer les données pour l'API
+      const recipientName = formData.recipientFirstName && formData.recipientLastName
+        ? `${formData.recipientFirstName} ${formData.recipientLastName}`
+        : '';
 
-      // Pour l'instant, redirection vers une page de confirmation temporaire
-      alert('Fonctionnalité en cours de développement. Votre bon cadeau sera bientôt disponible !');
+      const paymentData = {
+        amount: totalAmount,
+        buyerEmail: formData.buyerEmail,
+        recipientEmail: formData.recipientEmail || null,
+        recipientName: recipientName || null,
+        message: formData.personalMessage || null
+      };
+
+      // Créer la session de paiement Stripe
+      const response = await stripeAPI.createGiftVoucherCheckout(paymentData);
+
+      if (response.data.success && response.data.url) {
+        // Rediriger vers Stripe pour le paiement
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('Impossible de créer la session de paiement');
+      }
     } catch (error) {
       console.error('Erreur création bon cadeau:', error);
-      alert('Une erreur est survenue. Veuillez réessayer.');
+      alert('Une erreur est survenue lors de la création du paiement. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }

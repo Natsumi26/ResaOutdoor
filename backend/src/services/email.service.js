@@ -529,3 +529,193 @@ export const sendCustomEmail = async (to, subject, content) => {
     throw error;
   }
 };
+
+/**
+ * Template HTML pour email de bon cadeau
+ */
+const giftVoucherTemplate = (code, amount, metadata) => {
+  const { recipientName, recipientEmail, message } = metadata;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .voucher-box {
+          background: white;
+          padding: 30px;
+          margin: 20px 0;
+          border-radius: 12px;
+          border: 3px dashed #f59e0b;
+          text-align: center;
+        }
+        .voucher-code {
+          font-size: 2em;
+          color: #f59e0b;
+          font-weight: bold;
+          letter-spacing: 3px;
+          margin: 20px 0;
+          padding: 15px;
+          background: #fffbeb;
+          border-radius: 8px;
+        }
+        .voucher-amount {
+          font-size: 2.5em;
+          color: #059669;
+          font-weight: bold;
+          margin: 10px 0;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #f59e0b;
+        }
+        .message-box {
+          background: #fffbeb;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          font-style: italic;
+          border-left: 4px solid #f59e0b;
+        }
+        .button {
+          display: inline-block;
+          background: #f59e0b;
+          color: white;
+          padding: 12px 30px;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 20px 0;
+          font-weight: bold;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🎁 Bon Cadeau Canyon Life</h1>
+        <p>Une aventure inoubliable vous attend !</p>
+      </div>
+
+      <div class="content">
+        ${recipientName ? `<p>Bonjour ${recipientName},</p>` : '<p>Bonjour,</p>'}
+
+        <p>Vous avez reçu un bon cadeau pour vivre une expérience exceptionnelle avec Canyon Life !</p>
+
+        ${message ? `
+        <div class="message-box">
+          <h3>💌 Message personnel :</h3>
+          <p>${message}</p>
+        </div>
+        ` : ''}
+
+        <div class="voucher-box">
+          <h2>Votre bon cadeau</h2>
+          <div class="voucher-amount">${amount}€</div>
+
+          <p><strong>Votre code unique :</strong></p>
+          <div class="voucher-code">${code}</div>
+
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 20px;">
+            Utilisez ce code lors de votre réservation pour bénéficier de votre bon cadeau
+          </p>
+        </div>
+
+        <div class="info-box">
+          <h3>📋 Comment utiliser votre bon cadeau ?</h3>
+          <ol>
+            <li>Rendez-vous sur notre site de réservation</li>
+            <li>Choisissez l'activité et la date qui vous conviennent</li>
+            <li>Lors du paiement, entrez votre code : <strong>${code}</strong></li>
+            <li>Le montant du bon cadeau sera automatiquement déduit</li>
+          </ol>
+        </div>
+
+        <div class="info-box">
+          <h3>ℹ️ Informations importantes</h3>
+          <ul>
+            <li><strong>Validité :</strong> 1 an à partir de la date d'achat</li>
+            <li><strong>Valeur :</strong> ${amount}€</li>
+            <li><strong>Utilisations :</strong> Une seule fois</li>
+            <li><strong>Code :</strong> ${code}</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/booking" class="button">
+            Réserver maintenant
+          </a>
+        </div>
+
+        <p>Nous avons hâte de vous faire vivre cette aventure extraordinaire !</p>
+        <p>L'équipe Canyon Life 🌊</p>
+      </div>
+
+      <div class="footer">
+        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+        <p>© ${new Date().getFullYear()} Canyon Life - Tous droits réservés</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Envoyer un email de bon cadeau
+ */
+export const sendGiftVoucherEmail = async (recipientEmail, code, amount, metadata = {}) => {
+  try {
+    const { recipientName, buyerEmail } = metadata;
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: recipientEmail || buyerEmail, // Envoyer à l'acheteur si pas de destinataire
+      subject: `🎁 Votre bon cadeau Canyon Life de ${amount}€`,
+      html: giftVoucherTemplate(code, amount, metadata)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('Email de bon cadeau envoyé:', info.messageId);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Erreur envoi email de bon cadeau:', error);
+    throw error;
+  }
+};

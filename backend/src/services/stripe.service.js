@@ -275,3 +275,65 @@ export const createLoginLink = async (accountId) => {
     throw error;
   }
 };
+
+/**
+ * Créer une session de paiement Stripe pour l'achat d'un bon cadeau
+ * @param {number} amount - Montant du bon cadeau en euros
+ * @param {string} buyerEmail - Email de l'acheteur
+ * @param {string} recipientEmail - Email du destinataire (optionnel)
+ * @param {string} recipientName - Nom du destinataire (optionnel)
+ * @param {string} message - Message personnalisé (optionnel)
+ * @returns {Promise<Object>} Session Stripe
+ */
+export const createGiftVoucherCheckoutSession = async (amount, buyerEmail, recipientEmail = null, recipientName = null, message = null) => {
+  try {
+    // Vérifier que le montant est valide
+    if (!amount || amount <= 0) {
+      throw new Error('Montant invalide pour le bon cadeau');
+    }
+
+    // Configuration de la session de paiement
+    const sessionConfig = {
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `Bon cadeau de ${amount}€`,
+              description: recipientName
+                ? `Bon cadeau pour ${recipientName}`
+                : 'Bon cadeau',
+              images: []
+            },
+            unit_amount: Math.round(amount * 100) // Convertir en centimes
+          },
+          quantity: 1
+        }
+      ],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/gift-voucher/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/gift-voucher/payment/cancel`,
+      customer_email: buyerEmail,
+      metadata: {
+        type: 'gift_voucher',
+        amount: amount.toString(),
+        buyerEmail,
+        recipientEmail: recipientEmail || '',
+        recipientName: recipientName || '',
+        message: message || ''
+      }
+    };
+
+    // Créer la session de checkout
+    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+
+    return {
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url
+    };
+  } catch (error) {
+    console.error('Erreur création session Stripe pour bon cadeau:', error);
+    throw error;
+  }
+};
