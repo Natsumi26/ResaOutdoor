@@ -3,9 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { sessionsAPI } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 
 const CanyonSearch = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -193,17 +197,18 @@ const CanyonSearch = () => {
             onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
             onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            🎁 Offrir un bon cadeau
+            🎁 {t('achatGift')}
           </button>
+          <LanguageSwitcher/>
         </div>
       </div>
 
       {/* Filtres */}
       <div className={styles.filtersCard}>
-        <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>Recherchez votre sortie canyon</h2>
+        <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>{t('SearchCanyon')}</h2>
 
         <div className={styles.filterGroup} style={{ marginBottom: '1.5rem' }}>
-          <label>Nombre de participants *</label>
+          <label>{t('NbrParticipants')} *</label>
           <input
             type="number"
             min="1"
@@ -217,7 +222,7 @@ const CanyonSearch = () => {
         {/* Calendrier personnalisé */}
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: '#495057' }}>
-            Date ou période souhaitée *
+            {t('DAtePeriode')} *
           </label>
           <DateRangePicker
             onDateChange={handleDateChange}
@@ -228,7 +233,7 @@ const CanyonSearch = () => {
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
           <button onClick={handleResetFilters} className={styles.btnReset}>
-            Réinitialiser
+            {t('Réinitialiser')}
           </button>
           <button
             onClick={handleSearch}
@@ -239,7 +244,7 @@ const CanyonSearch = () => {
               cursor: canSearch ? 'pointer' : 'not-allowed'
             }}
           >
-            Rechercher
+            {t('Rechercher')}
           </button>
         </div>
       </div>
@@ -247,7 +252,7 @@ const CanyonSearch = () => {
       {/* Résultats */}
       {loading ? (
         <div className={styles.loading}>
-          <p>Recherche en cours...</p>
+          <p>{t('RechercheLoading')}...</p>
         </div>
       ) : hasSearched ? (
         <div className={styles.resultsSection}>
@@ -306,7 +311,7 @@ const CanyonSearch = () => {
 
                       <div className={styles.productFooter}>
                         <div className={styles.productPrice}>
-                          <span className={styles.priceLabel}>À partir de</span>
+                          <span className={styles.priceLabel}>{t('aPartir')}</span>
                           <span className={styles.priceAmount}>{product.priceIndividual}€</span>
                           <span className={styles.priceUnit}>/pers</span>
                         </div>
@@ -314,7 +319,7 @@ const CanyonSearch = () => {
                           onClick={() => navigate(`/client/canyon/${product.id}`)}
                           className={styles.btnPrimary}
                         >
-                          Réserver
+                          {t('Réserver')}
                         </button>
                       </div>
                     </div>
@@ -324,14 +329,14 @@ const CanyonSearch = () => {
             </>
           ) : (
             <div className={styles.noResults}>
-              <h2>Désolé !</h2>
-              <p>Aucun résultat ne semble correspondre à vos critères.</p>
+              <h2>{t('Désolé')} !</h2>
+              <p>{t('NoResult')}</p>
 
               {/* Afficher les 2 prochaines dates disponibles */}
               {nextAvailableDates.length > 0 && (
                 <div className={styles.alternativeDatesSection}>
-                  <h3>Vous êtes flexibles ?</h3>
-                  <p>Ces dates sont disponibles pour vous.</p>
+                  <h3>{t('Flexible')}</h3>
+                  <p>{t('dateDispo')}</p>
                   <div className={styles.alternativeDateButtons}>
                     {nextAvailableDates.slice(0, 2).map((dateInfo, index) => (
                       <button
@@ -371,36 +376,36 @@ const CanyonSearch = () => {
 
               {/* Informations de contact */}
               <div className={styles.contactCard}>
-                <h3>Contactez-nous directement</h3>
-                <p>Notre équipe se fera un plaisir de vous aider à trouver la sortie canyon qui vous convient !</p>
+                <h3>{t('ContactDirect')}</h3>
+                <p>{t('EquipeAider')}</p>
                 <div className={styles.contactInfo}>
                   <div className={styles.contactItem}>
                     <span className={styles.contactIcon}>📞</span>
                     <div>
-                      <strong>Téléphone</strong>
-                      <p><a href="tel:+33123456789">01 23 45 67 89</a></p>
+                      <strong>{t('Téléphone')}</strong>
+                      <p><a href="tel:+33688788186">06 88 78 81 86</a></p>
                     </div>
                   </div>
                   <div className={styles.contactItem}>
                     <span className={styles.contactIcon}>📧</span>
                     <div>
                       <strong>Email</strong>
-                      <p><a href="mailto:contact@canyon-aventure.fr">contact@canyon-aventure.fr</a></p>
+                      <p><a href="mailto:contact@canyonlife.fr">contact@canyonlife.fr</a></p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <button onClick={handleResetFilters} className={styles.btnSecondary}>
-                Modifier ma recherche
+                {t('ModifRecherche')}
               </button>
             </div>
           )}
         </div>
       ) : (
         <div className={styles.welcomeMessage}>
-          <h2>Prêt pour l'aventure ?</h2>
-          <p>Remplissez les critères ci-dessus pour découvrir nos canyons disponibles !</p>
+          <h2>{t('Ready')}</h2>
+          <p>{t('remplirCritere')}</p>
         </div>
       )}
     </div>

@@ -4,8 +4,10 @@ import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
 
 const MyBooking = () => {
+  const { t } = useTranslation();
   const { bookingId } = useParams();
 
   const [booking, setBooking] = useState(null);
@@ -102,23 +104,23 @@ const MyBooking = () => {
         await loadBooking();
       }
 
-      alert('✅ Informations enregistrées avec succès ! Merci.');
+      alert(t('SaveInfos'));
     } catch (error) {
       console.error('Erreur sauvegarde participants:', error);
-      alert('❌ Erreur lors de la sauvegarde. Veuillez réessayer.');
+      alert(t('SaveInfosFail'));
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className={styles.loading}>Chargement...</div>;
+    return <div className={styles.loading}>{t('Chargement')}...</div>;
   }
 
   if (!booking) {
     return (
       <div className={styles.clientContainer}>
-        <div className={styles.error}>Réservation introuvable</div>
+        <div className={styles.error}>{t('noReservation')}</div>
       </div>
     );
   }
@@ -135,7 +137,7 @@ const MyBooking = () => {
       <div className={styles.myBookingContainer}>
         {/* En-tête simplifié */}
         <div className={styles.compactHeader}>
-          <h1>Informations de votre groupe</h1>
+          <h1>{t('InfosGroup')}</h1>
           <p className={styles.bookingDate}>
             {booking.product.name} - {format(new Date(booking.session.date), 'EEEE d MMMM yyyy', { locale: fr })}
           </p>
@@ -146,12 +148,12 @@ const MyBooking = () => {
           <div className={styles.infoRow}>
             <div className={styles.infoItem}>
               <span className={styles.infoIcon}>📏</span>
-              <span>Pour vous fournir une <strong>combinaison adaptée</strong></span>
+              <span>{t('Fournir')} <strong>{t('CombiAdapt')}</strong></span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoIcon}>👟</span>
               <span>
-                Chaussures <strong>fermées type baskets</strong> requises
+                {t('Chaussures')} <strong>{t('TypeChaussures')}</strong>
                 {booking.session.shoeRentalAvailable && ` (location ${booking.session.shoeRentalPrice}€ optionnelle)`}
               </span>
             </div>
@@ -169,7 +171,7 @@ const MyBooking = () => {
               {/* Grille compacte avec les 4 champs de base seulement */}
               <div className={styles.compactFieldsGrid}>
                 <div className={styles.formGroup}>
-                  <label>Prénom *</label>
+                  <label>{t('Prénom')} *</label>
                   <input
                     type="text"
                     value={participant.firstName || ''}
@@ -191,7 +193,7 @@ const MyBooking = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Poids (kg) *</label>
+                  <label>{t('Poids')} (kg) *</label>
                   <input
                     type="number"
                     value={participant.weight || ''}
@@ -203,7 +205,7 @@ const MyBooking = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Taille (cm) *</label>
+                  <label>{t('Taille')} (cm) *</label>
                   <input
                     type="number"
                     value={participant.height || ''}
@@ -230,12 +232,12 @@ const MyBooking = () => {
                       </svg>
                     </span>
                     <div className={`${styles.tooltip} ${tooltipVisible[index] ? styles.visible : ''}`}>
-                      Si vous n'avez pas de chaussures adaptées, je propose des chaussures montantes et agripantes
+                      {t('ProposeShoes')}
                     </div>
                   </div>
 
                   <div className={styles.shoeRentalLabel}>
-                    Location de chaussure (+{booking.session.shoeRentalPrice}€)
+                    {t('LocShoes')} (+{booking.session.shoeRentalPrice}€)
                   </div>
 
                   <div className={styles.shoeCheckboxLine}>
@@ -249,7 +251,7 @@ const MyBooking = () => {
 
                   {participant.shoeRental && (
                     <div className={styles.shoeSizeInline}>
-                      <label htmlFor={`shoe-size-${index}`}>Pointure *</label>
+                      <label htmlFor={`shoe-size-${index}`}>{t('Pointure')} *</label>
                       <input
                         type="number"
                         id={`shoe-size-${index}`}
@@ -278,7 +280,7 @@ const MyBooking = () => {
           </button>
           {!allParticipantsFilled && (
             <p className={styles.validationMessage}>
-              ⚠️ Veuillez remplir tous les champs obligatoires (*)
+              {t('VeuillezChampsRemplir')}
             </p>
           )}
         </div>

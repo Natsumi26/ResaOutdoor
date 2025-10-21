@@ -4,8 +4,10 @@ import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, parti
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
 
 const BookingForm = () => {
+  const { t } = useTranslation();
   const { sessionId } = useParams();
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('productId');
@@ -94,7 +96,7 @@ const BookingForm = () => {
 
   const handleVerifyVoucher = async () => {
     if (!formData.voucherCode) {
-      setVoucherError('Veuillez saisir un code');
+      setVoucherError(t('saisirCode'));
       return;
     }
 
@@ -104,7 +106,7 @@ const BookingForm = () => {
         setVoucherInfo(response.data.voucher);
         setVoucherError('');
       } else {
-        setVoucherError('Code invalide ou expiré');
+        setVoucherError(t('codeEronner'));
         setVoucherInfo(null);
       }
     } catch (error) {
@@ -147,7 +149,7 @@ const BookingForm = () => {
 
     // Validation
     if (!formData.clientFirstName || !formData.clientLastName  || !formData.clientEmail || !formData.clientPhone || !formData.clientNationality) {
-      alert('Veuillez remplir tous les champs obligatoires');
+      alert(t('alerts.champsOblig'));
       return;
     }
 
@@ -159,7 +161,7 @@ const BookingForm = () => {
         return basicInfoFilled && shoeSizeValid;
       });
       if (!allFilled) {
-        alert('Veuillez remplir les informations de tous les participants (y compris les pointures si location de chaussures)');
+        alert(t('alerts.RemplirAllChamps'));
         return;
       }
     }
@@ -221,28 +223,32 @@ const BookingForm = () => {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Chargement...</div>;
+    return <div className={styles.loading}>{t('Chargement')}...</div>;
   }
 
   if (!session) {
-    return <div className={styles.error}>Session introuvable</div>;
+    return <div className={styles.error}>{t('noSession')}</div>;
   }
 
   const total = calculateTotal();
-  console.log(product)
+  const nationalityOptions = [
+  "FR", "IT", "ES", "DE", "BE", "CH", "GB", "US", "CA", "NL",
+  "PT", "SE", "NO", "DK", "AU", "NZ", "JP", "CN", "BR", "AR"
+];
+
   return (
     <div className={styles.clientContainer}>
       <div className={styles.bookingFormContainer}>
         {/* Résumé de la session */}
         <div className={styles.bookingSummary}>
-          <h2>Résumé de votre réservation</h2>
+          <h2>{t('detailResa')}</h2>
 
           <div className={styles.summaryCard}>
             <h3>{product.name}</h3>
             <div className={styles.summaryDetails}>
               <p><strong>Date:</strong> {format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
-              <p><strong>Horaire:</strong> {session.timeSlot} - {session.startTime}</p>
-              <p><strong>Durée:</strong> {product.duration / 60}h</p>
+              <p><strong>{t('Horaire')}:</strong> {session.timeSlot} - {session.startTime}</p>
+              <p><strong>{t('Durée')}:</strong> {product.duration / 60}h</p>
               <p><strong>Guide:</strong> {session.guide.login}</p>
             </div>
 
@@ -257,7 +263,7 @@ const BookingForm = () => {
 
           {/* Calcul du prix */}
           <div className={styles.priceBreakdown}>
-            <h3>Détail du prix</h3>
+            <h3>{t('priceDetail')}</h3>
             <div className={styles.priceItem}>
               <span>{formData.numberOfPeople} personne(s) × {
                 product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
@@ -271,20 +277,20 @@ const BookingForm = () => {
 
             {formData.fillParticipantsNow && session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
               <div className={styles.priceItem}>
-                <span>{participants.filter(p => p.shoeRental).length} location(s) chaussures × {session.shoeRentalPrice}€</span>
+                <span>{participants.filter(p => p.shoeRental).length} {t('locaShoes')} × {session.shoeRentalPrice}€</span>
                 <span>{session.shoeRentalPrice * participants.filter(p => p.shoeRental).length}€</span>
               </div>
             )}
 
             {voucherInfo && (
               <div className={`${styles.priceItem} ${styles.discount}`}>
-                <span>Bon cadeau appliqué</span>
+                <span>{t('BonApply')}</span>
                 <span>-{voucherInfo.amount}€</span>
               </div>
             )}
 
             <div className={`${styles.priceItem} ${styles.total}`}>
-              <strong>Total</strong>
+              <strong>{t('Total')}</strong>
               <strong>{total}€</strong>
             </div>
           </div>
@@ -292,11 +298,11 @@ const BookingForm = () => {
 
         {/* Formulaire */}
         <div className={styles.bookingFormSection}>
-          <h2>Vos informations</h2>
+          <h2>{t('yoursInfos')}</h2>
 
           <form onSubmit={handleSubmit} className={styles.bookingForm}>
             <div className={styles.formGroup}>
-              <label>Nombre de personnes *</label>
+              <label>{t('nbrPersonne')} *</label>
               <select
                 value={formData.numberOfPeople}
                 onChange={(e) => handleChange('numberOfPeople', parseInt(e.target.value))}
@@ -309,7 +315,7 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Prénom *</label>
+              <label>{t('Prénom')} *</label>
               <input
                 type="text"
                 value={formData.clientFirstName}
@@ -320,7 +326,7 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Nom *</label>
+              <label>{t('Nom')} *</label>
               <input
                 type="text"
                 value={formData.clientLastName}
@@ -342,7 +348,7 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Téléphone *</label>
+              <label>{t('Téléphone')} *</label>
               <input
                 type="tel"
                 value={formData.clientPhone}
@@ -353,41 +359,25 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Nationalité *</label>
+              <label>{t('Nationalité')} *</label>
               <select
                 value={formData.clientNationality}
                 onChange={(e) => handleChange('clientNationality', e.target.value)}
                 required
               >
-                <option value="">-- Sélectionnez une nationalité --</option>
-                <option value="FR">Française</option>
-                <option value="IT">Italienne</option>
-                <option value="ES">Espagnole</option>
-                <option value="DE">Allemande</option>
-                <option value="BE">Belge</option>
-                <option value="CH">Suisse</option>
-                <option value="GB">Britannique</option>
-                <option value="US">Américaine</option>
-                <option value="CA">Canadienne</option>
-                <option value="NL">Néerlandaise</option>
-                <option value="PT">Portugaise</option>
-                <option value="SE">Suédoise</option>
-                <option value="NO">Norvégienne</option>
-                <option value="DK">Danoise</option>
-                <option value="AU">Australienne</option>
-                <option value="NZ">Néo-Zélandaise</option>
-                <option value="JP">Japonaise</option>
-                <option value="CN">Chinoise</option>
-                <option value="BR">Brésilienne</option>
-                <option value="AR">Argentine</option>
-                {/* Ajoute d'autres pays si besoin */}
+                <option value="">{t('nationalities.placeholder')}</option>
+                {nationalityOptions.map((code) => (
+                  <option key={code} value={code}>
+                    {t(`nationalities.${code}`)}
+                  </option>
+                ))}
               </select>
             </div>
 
 
             {/* Bon cadeau */}
             <div className={styles.voucherSection}>
-              <label>Code bon cadeau (optionnel)</label>
+              <label>{t('CodeCadeau')}</label>
               <div className={styles.voucherInput}>
                 <input
                   type="text"
@@ -396,13 +386,13 @@ const BookingForm = () => {
                   placeholder="XXXXXX"
                 />
                 <button type="button" onClick={handleVerifyVoucher} className={styles.btnSecondary}>
-                  Vérifier
+                  {t('Vérifier')}
                 </button>
               </div>
               {voucherError && <p className={styles.error}>{voucherError}</p>}
               {voucherInfo && (
                 <p className={styles.success}>
-                  Bon cadeau valide : {voucherInfo.amount}€
+                  {t('ValidBon')} : {voucherInfo.amount}€
                 </p>
               )}
             </div>
@@ -415,24 +405,24 @@ const BookingForm = () => {
                   checked={formData.fillParticipantsNow}
                   onChange={(e) => handleChange('fillParticipantsNow', e.target.checked)}
                 />
-                Remplir les informations des participants maintenant (taille, poids{session.shoeRentalAvailable ? ', location de chaussures' : ''})
+                {t('FormNowPart')}{t(session.shoeRentalAvailable ? 'shoesLoc' : '')})
               </label>
-              <small>Vous pourrez aussi les remplir plus tard depuis votre page de réservation</small>
+              <small>{t('FormLaterPart')}</small>
               {session.shoeRentalAvailable && !formData.fillParticipantsNow && (
-                <small className={styles.infoNote}>ℹ️ La location de chaussures pourra être demandée plus tard lors du remplissage des informations participants</small>
+                <small className={styles.infoNote}>ℹ️ {t('AskLaterShoesLoc')}</small>
               )}
             </div>
 
             {/* Formulaire participants */}
             {formData.fillParticipantsNow && (
               <div className={styles.participantsSection}>
-                <h3>Informations des participants</h3>
+                <h3>{t('InfosPart')}</h3>
                 {participants.map((participant, index) => (
                   <div key={index} className={styles.participantCard}>
                     <h4>Participant {index + 1}</h4>
                     <div className={styles.participantGrid}>
                       <div className={styles.formGroup}>
-                        <label>Prénom *</label>
+                        <label>{t('Prénom')} *</label>
                         <input
                           type="text"
                           value={participant.firstName}
@@ -441,7 +431,7 @@ const BookingForm = () => {
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>Poids (kg) *</label>
+                        <label>{t('Poids')} (kg) *</label>
                         <input
                           type="number"
                           value={participant.weight}
@@ -450,7 +440,7 @@ const BookingForm = () => {
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>Taille (cm) *</label>
+                        <label>{t('Taille')} (cm) *</label>
                         <input
                           type="number"
                           value={participant.height}
@@ -480,12 +470,12 @@ const BookingForm = () => {
                             checked={participant.shoeRental}
                             onChange={(e) => handleParticipantChange(index, 'shoeRental', e.target.checked)}
                           />
-                          Location de chaussures (+{session.shoeRentalPrice}€)
+                          {t('LocShoes')} (+{session.shoeRentalPrice}€)
                         </label>
 
                         {participant.shoeRental && (
                           <div className={styles.formGroup}>
-                            <label>Pointure *</label>
+                            <label>{t('Pointure')} *</label>
                             <input
                               type="number"
                               value={participant.shoeSize}
@@ -506,7 +496,7 @@ const BookingForm = () => {
 
             {/* Mode de paiement */}
             <div className={styles.paymentMethodSection}>
-              <h3>Mode de paiement</h3>
+              <h3>{t('PaymentMode')}</h3>
               <div className={styles.paymentOptions}>
                 <label className={styles.paymentOption}>
                   <input
@@ -517,8 +507,8 @@ const BookingForm = () => {
                     onChange={(e) => handleChange('paymentMethod', e.target.value)}
                   />
                   <div>
-                    <strong>Payer en ligne maintenant</strong>
-                    <p>Paiement sécurisé par carte bancaire</p>
+                    <strong>{t('payNow')}</strong>
+                    <p>{t('cbPay')}</p>
                   </div>
                 </label>
 
@@ -531,8 +521,8 @@ const BookingForm = () => {
                     onChange={(e) => handleChange('paymentMethod', e.target.value)}
                   />
                   <div>
-                    <strong>Payer sur place</strong>
-                    <p>Vous pourrez payer le jour de l'activité</p>
+                    <strong>{t('payOnPlace')}</strong>
+                    <p>{t('payDayActivity')}</p>
                   </div>
                 </label>
               </div>
@@ -546,16 +536,16 @@ const BookingForm = () => {
                 className={styles.btnSecondary}
                 disabled={submitting}
               >
-                Retour
+                {t('Retour')}
               </button>
               <button
                 type="submit"
                 className={styles.btnPrimary}
                 disabled={submitting}
               >
-                {submitting ? 'Traitement...' : (
-                  formData.paymentMethod === 'online' ? `Payer ${total}€` : 'Confirmer la réservation'
-                )}
+                {t(submitting ? 'Traitement...' : (
+                  formData.paymentMethod === 'online' ? `Payer ${total}€` : 'comfirmResa'
+                ))}
               </button>
             </div>
           </form>

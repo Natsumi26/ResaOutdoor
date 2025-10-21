@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
+
 
 const GiftVoucherPurchase = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -74,7 +77,7 @@ const GiftVoucherPurchase = () => {
       }
     } catch (error) {
       console.error('Erreur création bon cadeau:', error);
-      alert('Une erreur est survenue lors de la création du paiement. Veuillez réessayer.');
+      alert(t('ErreurSessionPayment'));
     } finally {
       setLoading(false);
     }
@@ -88,43 +91,20 @@ const GiftVoucherPurchase = () => {
           className={styles.btnSecondary}
           style={{ marginBottom: '1rem' }}
         >
-          ← Retour à la recherche
+          ← {t('RetourSearch')}
         </button>
-        <h1>🎁 Offrir un bon cadeau</h1>
-        <p>Offrez une expérience inoubliable en pleine nature !</p>
+        <h1>🎁 {t('achatGift')}</h1>
+        <p>{t('GiftExp')}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className={styles.giftVoucherForm}>
-          {/* Type de bon cadeau */}
-          <div className={styles.formSection}>
-            <h2>Type de bon cadeau</h2>
-            <div className={styles.voucherTypeSelector}>
-              <div
-                className={`${styles.voucherTypeCard} ${formData.voucherType === 'amount' ? styles.active : ''}`}
-                onClick={() => handleChange('voucherType', 'amount')}
-              >
-                <div className={styles.voucherTypeIcon}>💰</div>
-                <h3>Montant libre</h3>
-                <p>Le bénéficiaire choisit son activité</p>
-              </div>
-
-              <div
-                className={`${styles.voucherTypeCard} ${formData.voucherType === 'activity' ? styles.active : ''}`}
-                onClick={() => handleChange('voucherType', 'activity')}
-              >
-                <div className={styles.voucherTypeIcon}>🏞️</div>
-                <h3>Activité spécifique</h3>
-                <p>Choisissez le canyon à offrir</p>
-              </div>
-            </div>
-          </div>
 
           {/* Montant ou activité */}
           <div className={styles.formSection}>
             {formData.voucherType === 'amount' ? (
               <>
-                <h2>Montant du bon cadeau</h2>
+                <h2>{t('MontantBon')}</h2>
                 <div className={styles.amountOptions}>
                   {amountOptions.map((amount) => (
                     <button
@@ -138,7 +118,7 @@ const GiftVoucherPurchase = () => {
                   ))}
                 </div>
                 <div className={styles.customAmount}>
-                  <label>Ou montant personnalisé</label>
+                  <label>{t('MontantPerso')}</label>
                   <input
                     type="number"
                     min="20"
@@ -151,13 +131,13 @@ const GiftVoucherPurchase = () => {
               </>
             ) : (
               <>
-                <h2>Choisissez l'activité</h2>
+                <h2>{t('ChooseActivity')}</h2>
                 <select
                   value={formData.selectedProduct}
                   onChange={(e) => handleChange('selectedProduct', e.target.value)}
                   required
                 >
-                  <option value="">Sélectionnez un canyon</option>
+                  <option value="">{t('SelectCanyon')}</option>
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.name} - {product.priceIndividual}€/pers
@@ -165,7 +145,7 @@ const GiftVoucherPurchase = () => {
                   ))}
                 </select>
                 <div className={styles.quantitySelector}>
-                  <label>Nombre de participants</label>
+                  <label>{t('NbrParticipants')}</label>
                   <input
                     type="number"
                     min="1"
@@ -181,7 +161,7 @@ const GiftVoucherPurchase = () => {
 
           {/* Informations de l'acheteur */}
           <div className={styles.formSection}>
-            <h2>Vos informations</h2>
+            <h2>{t('yoursInfos')}</h2>
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label>Prénom *</label>
@@ -193,7 +173,7 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Nom *</label>
+                <label>{t('Nom')} *</label>
                 <input
                   type="text"
                   value={formData.buyerLastName}
@@ -211,7 +191,7 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Téléphone *</label>
+                <label>{t('Téléphone')} *</label>
                 <input
                   type="tel"
                   value={formData.buyerPhone}
@@ -224,10 +204,10 @@ const GiftVoucherPurchase = () => {
 
           {/* Informations du bénéficiaire */}
           <div className={styles.formSection}>
-            <h2>Bénéficiaire du bon cadeau</h2>
+            <h2>{t('BeneficiaireGift')}</h2>
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label>Prénom</label>
+                <label>{t('Prénom')}</label>
                 <input
                   type="text"
                   value={formData.recipientFirstName}
@@ -236,7 +216,7 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Nom</label>
+                <label>{t('Nom')}</label>
                 <input
                   type="text"
                   value={formData.recipientLastName}
@@ -255,7 +235,7 @@ const GiftVoucherPurchase = () => {
               </div>
             </div>
             <div className={styles.formGroup}>
-              <label>Message personnalisé</label>
+              <label>{t('MessagePerso')}</label>
               <textarea
                 value={formData.personalMessage}
                 onChange={(e) => handleChange('personalMessage', e.target.value)}
@@ -275,7 +255,7 @@ const GiftVoucherPurchase = () => {
 
           {/* Options de livraison */}
           <div className={styles.formSection}>
-            <h2>Mode de livraison</h2>
+            <h2>{t('ModeLivraison')}</h2>
             <div className={styles.deliveryOptions}>
               <label className={styles.radioOption}>
                 <input
@@ -286,8 +266,8 @@ const GiftVoucherPurchase = () => {
                   onChange={(e) => handleChange('deliveryMethod', e.target.value)}
                 />
                 <div>
-                  <strong>Par email (Gratuit)</strong>
-                  <p>Livraison immédiate après paiement</p>
+                  <strong>{t('emailFree')}</strong>
+                  <p>{t('LivraisonImmediate')}</p>
                 </div>
               </label>
 
@@ -300,40 +280,40 @@ const GiftVoucherPurchase = () => {
                   onChange={(e) => handleChange('deliveryMethod', e.target.value)}
                 />
                 <div>
-                  <strong>Par courrier (+5€)</strong>
-                  <p>Carte cadeau physique sous 3-5 jours ouvrés</p>
+                  <strong>{t('Courrier')} (+5€)</strong>
+                  <p>{t('CartePhysique')}</p>
                 </div>
               </label>
             </div>
 
             <div className={styles.formGroup}>
-              <label>Date de livraison souhaitée (optionnel)</label>
+              <label>{t('DateSend')}</label>
               <input
                 type="date"
                 value={formData.deliveryDate}
                 onChange={(e) => handleChange('deliveryDate', e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
               />
-              <small>Le bon cadeau sera envoyé à cette date</small>
+              <small>{t('BonEnvoyerDate')}</small>
             </div>
           </div>
 
           {/* Résumé et paiement */}
           <div className={styles.formSection}>
             <div className={styles.orderSummary}>
-              <h2>Récapitulatif</h2>
+              <h2>{t('Récapitulatif')}</h2>
               <div className={styles.summaryItem}>
-                <span>Montant du bon cadeau</span>
+                <span>{t('MontantBon')}</span>
                 <strong>{formData.amount || '0'}€</strong>
               </div>
               {formData.deliveryMethod === 'postal' && (
                 <div className={styles.summaryItem}>
-                  <span>Frais de livraison</span>
+                  <span>{t('FraisLivraison')}</span>
                   <strong>5€</strong>
                 </div>
               )}
               <div className={styles.summaryTotal}>
-                <span>Total</span>
+                <span>{t('Total')}</span>
                 <strong>
                   {(parseFloat(formData.amount || 0) + (formData.deliveryMethod === 'postal' ? 5 : 0)).toFixed(2)}€
                 </strong>
@@ -348,7 +328,7 @@ const GiftVoucherPurchase = () => {
               onClick={() => navigate('/client/search')}
               className={styles.btnSecondary}
             >
-              Annuler
+              {t('Annuler')}
             </button>
             <button
               type="submit"
@@ -359,7 +339,7 @@ const GiftVoucherPurchase = () => {
                 cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
               }}
             >
-              {loading ? 'Traitement...' : 'Procéder au paiement'}
+              {loading ? t('payment.processing') : t('payment.proceed')}
             </button>
           </div>
         </div>

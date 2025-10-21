@@ -4,10 +4,11 @@ import { bookingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
 
 const BookingConfirmation = () => {
+  const { t } = useTranslation();
   const { bookingId } = useParams();
-  const navigate = useNavigate();
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,13 +30,13 @@ const BookingConfirmation = () => {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Chargement...</div>;
+    return <div className={styles.loading}>{t('Chargement')}...</div>;
   }
 
   if (!booking) {
     return (
       <div className={styles.clientContainer}>
-        <div className={styles.error}>Réservation introuvable</div>
+        <div className={styles.error}>{t('noReservation')}</div>
       </div>
     );
   }
@@ -48,22 +49,22 @@ const BookingConfirmation = () => {
         {/* En-tête de succès */}
         <div className={styles.confirmationHeader}>
           <div className={styles.successIcon}>✓</div>
-          <h1>Réservation confirmée !</h1>
+          <h1>{t('resaConfirm')}</h1>
           <p className={styles.confirmationSubtitle}>
-            {isPaid
-              ? 'Votre paiement a été enregistré avec succès'
-              : 'Votre réservation a été enregistrée'
-            }
+            {t(isPaid
+              ? 'paySaveSuccess'
+              : 'bookingSave'
+            )}
           </p>
         </div>
 
         {/* Détails de la réservation */}
         <div className={styles.confirmationCard}>
           <div className={styles.confirmationSection}>
-            <h2>Détails de votre réservation</h2>
+            <h2>{t('detailResa')}</h2>
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Numéro de réservation</span>
+                <span className={styles.detailLabel}>{t('numberResa')}</span>
                 <strong>{booking.id.slice(0, 8).toUpperCase()}</strong>
               </div>
               <div className={styles.detailItem}>
@@ -77,22 +78,22 @@ const BookingConfirmation = () => {
                 </strong>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Horaire</span>
+                <span className={styles.detailLabel}>{t('Horaire')}</span>
                 <strong>{booking.session.timeSlot} - {booking.session.startTime}</strong>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Nombre de personnes</span>
+                <span className={styles.detailLabel}>{t('nbrPersonne')}</span>
                 <strong>{booking.numberOfPeople} personne{booking.numberOfPeople > 1 ? 's' : ''}</strong>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Prix total</span>
+                <span className={styles.detailLabel}>{t('totalPrice')}</span>
                 <strong>{booking.totalPrice}€</strong>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Montant payé</span>
+                <span className={styles.detailLabel}>{t('payMontant')}</span>
                 <strong className={isPaid ? styles.paidAmount : styles.partialAmount}>
                   {booking.amountPaid}€
-                  {!isPaid && ` (Reste ${booking.totalPrice - booking.amountPaid}€)`}
+                  {t(!isPaid && ` (Reste ${booking.totalPrice - booking.amountPaid}€)`)}
                 </strong>
               </div>
             </div>
@@ -100,12 +101,12 @@ const BookingConfirmation = () => {
 
           {/* Informations client */}
           <div className={styles.confirmationSection}>
-            <h3>Vos informations</h3>
+            <h3>{t('yoursInfos')}</h3>
             <div className={styles.clientInfo}>
-              <p><strong>Nom :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
+              <p><strong>{t('Nom')} :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
               <p><strong>Email :</strong> {booking.clientEmail}</p>
-              <p><strong>Téléphone :</strong> {booking.clientPhone}</p>
-              <p><strong>Nationalité : </strong>
+              <p><strong>{t('Téléphone')} :</strong> {booking.clientPhone}</p>
+              <p><strong>{t('Nationalité')} : </strong>
                 <img
                   src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
                   alt={booking.clientNationality}
@@ -116,13 +117,13 @@ const BookingConfirmation = () => {
 
           {/* Prochaines étapes */}
           <div className={styles.confirmationSection}>
-            <h3>Prochaines étapes</h3>
+            <h3>{t('nextstep')}</h3>
             <div className={styles.nextSteps}>
               <div className={styles.step}>
                 <span className={styles.stepIcon}>📧</span>
                 <div>
-                  <strong>Confirmation par email</strong>
-                  <p>Un email de confirmation vous a été envoyé à {booking.clientEmail}</p>
+                  <strong>{t('comfirmParMail')}</strong>
+                  <p>{t('MailEnvoi')} {booking.clientEmail}</p>
                 </div>
               </div>
 
@@ -130,8 +131,8 @@ const BookingConfirmation = () => {
                 <div className={styles.step}>
                   <span className={styles.stepIcon}>💳</span>
                   <div>
-                    <strong>Paiement du solde</strong>
-                    <p>Vous pouvez payer le solde restant ({booking.totalPrice - booking.amountPaid}€) depuis votre page de réservation</p>
+                    <strong>{t('soldePayment')}</strong>
+                    <p>{t('PouvezPay')} ({booking.totalPrice - booking.amountPaid}€) {t('depuisResa')}</p>
                   </div>
                 </div>
               )}
@@ -139,8 +140,8 @@ const BookingConfirmation = () => {
               <div className={styles.step}>
                 <span className={styles.stepIcon}>👕</span>
                 <div>
-                  <strong>Informations participants</strong>
-                  <p>Remplissez les informations de taille, poids et pointure pour la préparation du matériel (Si pas déjà rempli)</p>
+                  <strong>{t('InfoParts')}</strong>
+                  <p>{t('RemplirForm')}</p>
                 </div>
               </div>
 
@@ -148,7 +149,7 @@ const BookingConfirmation = () => {
                 <div className={styles.step}>
                   <span className={styles.stepIcon}>ℹ️</span>
                   <div>
-                    <strong>Message du guide</strong>
+                    <strong>{t('MessageGuide')}</strong>
                     <p>{booking.product.postBookingMessage}</p>
                   </div>
                 </div>
@@ -159,7 +160,7 @@ const BookingConfirmation = () => {
           {/* Liens utiles */}
           {booking.product.wazeLink || booking.product.googleMapsLink && (
             <div className={styles.confirmationSection}>
-              <h3>Lieu de rendez-vous</h3>
+              <h3>{t('LieuRDV')}</h3>
               <div className={styles.locationLinks}>
                 {booking.product.wazeLink && (
                   <a
@@ -168,7 +169,7 @@ const BookingConfirmation = () => {
                     rel="noopener noreferrer"
                     className={styles.linkBtn}
                   >
-                    🗺️ Ouvrir dans Waze
+                    🗺️ {t('waze')}
                   </a>
                 )}
                 {booking.product.googleMapsLink && (
@@ -178,7 +179,7 @@ const BookingConfirmation = () => {
                     rel="noopener noreferrer"
                     className={styles.linkBtn}
                   >
-                    📍 Ouvrir dans Google Maps
+                    📍 {t('maps')}
                   </a>
                 )}
               </div>
@@ -191,13 +192,13 @@ const BookingConfirmation = () => {
               to={`/client/my-booking/${booking.id}`}
               className={styles.btnPrimary}
             >
-              Gérer ma réservation
+              {t('ResaGestion')}
             </Link>
             <Link
               to="/client/search"
               className={styles.btnSecondary}
             >
-              Réserver une autre activité
+              {t('autreResa')}
             </Link>
           </div>
         </div>
@@ -205,8 +206,8 @@ const BookingConfirmation = () => {
         {/* Note importante */}
         <div className={styles.importantNote}>
           <h4>⚠️ Important</h4>
-          <p>Conservez votre numéro de réservation : <strong>{booking.id.slice(0, 8).toUpperCase()}</strong></p>
-          <p>Vous pouvez accéder à votre réservation à tout moment en cliquant sur le lien envoyé par email ou en utilisant le numéro de réservation.</p>
+          <p>{t('saveNbrResa')} : <strong>{booking.id.slice(0, 8).toUpperCase()}</strong></p>
+          <p>{t('lienResa')}</p>
         </div>
       </div>
     </div>

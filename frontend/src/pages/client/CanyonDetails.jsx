@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { productsAPI, sessionsAPI } from '../../services/api';
-import { format, parseISO, addDays, startOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
 
 const CanyonDetails = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -107,11 +109,11 @@ const CanyonDetails = () => {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Chargement...</div>;
+    return <div className={styles.loading}>{t('Chargement')}...</div>;
   }
 
   if (!product) {
-    return <div className={styles.error}>Produit introuvable</div>;
+    return <div className={styles.error}>{t('noProduct')}</div>;
   }
 
   return (
@@ -157,9 +159,9 @@ const CanyonDetails = () => {
             )}
           </div>
           <div className={styles.priceBox}>
-            <span className={styles.priceLabel}>À partir de</span>
+            <span className={styles.priceLabel}>{t('aPartir')}</span>
             <span className={styles.priceAmount}>{product.priceIndividual}€</span>
-            <span className={styles.priceUnit}>/personne</span>
+            <span className={styles.priceUnit}>/pers</span>
             {product.priceGroup && (
               <span className={styles.groupPrice}>
                 {product.priceGroup.price}€/pers pour {product.priceGroup.min}+ pers.
@@ -173,28 +175,28 @@ const CanyonDetails = () => {
           <div className={styles.charItem}>
             <span className={styles.charIcon}>⏱️</span>
             <div>
-              <strong>Durée</strong>
+              <strong>{t('Durée')}</strong>
               <p>{getDurationLabel(product.duration)}</p>
             </div>
           </div>
           <div className={styles.charItem}>
             <span className={styles.charIcon}>🎯</span>
             <div>
-              <strong>Niveau</strong>
+              <strong>{t('Niveau')}</strong>
               <p><span className={getLevelBadgeClass(product.level)}>{product.level}</span></p>
             </div>
           </div>
           <div className={styles.charItem}>
             <span className={styles.charIcon}>📍</span>
             <div>
-              <strong>Région</strong>
+              <strong>{t('Région')}</strong>
               <p>{product.region === 'annecy' ? 'Annecy' : 'Grenoble'}</p>
             </div>
           </div>
           <div className={styles.charItem}>
             <span className={styles.charIcon}>👥</span>
             <div>
-              <strong>Capacité</strong>
+              <strong>{t('Capacité')}</strong>
               <p>Jusqu'à {product.maxCapacity} personnes</p>
             </div>
           </div>
@@ -210,15 +212,14 @@ const CanyonDetails = () => {
 
         {/* Équipement fourni */}
         <div className={styles.equipment}>
-          <h2>Équipement fourni</h2>
+          <h2>{t('equipment')}</h2>
           <ul>
-            <li>Combinaison néoprène</li>
-            <li>Casque</li>
-            <li>Baudrier</li>
-            <li>Sac étanche</li>
+            <li>{t('Combi')}</li>
+            <li>{t('Casque')}</li>
+            <li>{t('Baudrier')}</li>
           </ul>
           <p className={styles.equipmentNote}>
-            Prévoir : chaussures de sport fermées, maillot de bain, serviette
+            {t('Prevoir')}
           </p>
         </div>
 
@@ -226,17 +227,17 @@ const CanyonDetails = () => {
         <div className={styles.links}>
           {product.websiteLink && (
             <a href={product.websiteLink} target="_blank" rel="noopener noreferrer" className={styles.linkBtn}>
-              🌐 Plus d'infos
+              🌐 {t('MoreInfo')}
             </a>
           )}
           {product.wazeLink && (
             <a href={product.wazeLink} target="_blank" rel="noopener noreferrer" className={styles.linkBtn}>
-              🗺️ Itinéraire Waze
+              🗺️ {t('waze')}
             </a>
           )}
           {product.googleMapsLink && (
             <a href={product.googleMapsLink} target="_blank" rel="noopener noreferrer" className={styles.linkBtn}>
-              📍 Google Maps
+              📍 {t('maps')}
             </a>
           )}
         </div>
@@ -244,7 +245,7 @@ const CanyonDetails = () => {
 
       {/* Sessions disponibles */}
       <div className={styles.sessionsSection}>
-        <h2>Réservez votre session</h2>
+        <h2>{t('ResaSession')}</h2>
 
         {/* Sélecteur de date */}
         <div className={styles.dateSelector}>
@@ -269,8 +270,8 @@ const CanyonDetails = () => {
         <div className={styles.sessionsList}>
           {sessions.length === 0 ? (
             <div className={styles.noSessions}>
-              <p>Aucune session disponible pour cette date</p>
-              <p className={styles.hint}>Essayez une autre date ou contactez-nous</p>
+              <p>{t('noSessionDispo')}</p>
+              <p className={styles.hint}>{t('MoreDate')}</p>
             </div>
           ) : (
             sessions.map((session) => {
@@ -290,11 +291,11 @@ const CanyonDetails = () => {
                     <div className={styles.sessionDetails}>
                       <p>Guide: {session.guide.login}</p>
                       <p>
-                        Places disponibles: <strong>{availableSpots}</strong>
+                        {t('placeDispo')} <strong>{availableSpots}</strong>
                       </p>
                       {session.shoeRentalAvailable && (
                         <p className={styles.shoeRental}>
-                          Location chaussures: {session.shoeRentalPrice}€
+                          {t('LocShoes')}: {session.shoeRentalPrice}€
                         </p>
                       )}
                     </div>
@@ -305,7 +306,7 @@ const CanyonDetails = () => {
                         onClick={() => handleBookSession(session.id)}
                         className={styles.btnPrimary}
                       >
-                        Réserver
+                        {t('Réserver')}
                       </button>
                     ) : (
                       <button className={styles.btnDisabled} disabled>

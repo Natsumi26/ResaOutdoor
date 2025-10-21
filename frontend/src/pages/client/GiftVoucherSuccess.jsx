@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
+import { useTranslation } from 'react-i18next';
+
 
 const GiftVoucherSuccess = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
@@ -57,7 +60,7 @@ const GiftVoucherSuccess = () => {
   const copyToClipboard = () => {
     if (voucher?.code) {
       navigator.clipboard.writeText(voucher.code);
-      alert('Code copié dans le presse-papier !');
+      alert(t('alerts.CopyPressPapier'));
     }
   };
 
@@ -65,10 +68,10 @@ const GiftVoucherSuccess = () => {
     return (
       <div className={styles.clientContainer}>
         <div className={styles.searchHeader}>
-          <h1>Vérification du paiement...</h1>
+          <h1>{t('VerifPayement')}</h1>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div className={styles.loader}></div>
-            <p>Veuillez patienter pendant que nous créons votre bon cadeau...</p>
+            <p>{t('PatientCreationGift')}</p>
           </div>
         </div>
       </div>
@@ -79,7 +82,7 @@ const GiftVoucherSuccess = () => {
     return (
       <div className={styles.clientContainer}>
         <div className={styles.searchHeader}>
-          <h1>Erreur</h1>
+          <h1>{t('Erreur')}</h1>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: 'red' }}>{error}</p>
             <button
@@ -87,7 +90,7 @@ const GiftVoucherSuccess = () => {
               className={styles.btnPrimary}
               style={{ marginTop: '1rem' }}
             >
-              Réessayer
+              {t('Réessayer')}
             </button>
           </div>
         </div>
@@ -98,18 +101,18 @@ const GiftVoucherSuccess = () => {
   return (
     <div className={styles.clientContainer}>
       <div className={styles.searchHeader}>
-        <h1>Paiement réussi !</h1>
-        <p>Votre bon cadeau a été créé avec succès</p>
+        <h1>{t('PaySuccess')}</h1>
+        <p>{t('CreateGiftSuccess')}</p>
       </div>
 
       <div className={styles.successCard}>
         <div className={styles.successIcon}>🎉</div>
 
-        <h2>Merci pour votre achat !</h2>
-        <p>Votre bon cadeau est maintenant prêt à être utilisé.</p>
+        <h2>{t('ThanksAchat')}</h2>
+        <p>{t('UseGift')}</p>
 
         <div className={styles.voucherCodeBox}>
-          <label>Code du bon cadeau</label>
+          <label>{t('GiftCode')}</label>
           <div className={styles.codeDisplay}>
             <span className={styles.code}>{voucher?.code}</span>
             <button
@@ -117,18 +120,18 @@ const GiftVoucherSuccess = () => {
               className={styles.btnSecondary}
               style={{ marginLeft: '1rem' }}
             >
-              Copier
+              {t('Copier')}
             </button>
           </div>
         </div>
 
         <div className={styles.voucherDetails}>
           <div className={styles.detailItem}>
-            <span>Montant</span>
+            <span>{t('Montant')}</span>
             <strong>{voucher?.amount}€</strong>
           </div>
           <div className={styles.detailItem}>
-            <span>Valable jusqu'au</span>
+            <span>{t('Validite')}</span>
             <strong>
               {voucher?.expiresAt
                 ? new Date(voucher.expiresAt).toLocaleDateString('fr-FR')
@@ -138,12 +141,12 @@ const GiftVoucherSuccess = () => {
         </div>
 
         <div className={styles.infoBox}>
-          <h3>Comment utiliser ce bon cadeau ?</h3>
+          <h3>{t('HowUseGift')}</h3>
           <ol>
-            <li>Rendez-vous sur la page de recherche d'activités</li>
-            <li>Sélectionnez votre canyon et créez votre réservation</li>
-            <li>Lors du paiement, entrez le code du bon cadeau</li>
-            <li>Le montant du bon sera automatiquement déduit</li>
+            <li>{t('RDVSearchActivity')}</li>
+            <li>{t('SelectAndCreate')}</li>
+            <li>{t('PaiementWhithCode')}</li>
+            <li>{t('MontantDeduit')}</li>
           </ol>
         </div>
 
@@ -152,19 +155,19 @@ const GiftVoucherSuccess = () => {
             onClick={() => navigate('/client/search')}
             className={styles.btnPrimary}
           >
-            Réserver une activité
+            {t('SaveActivity')}
           </button>
           <button
             onClick={() => navigate('/client/gift-voucher')}
             className={styles.btnSecondary}
           >
-            Acheter un autre bon cadeau
+            {t('BuyOtherBon')}
           </button>
         </div>
 
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <small style={{ color: '#6c757d' }}>
-            Un email de confirmation avec votre code a été envoyé à votre adresse.
+            {t('MailCode')}
           </small>
         </div>
       </div>
