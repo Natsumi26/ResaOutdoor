@@ -5,18 +5,38 @@ import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
+
 
 const CanyonDetails = () => {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const [searchParams] = useSearchParams();
+  const startDateParam = searchParams.get('startDate');
   const [product, setProduct] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [weekDates, setWeekDates] = useState([]);
+
+  const parseDDMMYYYY = (dateStr) => {
+    const [day, month, year] = dateStr.split('-');
+    return new Date(`${year}-${month}-${day}`);
+  };
+
+  // Vérifie que la date est bien définie et valide
+  let formattedDate = '';
+  if (startDateParam) {
+    const parsedDate = new Date(startDateParam);
+    if (!isNaN(parsedDate.getTime())) {
+      formattedDate = format(parsedDate, 'dd MMMM yyyy'); // ou 'yyyy-MM-dd' selon ton besoin
+    } else {
+      console.warn('Date invalide dans l’URL :', startDateParam);
+    }
+  }
+
 
   useEffect(() => {
     loadProduct();
@@ -30,13 +50,13 @@ const CanyonDetails = () => {
   }, [selectedDate]);
 
   const generateWeekDates = () => {
-    const today = new Date();
+    const baseDate = startDateParam ? new Date(startDateParam) : new Date();
     const dates = [];
     for (let i = 0; i < 14; i++) {
-      dates.push(addDays(today, i));
+      dates.push(addDays(baseDate, i));
     }
     setWeekDates(dates);
-    setSelectedDate(today);
+    setSelectedDate(baseDate);
   };
 
   const loadProduct = async () => {
@@ -115,6 +135,12 @@ const CanyonDetails = () => {
   if (!product) {
     return <div className={styles.error}>{t('noProduct')}</div>;
   }
+  const isSessionReservedByOtherProduct = (session) => {
+    return session.bookings.some(b => b.productId !== product.id);
+  };
+  const visibleSessions = sessions.filter(s => {
+    return !s.bookings.some(b => b.productId !== product.id);
+  });
 
   return (
     <div className={styles.clientContainer}>
@@ -268,16 +294,18 @@ const CanyonDetails = () => {
 
         {/* Liste des sessions */}
         <div className={styles.sessionsList}>
-          {sessions.length === 0 ? (
+          {visibleSessions.length === 0 ? (
             <div className={styles.noSessions}>
               <p>{t('noSessionDispo')}</p>
               <p className={styles.hint}>{t('MoreDate')}</p>
             </div>
           ) : (
-            sessions.map((session) => {
+            visibleSessions.map((session) => {
               const availableSpots = getAvailableSpots(session);
               const isAvailable = session.status === 'open' && availableSpots > 0;
-
+              if (isSessionReservedByOtherProduct(session)) {
+                return null; // Ne pas afficher cette session
+              }
               return (
                 <div
                   key={session.id}

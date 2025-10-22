@@ -5,13 +5,19 @@ import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
+import { format, addDays} from 'date-fns';
+import { useLocation } from 'react-router-dom';
+
 
 const CanyonSearch = () => {
   const { t } = useTranslation();
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const startDateParam = queryParams.get('startDate'); // format attendu : yyyy-MM-dd
+  const [selectedDate, setSelectedDate] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -25,6 +31,13 @@ const CanyonSearch = () => {
 
   // Retirer le chargement automatique au démarrage
   useEffect(() => {
+    if (startDateParam) {
+      const parsedDate = new Date(startDateParam);
+      if (!isNaN(parsedDate.getTime())) {
+        setSelectedDate(parsedDate);
+      }
+    }
+
     // Ne charger que si les paramètres URL sont présents
     const hasParams = searchParams.get('participants') || searchParams.get('date') || searchParams.get('startDate');
     if (hasParams && filters.participants && (filters.date || (filters.startDate && filters.endDate))) {
@@ -100,16 +113,19 @@ const CanyonSearch = () => {
       newFilters.date = startDate;
       newFilters.startDate = '';
       newFilters.endDate = '';
+      setSelectedDate(new Date(startDate));
     } else if (startDate && endDate) {
       // Période
       newFilters.date = '';
       newFilters.startDate = startDate;
       newFilters.endDate = endDate;
+      setSelectedDate(new Date(startDate));
     } else {
       // Réinitialisation
       newFilters.date = '';
       newFilters.startDate = '';
       newFilters.endDate = '';
+      setSelectedDate(null);
     }
 
     setFilters(newFilters);
@@ -318,7 +334,7 @@ const CanyonSearch = () => {
                           <span className={styles.priceUnit}>/pers</span>
                         </div>
                         <button
-                          onClick={() => navigate(`/client/canyon/${product.id}`)}
+                          onClick={() => navigate(`/client/canyon/${product.id}?startDate=${format(selectedDate, 'yyyy-MM-dd')}`)}
                           className={styles.btnPrimary}
                         >
                           {t('Réserver')}
