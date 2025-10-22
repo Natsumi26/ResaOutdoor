@@ -63,6 +63,8 @@ export const upsertParticipants = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
     const { participants } = req.body;
+    console.log('bookingId reçus:', req.params.bookingId);
+    console.log('Participants reçus:', req.body.participants);
 
     if (!Array.isArray(participants)) {
       throw new AppError('Les participants doivent être un tableau', 400);
@@ -89,19 +91,11 @@ export const upsertParticipants = async (req, res, next) => {
       );
     }
 
-    // Logs pour debug
-    console.log('=== DEBUG SHOE RENTAL ===');
-    console.log('Session shoeRentalAvailable:', booking.session.shoeRentalAvailable);
-    console.log('Session shoeRentalPrice:', booking.session.shoeRentalPrice);
-    console.log('Anciens participants:', booking.participants.map(p => ({ firstName: p.firstName, shoeRental: p.shoeRental, shoeSize: p.shoeSize })));
-    console.log('Nouveaux participants:', participants.map(p => ({ firstName: p.firstName, shoeRental: p.shoeRental, shoeSize: p.shoeSize })));
-
     // Calculer l'ancien coût des chaussures AVANT de supprimer les participants
     let oldShoeRentalTotal = 0;
     if (booking.session.shoeRentalAvailable && booking.session.shoeRentalPrice) {
       oldShoeRentalTotal = booking.participants.filter(p => p.shoeRental).length * booking.session.shoeRentalPrice;
     }
-    console.log('Old shoe rental total:', oldShoeRentalTotal);
 
     // Supprimer les anciens participants
     await prisma.participant.deleteMany({
@@ -119,22 +113,28 @@ export const upsertParticipants = async (req, res, next) => {
 
     // Créer les nouveaux participants avec calcul de taille de combinaison
     const createdParticipants = await Promise.all(
+      
       participants.map(async (participant) => {
-        const wetsuitSize = calculateWetsuitSize(
-          participant.height,
-          participant.weight
-        );
+
+          const age = parseInt(participant.age);
+          const height = parseInt(participant.height);
+          const weight = parseFloat(participant.weight);
+
+        const wetsuitSize = (height && weight)
+        ? calculateWetsuitSize(height,weight)
+        : null;
 
         return prisma.participant.create({
           data: {
             firstName: participant.firstName,
-            age: parseInt(participant.age),
-            height: parseInt(participant.height),
-            weight: parseFloat(participant.weight),
+            age,
+            height,
+            weight,
             wetsuitSize,
             shoeRental: participant.shoeRental || false,
             shoeSize: participant.shoeSize ? parseInt(participant.shoeSize) : null,
-            bookingId
+            bookingId,
+            isComplete: age && height && weight ? true : false
           }
         });
       })
@@ -143,18 +143,12 @@ export const upsertParticipants = async (req, res, next) => {
     // Mettre à jour le prix total de la réservation et marquer le formulaire comme complété
     // Soustraire l'ancien coût des chaussures et ajouter le nouveau
     const newTotalPrice = booking.totalPrice - oldShoeRentalTotal + newShoeRentalTotal;
-
-    console.log('Calcul du prix:');
-    console.log('Prix original:', booking.totalPrice);
-    console.log('- Ancien coût chaussures:', oldShoeRentalTotal);
-    console.log('+ Nouveau coût chaussures:', newShoeRentalTotal);
-    console.log('= Nouveau prix total:', newTotalPrice);
-
+    const allComplete = createdParticipants.every(p => p.isComplete);
     await prisma.booking.update({
       where: { id: bookingId },
       data: {
         totalPrice: newTotalPrice,
-        participantsFormCompleted: true  // Marquer le formulaire comme complété
+        participantsFormCompleted: allComplete  // Marquer le formulaire comme complété
       }
     });
 
@@ -167,9 +161,6 @@ export const upsertParticipants = async (req, res, next) => {
       }
     });
 
-    console.log('Prix mis à jour dans la base de données');
-    console.log('Formulaire participants marqué comme complété');
-    console.log('=========================');
 
     res.json({
       success: true,

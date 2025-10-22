@@ -93,7 +93,7 @@ const BookingConfirmation = () => {
                 <span className={styles.detailLabel}>{t('payMontant')}</span>
                 <strong className={isPaid ? styles.paidAmount : styles.partialAmount}>
                   {booking.amountPaid}€
-                  {t(!isPaid && ` (Reste ${booking.totalPrice - booking.amountPaid}€)`)}
+                  {!isPaid && ` (${t('Reste', { amount: booking.totalPrice - booking.amountPaid })})`}
                 </strong>
               </div>
             </div>
@@ -192,7 +192,7 @@ const BookingConfirmation = () => {
               to={`/client/my-booking/${booking.id}`}
               className={styles.btnPrimary}
             >
-              {t('ResaGestion')}
+              {t('InfosPart')}
             </Link>
             <Link
               to="/client/search"

@@ -10,7 +10,7 @@
   "nbrPersonne": "Number of people",
   "totalPrice": "Total price",
   "payMontant": "Amount paid",
-  "Reste": "Remaining",
+  "Reste": "Remaining {{amount}}€",
   "yoursInfos": "Your information",
   "Prénom": "Firstname",
   "Nom": "Name",
@@ -28,7 +28,6 @@
   "LieuRDV": "Meeting location",
   "waze": "Open in Waze",
   "maps": "Open in Google Maps",
-  "ResaGestion": "Manage my reservation",
   "autreResa": "Book another activity",
   "saveNbrResa": "Keep your reservation number",
   "lienResa": "You can access your reservation anytime by clicking the link sent by email.",
@@ -144,7 +143,8 @@
   "Chaussures": "Shoes",
   "TypeChaussures": "closed shoes like sneakers required",
   "ProposeShoes": "If you don't have suitable shoes, I offer high-grip hiking shoes",
-  "VeuillezChampsRemplir": "⚠️ Please fill in all required fields (*)",
+  "RegisterCours":"Recording in progress...",
+  "SaveAllInfos":"Save information",
   "months": [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"

@@ -10,7 +10,7 @@
     "nbrPersonne":"Nombre de personnes",
     "totalPrice":"Prix total",
     "payMontant":"Montant payé",
-    "Reste":"Reste",
+    "Reste": "Reste {{amount}}€",
     "yoursInfos":"Vos informations",
     "Prénom":"Prénom",
     "Nom":"Nom",
@@ -28,7 +28,6 @@
     "LieuRDV":"Lieu de rendez-vous",
     "waze":"Ouvrir dans Waze",
     "maps":"Ouvrir dans Google Maps",
-    "ResaGestion":"Gérer ma réservation",
     "autreResa":"Réserver une autre activité",
     "saveNbrResa":"Conservez votre numéro de réservation",
     "lienResa":"Vous pouvez accéder à votre réservation à tout moment en cliquant sur le lien envoyé par email.",
@@ -144,7 +143,8 @@
     "Chaussures":"Chaussures",
     "TypeChaussures":"fermées type baskets requises",
     "ProposeShoes":"Si vous n'avez pas de chaussures adaptées, je propose des chaussures montantes et agripantes",
-    "VeuillezChampsRemplir":"⚠️ Veuillez remplir tous les champs obligatoires (*)",
+    "RegisterCours":"Enregistrement en cours...",
+    "SaveAllInfos":"Enregistrer les informations",
     "months": [
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -15,6 +15,8 @@ const MyBooking = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState({});
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     loadBooking();
@@ -44,7 +46,7 @@ const MyBooking = () => {
       const existingParticipants = response.data.participants || [];
 
       // S'assurer qu'on a le bon nombre de participants
-      if (booking) {
+      if (booking && typeof booking.numberOfPeople === 'number') {
         const needed = booking.numberOfPeople;
         while (existingParticipants.length < needed) {
           existingParticipants.push({
@@ -65,6 +67,13 @@ const MyBooking = () => {
   };
 
   const handleParticipantChange = (index, field, value) => {
+    if (!booking || !booking.session) {
+      console.error('Booking ou session manquant');
+      alert(t('SaveInfosFail'));
+      setSaving(false);
+      return;
+    }
+
     const newParticipants = [...participants];
     newParticipants[index] = {
       ...newParticipants[index],
@@ -83,12 +92,24 @@ const MyBooking = () => {
   const handleSaveParticipants = async () => {
     try {
       setSaving(true);
+    // 🔍 Ajout du log ici
+    console.log('Envoi participants pour bookingId:', bookingId);
+    console.log('Participants:', participants);
 
       // Calculer le nombre de locations de chaussures
       const shoeRentalCount = participants.filter(p => p.shoeRental).length;
 
+      const cleanedParticipants = participants.map(p => ({
+        firstName: p.firstName.trim() || null,
+        age: p.age !== '' ? parseInt(p.age) : null,
+        weight: p.weight !== '' ? parseFloat(p.weight) : null,
+        height: p.height !== '' ? parseInt(p.height) : null,
+        shoeRental: !!p.shoeRental,
+        shoeSize: p.shoeRental && p.shoeSize ? parseInt(p.shoeSize) : null
+      }));
+
       // Mettre à jour les participants et le nombre de locations si changé
-      await participantsAPI.upsert(bookingId, { participants });
+      await participantsAPI.upsert(bookingId, {participants: cleanedParticipants  });
 
       // Si le nombre de locations a changé, mettre à jour la réservation
       if (booking.shoeRentalCount !== shoeRentalCount && booking.session.shoeRentalPrice) {
@@ -105,6 +126,8 @@ const MyBooking = () => {
       }
 
       alert(t('SaveInfos'));
+      navigate('/client/search');
+
     } catch (error) {
       console.error('Erreur sauvegarde participants:', error);
       alert(t('SaveInfosFail'));
@@ -124,13 +147,6 @@ const MyBooking = () => {
       </div>
     );
   }
-
-  const allParticipantsFilled = participants.every(p => {
-    const basicInfoFilled = p.firstName && p.age && p.weight && p.height;
-    // La pointure est obligatoire uniquement si location de chaussures
-    const shoeSizeValid = !p.shoeRental || (p.shoeRental && p.shoeSize);
-    return basicInfoFilled && shoeSizeValid;
-  });
 
   return (
     <div className={styles.clientContainer}>
@@ -171,7 +187,7 @@ const MyBooking = () => {
               {/* Grille compacte avec les 4 champs de base seulement */}
               <div className={styles.compactFieldsGrid}>
                 <div className={styles.formGroup}>
-                  <label>{t('Prénom')} *</label>
+                  <label>{t('Prénom')}</label>
                   <input
                     type="text"
                     value={participant.firstName || ''}
@@ -181,7 +197,7 @@ const MyBooking = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Âge *</label>
+                  <label>Âge</label>
                   <input
                     type="number"
                     value={participant.age || ''}
@@ -193,7 +209,7 @@ const MyBooking = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>{t('Poids')} (kg) *</label>
+                  <label>{t('Poids')} (kg)</label>
                   <input
                     type="number"
                     value={participant.weight || ''}
@@ -205,7 +221,7 @@ const MyBooking = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>{t('Taille')} (cm) *</label>
+                  <label>{t('Taille')} (cm)</label>
                   <input
                     type="number"
                     value={participant.height || ''}
@@ -274,15 +290,9 @@ const MyBooking = () => {
           <button
             onClick={handleSaveParticipants}
             className={styles.btnSave}
-            disabled={saving || !allParticipantsFilled}
           >
-            {saving ? 'Enregistrement en cours...' : 'Enregistrer les informations'}
+            {saving ? t('Enregistrement en cours...') : t('Enregistrer les informations')}
           </button>
-          {!allParticipantsFilled && (
-            <p className={styles.validationMessage}>
-              {t('VeuillezChampsRemplir')}
-            </p>
-          )}
         </div>
       </div>
     </div>

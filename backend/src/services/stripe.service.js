@@ -45,21 +45,33 @@ export const createCheckoutSession = async (booking, amount) => {
       }
     };
 
-    // Si le guide a un compte Stripe Connect, router le paiement directement vers lui
-    if (session.guide && session.guide.stripeAccount) {
-      // Utiliser Stripe Connect - paiement direct sans commission plateforme
-      sessionConfig.payment_intent_data = {
-        transfer_data: {
-          destination: session.guide.stripeAccount
-        }
-      };
-    }
-
     // Créer la session de checkout
-    const checkoutSession = await stripe.checkout.sessions.create(
-      sessionConfig,
-      session.guide?.stripeAccount ? { stripeAccount: session.guide.stripeAccount } : undefined
-    );
+    // Si le guide a un compte Stripe Connect DIFFÉRENT du compte plateforme, utiliser Stripe Connect
+    // Sinon, créer la session sur le compte plateforme (cas du propriétaire/admin qui est aussi guide)
+    let checkoutSession;
+
+    // Récupérer l'ID du compte plateforme pour comparaison
+    const platformAccountId = process.env.STRIPE_ACCOUNT_ID; // Optionnel : définir cet ID dans .env
+    const guideStripeAccount = session.guide?.stripeAccount;
+
+    // Utiliser Stripe Connect uniquement si :
+    // 1. Le guide a un stripeAccount défini
+    // 2. Ce compte est différent du compte plateforme (si défini)
+    const shouldUseConnect = guideStripeAccount &&
+                            guideStripeAccount !== platformAccountId &&
+                            platformAccountId; // Seulement si l'ID plateforme est configuré
+
+    if (shouldUseConnect) {
+      // Créer la session sur le compte du guide (autre guide que le propriétaire)
+      checkoutSession = await stripe.checkout.sessions.create(
+        sessionConfig,
+        { stripeAccount: guideStripeAccount }
+      );
+    } else {
+      // Créer la session sur le compte plateforme
+      // Cas : pas de Stripe Connect, ou guide = propriétaire de la plateforme
+      checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+    }
 
     return {
       sessionId: checkoutSession.id,

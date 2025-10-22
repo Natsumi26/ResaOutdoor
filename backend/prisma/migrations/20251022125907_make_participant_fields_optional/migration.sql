@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "participants" ALTER COLUMN "age" DROP NOT NULL,
+ALTER COLUMN "height" DROP NOT NULL,
+ALTER COLUMN "weight" DROP NOT NULL;

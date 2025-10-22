@@ -260,12 +260,13 @@ model Participant {
   id            String   @id @default(uuid())
 
   firstName     String
-  age           Int
-  height        Int      // Taille en cm
-  weight        Float    // Poids en kg
+  age           Int?
+  height        Int?      // Taille en cm
+  weight        Float?    // Poids en kg
   wetsuitSize   String?  // Taille de combinaison calculée automatiquement
   shoeRental    Boolean  @default(false) // Location de chaussures pour ce participant
   shoeSize      Int?     // Pointure si location de chaussures
+  isComplete    Boolean @default(false)
 
   bookingId     String
   booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)

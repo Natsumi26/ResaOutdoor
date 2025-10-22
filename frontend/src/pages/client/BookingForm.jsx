@@ -28,7 +28,7 @@ const BookingForm = () => {
     clientNationality:'',
     voucherCode: '',
     paymentMethod: 'online', // 'online' ou 'onsite'
-    fillParticipantsNow: false
+    fillParticipantsNow: true // Toujours afficher le formulaire des participants
   });
 
   const [participants, setParticipants] = useState([]);
@@ -41,19 +41,17 @@ const BookingForm = () => {
   }, [sessionId, productId]);
 
   useEffect(() => {
-    // Initialiser les participants quand le nombre de personnes change
-    if (formData.fillParticipantsNow) {
-      const newParticipants = Array(formData.numberOfPeople).fill(null).map((_, i) => ({
-        firstName: participants[i]?.firstName || '',
-        age: participants[i]?.age || '',
-        weight: participants[i]?.weight || '',
-        height: participants[i]?.height || '',
-        shoeRental: participants[i]?.shoeRental || false,
-        shoeSize: participants[i]?.shoeSize || ''
-      }));
-      setParticipants(newParticipants);
-    }
-  }, [formData.numberOfPeople, formData.fillParticipantsNow]);
+    // Initialiser les participants quand le nombre de personnes change (toujours afficher)
+    const newParticipants = Array(formData.numberOfPeople).fill(null).map((_, i) => ({
+      firstName: participants[i]?.firstName || '',
+      age: participants[i]?.age || '',
+      weight: participants[i]?.weight || '',
+      height: participants[i]?.height || '',
+      shoeRental: participants[i]?.shoeRental || false,
+      shoeSize: participants[i]?.shoeSize || ''
+    }));
+    setParticipants(newParticipants);
+  }, [formData.numberOfPeople]);
 
   const loadSession = async () => {
     try {
@@ -129,8 +127,8 @@ const BookingForm = () => {
 
     let total = pricePerPerson * numberOfPeople;
 
-    // Ajouter la location de chaussures (si les participants sont remplis)
-    if (formData.fillParticipantsNow && session.shoeRentalPrice) {
+    // Ajouter la location de chaussures
+    if (session.shoeRentalPrice) {
       const shoeRentalCount = participants.filter(p => p.shoeRental).length;
       total += session.shoeRentalPrice * shoeRentalCount;
     }
@@ -147,20 +145,22 @@ const BookingForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
+    // Validation des informations client obligatoires
     if (!formData.clientFirstName || !formData.clientLastName  || !formData.clientEmail || !formData.clientPhone || !formData.clientNationality) {
       alert(t('alerts.champsOblig'));
       return;
     }
 
-    if (formData.fillParticipantsNow) {
-      const allFilled = participants.every(p => {
-        const basicInfoFilled = p.firstName && p.age && p.weight && p.height;
-        // Si le participant veut des chaussures, la pointure est obligatoire
-        const shoeSizeValid = !p.shoeRental || (p.shoeRental && p.shoeSize);
-        return basicInfoFilled && shoeSizeValid;
-      });
-      if (!allFilled) {
+    // Validation optionnelle des participants : uniquement si au moins un champ est rempli
+    // Si des champs participants sont remplis, vérifier la cohérence
+    const hasAnyParticipantData = participants.some(p =>
+      p.firstName || p.age || p.weight || p.height || p.shoeRental
+    );
+
+    if (hasAnyParticipantData) {
+      // Si des données sont saisies, vérifier que les participants avec des chaussures ont bien une pointure
+      const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
+      if (shoeSizeError) {
         alert(t('alerts.RemplirAllChamps'));
         return;
       }
@@ -173,7 +173,7 @@ const BookingForm = () => {
 
       // Calculer le nombre de locations de chaussures
       let shoeRentalCount = 0;
-      if (formData.fillParticipantsNow && session.shoeRentalPrice) {
+      if (session.shoeRentalPrice) {
         shoeRentalCount = participants.filter(p => p.shoeRental).length;
       }
 
@@ -197,9 +197,12 @@ const BookingForm = () => {
       const bookingResponse = await bookingsAPI.create(bookingData);
       const booking = bookingResponse.data.booking;
 
-      // Enregistrer les participants si remplis
-      if (formData.fillParticipantsNow && participants.length > 0) {
-        await participantsAPI.upsert(booking.id, { participants });
+      // Enregistrer les participants si au moins un participant a des données
+      const participantsToSave = participants.filter(p =>
+        p.firstName || p.age || p.weight || p.height || p.shoeRental
+      );
+      if (participantsToSave.length > 0) {
+        await participantsAPI.upsert(booking.id, { participants: participantsToSave });
       }
 
       // Rediriger selon le mode de paiement
@@ -275,7 +278,7 @@ const BookingForm = () => {
                 : product.priceIndividual) * formData.numberOfPeople}€</span>
             </div>
 
-            {formData.fillParticipantsNow && session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
+            {session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
               <div className={styles.priceItem}>
                 <span>{participants.filter(p => p.shoeRental).length} {t('locaShoes')} × {session.shoeRentalPrice}€</span>
                 <span>{session.shoeRentalPrice * participants.filter(p => p.shoeRental).length}€</span>
@@ -397,64 +400,48 @@ const BookingForm = () => {
               )}
             </div>
 
-            {/* Remplir les infos participants maintenant */}
-            <div className={styles.formGroup}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={formData.fillParticipantsNow}
-                  onChange={(e) => handleChange('fillParticipantsNow', e.target.checked)}
-                />
-                {t('FormNowPart')}{t(session.shoeRentalAvailable ? 'shoesLoc' : '')})
-              </label>
+            {/* Formulaire participants - toujours visible mais optionnel */}
+            <div className={styles.participantsSection}>
+              <h3>{t('InfosPart')}</h3>
               <small>{t('FormLaterPart')}</small>
-              {session.shoeRentalAvailable && !formData.fillParticipantsNow && (
+              {session.shoeRentalAvailable && (
                 <small className={styles.infoNote}>ℹ️ {t('AskLaterShoesLoc')}</small>
               )}
-            </div>
-
-            {/* Formulaire participants */}
-            {formData.fillParticipantsNow && (
-              <div className={styles.participantsSection}>
-                <h3>{t('InfosPart')}</h3>
+              <div style={{ marginTop: '1rem' }}>
                 {participants.map((participant, index) => (
                   <div key={index} className={styles.participantCard}>
                     <h4>Participant {index + 1}</h4>
                     <div className={styles.participantGrid}>
                       <div className={styles.formGroup}>
-                        <label>{t('Prénom')} *</label>
+                        <label>{t('Prénom')}</label>
                         <input
                           type="text"
                           value={participant.firstName}
                           onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
-                          required={formData.fillParticipantsNow}
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>{t('Poids')} (kg) *</label>
+                        <label>{t('Poids')} (kg)</label>
                         <input
                           type="number"
                           value={participant.weight}
                           onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                          required={formData.fillParticipantsNow}
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>{t('Taille')} (cm) *</label>
+                        <label>{t('Taille')} (cm)</label>
                         <input
                           type="number"
                           value={participant.height}
                           onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                          required={formData.fillParticipantsNow}
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>Age (an) *</label>
+                        <label>Age (an)</label>
                         <input
                           type="number"
                           value={participant.age}
                           onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
-                          required={formData.fillParticipantsNow}
                         />
                       </div>
                     </div>
@@ -475,7 +462,7 @@ const BookingForm = () => {
 
                         {participant.shoeRental && (
                           <div className={styles.formGroup}>
-                            <label>{t('Pointure')} *</label>
+                            <label>{t('Pointure')}</label>
                             <input
                               type="number"
                               value={participant.shoeSize}
@@ -483,7 +470,6 @@ const BookingForm = () => {
                               placeholder="Ex: 42"
                               min="20"
                               max="50"
-                              required={participant.shoeRental}
                             />
                           </div>
                         )}
@@ -492,7 +478,7 @@ const BookingForm = () => {
                   </div>
                 ))}
               </div>
-            )}
+            </div>
 
             {/* Mode de paiement */}
             <div className={styles.paymentMethodSection}>
@@ -543,9 +529,9 @@ const BookingForm = () => {
                 className={styles.btnPrimary}
                 disabled={submitting}
               >
-                {t(submitting ? 'Traitement...' : (
-                  formData.paymentMethod === 'online' ? `Payer ${total}€` : 'comfirmResa'
-                ))}
+                {submitting ? t('Traitement...') : (
+                  formData.paymentMethod === 'online' ? `${t('Payer')} ${total}€` : t('comfirmResa')
+                )}
               </button>
             </div>
           </form>
