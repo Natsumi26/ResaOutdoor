@@ -6,7 +6,6 @@ import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 
-
 const CanyonSearch = () => {
   const { t } = useTranslation();
 
@@ -173,9 +172,12 @@ const CanyonSearch = () => {
   return (
     <>
   <div className={styles.clientContainer}>
+      <div>
+        <LanguageSwitcher/>
+      </div>
       <div className={styles.searchHeader}>
-        <h1>Trouvez votre canyon idéal</h1>
-        <p>Découvrez nos canyons en Haute-Savoie et Isère</p>
+        <h1>{t('CanyonIdeal')}</h1>
+        <p>{t('CanyonIsere')}</p>
 
         {/* Bouton Bon Cadeau */}
         <div style={{ marginTop: '1.5rem' }}>
@@ -199,7 +201,7 @@ const CanyonSearch = () => {
           >
             🎁 {t('achatGift')}
           </button>
-          <LanguageSwitcher/>
+          
         </div>
       </div>
 

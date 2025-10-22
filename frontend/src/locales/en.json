@@ -77,6 +77,8 @@
   "MoreDate": "Try another date or contact us",
   "placeDispo": "Available spots:",
   "Réserver": "Book",
+  "CanyonIdeal":"Find your ideal canyon",
+  "CanyonIsere":"Discover our canyons in Isère",
   "achatGift": "Offer a gift voucher",
   "SearchCanyon": "Search your canyoning trip",
   "NbrParticipants": "Number of participants",
@@ -143,7 +145,17 @@
   "TypeChaussures": "closed shoes like sneakers required",
   "ProposeShoes": "If you don't have suitable shoes, I offer high-grip hiking shoes",
   "VeuillezChampsRemplir": "⚠️ Please fill in all required fields (*)",
-
+  "months": [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ],
+  "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  "SelectedDate":"Selected date :",
+  "SelectedPeriode":"Selected period :",
+  "Debut":"Start :",
+  "DoubleClick":"click on another date to create a period",
+  "Valider":"To validate",
+  "ClickDate":"💡 Click on a date for a specific day, or click on two dates to select a period.",
   "payment": {
     "processing": "Processing...",
     "proceed": "Proceed to payment"

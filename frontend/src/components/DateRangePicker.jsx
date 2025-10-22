@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
 import styles from './DateRangePicker.module.css';
+import { useTranslation } from 'react-i18next';
 
 const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => {
+  const { t } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectionMode, setSelectionMode] = useState(null); // 'single' ou 'range'
   const [startDate, setStartDate] = useState(initialStartDate ? new Date(initialStartDate) : null);
   const [endDate, setEndDate] = useState(initialEndDate ? new Date(initialEndDate) : null);
   const [hoverDate, setHoverDate] = useState(null);
 
-  const months = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ];
-
-  const daysOfWeek = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const months = t('months', { returnObjects: true });
+  const daysOfWeek = t('days', { returnObjects: true });
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -196,29 +194,29 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate }) => 
         {startDate && (
           <div className={styles.selectedDates}>
             {selectionMode === 'single' ? (
-              <p><strong>Date sélectionnée :</strong> {formatDate(startDate)}</p>
+              <p><strong>{t('SelectedDate')}</strong> {formatDate(startDate)}</p>
             ) : selectionMode === 'range' && endDate ? (
-              <p><strong>Période sélectionnée :</strong> {formatDate(startDate)} - {formatDate(endDate)}</p>
+              <p><strong>{t('SelectedPeriode')}</strong> {formatDate(startDate)} - {formatDate(endDate)}</p>
             ) : selectionMode === 'pending' ? (
-              <p><strong>Début :</strong> {formatDate(startDate)} <em>(cliquez sur une autre date pour créer une période)</em></p>
+              <p><strong>{t('Debut')}</strong> {formatDate(startDate)} <em>({t('DoubleClick')})</em></p>
             ) : null}
           </div>
         )}
 
         <div className={styles.actions}>
           <button onClick={handleReset} className={styles.btnReset}>
-            Réinitialiser
+            {t('Réinitialiser')}
           </button>
           {((selectionMode === 'single' && startDate) || (selectionMode === 'range' && startDate && endDate)) && (
             <button onClick={handleValidate} className={styles.btnValidate}>
-              Valider
+              {t('Valider')}
             </button>
           )}
         </div>
       </div>
 
       <div className={styles.hint}>
-        <p>💡 Cliquez sur une date pour une journée spécifique, ou cliquez sur deux dates pour sélectionner une période.</p>
+        <p>{t('ClickDate')}</p>
       </div>
     </div>
   );

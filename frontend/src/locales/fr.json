@@ -77,6 +77,8 @@
     "MoreDate":"Essayez une autre date ou contactez-nous",
     "placeDispo":"Places disponibles:",
     "Réserver":"Réserver",
+    "CanyonIdeal":"Trouvez votre canyon idéal",
+    "CanyonIsere":"Découvrez nos canyons en Isère",
     "achatGift":"Offrir un bon cadeau",
     "SearchCanyon":"Recherchez votre sortie canyon",
     "NbrParticipants":"Nombre de participants",
@@ -143,6 +145,17 @@
     "TypeChaussures":"fermées type baskets requises",
     "ProposeShoes":"Si vous n'avez pas de chaussures adaptées, je propose des chaussures montantes et agripantes",
     "VeuillezChampsRemplir":"⚠️ Veuillez remplir tous les champs obligatoires (*)",
+    "months": [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    ],
+    "days": ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+    "SelectedDate":"Date sélectionnée :",
+    "SelectedPeriode":"Période sélectionnée :",
+    "Debut":"Début :",
+    "DoubleClick":"cliquez sur une autre date pour créer une période",
+    "Valider":"Valider",
+    "ClickDate":"💡 Cliquez sur une date pour une journée spécifique, ou cliquez sur deux dates pour sélectionner une période.",
     "payment": {
         "processing": "Traitement en cours...",
         "proceed": "Procéder au paiement"

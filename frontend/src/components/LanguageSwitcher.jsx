@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import styles from '../pages/client/ClientPages.module.css';
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
@@ -13,8 +14,8 @@ const LanguageSwitcher = () => {
   const altText = i18n.language === 'fr' ? 'Switch to English' : 'Passer en français';
 
   return (
-    <button className="lang-switcher" onClick={toggleLanguage}>
-      <img src={flagSrc} alt={altText} className="flag-icon" />
+    <button className={styles.langSwitcher} onClick={toggleLanguage}>
+      <img src={flagSrc} alt={altText} className={styles.flagIcon} />
     </button>
   );
 };
