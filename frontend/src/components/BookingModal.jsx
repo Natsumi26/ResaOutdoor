@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI, emailAPI, stripeAPI, participantsAPI } from '../services/api';
+import { bookingsAPI, emailAPI, stripeAPI, participantsAPI, giftVouchersAPI } from '../services/api';
 import ParticipantForm from './ParticipantForm';
 import MoveBookingModal from './MoveBookingModal';
 import styles from './BookingModal.module.css';
@@ -31,6 +31,7 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [noteText, setNoteText] = useState('');
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [editedClientData, setEditedClientData] = useState({
     clientFirstName: '',
     clientLastName: '',
@@ -186,8 +187,15 @@ console.log('Booking data:', booking);
 
   const handleEditPrice = () => {
     setEditedPrice(booking.totalPrice);
-    setDiscountType('none');
-    setDiscountValue(0);
+
+    if (booking.discountAmount && booking.discountAmount > 0) {
+      setDiscountValue(booking.discountAmount);
+      setDiscountType(booking.discountType || 'amount'); // ou 'percentage' selon ton modèle
+    } else {
+      setDiscountValue(0);
+      setDiscountType('none');
+    }
+
     setIsEditingPrice(true);
   };
 
@@ -210,11 +218,51 @@ console.log('Booking data:', booking);
     return editedPrice;
   };
 
-  const handleApplyDiscount = () => {
-    const finalPrice = calculateFinalPrice();
-    setEditedPrice(parseFloat(finalPrice.toFixed(2)));
-    setDiscountType('none');
-    setDiscountValue(0);
+  const handleApplyDiscount = async () => {
+    try {
+      const finalPrice = calculateFinalPrice();
+      const originalPrice = booking.totalPrice;
+      const discountAmount = originalPrice - finalPrice;
+
+      // Si le booking a déjà un code promo, ne pas en créer un nouveau
+      if (booking.voucherCode) {
+        alert('Cette réservation a déjà un code promo/bon cadeau associé. Veuillez d\'abord le supprimer.');
+        return;
+      }
+
+      // Créer un code promo unique pour cette réservation
+      const voucherCode = `DISCOUNT-${booking.id.substring(0, 8).toUpperCase()}`;
+
+      // Créer le code promo dans la base de données
+      await giftVouchersAPI.create({
+        code: voucherCode,
+        amount: discountAmount,
+        discountType: 'fixed',
+        type: 'promo',
+        maxUsages: 1 // Usage unique pour cette réservation
+      });
+
+      // Associer le code promo au booking
+      await bookingsAPI.update(bookingId, {
+        voucherCode: voucherCode,
+        discountAmount: discountAmount,
+        totalPrice: originalPrice // Garder le prix original
+      });
+
+      // Appliquer le prix final dans l'interface
+      setEditedPrice(parseFloat(finalPrice.toFixed(2)));
+      setDiscountType('none');
+      setDiscountValue(0);
+
+      alert(`Code promo ${voucherCode} créé et appliqué avec succès !`);
+
+      // Recharger la réservation pour afficher les changements
+      await loadBooking();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur création code promo:', error);
+      alert('Impossible de créer le code promo: ' + (error.response?.data?.error || error.message));
+    }
   };
 
   const handleNumberOfPeopleChange = (newNumberOfPeople) => {
@@ -421,7 +469,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
   const { session, payments = [], history = [] } = booking;
   const remainingAmount = booking.totalPrice - booking.amountPaid;
-  const paymentPercentage = (booking.amountPaid / booking.totalPrice) * 100;
 
   // Vérifier s'il reste des tâches à faire
   const hasPendingTasks = !booking.participantsFormCompleted || !booking.productDetailsSent;
@@ -701,11 +748,12 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   <tr>
                     <td>Par personne</td>
                     <td>{(() => {
+                      const discount = booking.discountAmount ?? 0;
                       // Calculer le coût total des chaussures
                       const shoeCount = participants.filter(p => p.shoeRental).length;
                       const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
                       // Prix de l'activité sans chaussures
-                      const activityPrice = booking.totalPrice - shoesTotalCost;
+                      const activityPrice = booking.totalPrice - shoesTotalCost - discount ;
                       const pricePerPerson = activityPrice / booking.numberOfPeople;
                       return pricePerPerson.toFixed(2);
                     })()} €</td>
@@ -729,6 +777,22 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                       })()} €</td>
                     </tr>
                   )}
+                  {booking.discountAmount > 0 && (
+                    <tr>
+                      <td>Réduction</td>
+                      <td colSpan={2}>
+                        {booking.discountType === 'percentage'
+                          ? `-${booking.discountAmount}%`
+                          : `-${booking.discountAmount.toFixed(2)} €`}
+                      </td>
+                      <td>
+                        -{booking.discountType === 'percentage'
+                          ? `${((booking.totalPrice * booking.discountAmount) / 100).toFixed(2)} €`
+                          : `${booking.discountAmount.toFixed(2)} €`}
+                      </td>
+                    </tr>
+                  )}
+
                 </tbody>
               </table>
 
@@ -810,7 +874,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               ) : (
                 <div className={styles.totalPrice}>
                   <span>Total :</span>
-                  <span className={styles.totalValue}>{booking.totalPrice} €</span>
+                  <span className={styles.totalValue}>{booking.discountAmount ? (booking.totalPrice - booking.discountAmount) : booking.totalPrice} €</span>
                 </div>
               )}
             </div>
@@ -824,7 +888,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
             <div className={styles.paymentsHeader}>
               <span className={styles.blockIcon}>💳</span>
               <span className={styles.blockTitle}>Paiements</span>
-              <button className={styles.btnViewPaymentsNew} onClick={() => alert('Voir les paiements (à implémenter)')}>
+              <button className={styles.btnViewPaymentsNew} onClick={() => setShowPaymentsModal(true)}>
                 Voir les paiements
               </button>
             </div>
@@ -837,7 +901,12 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               </div>
               <div className={styles.paymentColumn}>
                 <span className={styles.paymentLabelNew}>Reste à régler</span>
-                <span className={styles.paymentValueNew}>{remainingAmount} €</span>
+                <span className={styles.paymentValueNew}>
+                  {booking.discountAmount >0 
+                    ? `${booking.totalPrice - (booking.discountAmount + booking.amountPaid)} €`
+                    : `${remainingAmount} €`
+                  }
+                </span>
               </div>
             </div>
 
@@ -992,6 +1061,128 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 onUpdate?.();
               }}
             />
+          )}
+
+          {/* Modal des paiements */}
+          {showPaymentsModal && (
+            <div className={styles.paymentsModalOverlay} onClick={() => setShowPaymentsModal(false)}>
+              <div className={styles.paymentsModalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.paymentsModalHeader}>
+                  <h3>💳 Historique des paiements</h3>
+                  <button className={styles.closeBtn} onClick={() => setShowPaymentsModal(false)}>✕</button>
+                </div>
+
+                <div className={styles.paymentsModalBody}>
+                  {/* Résumé */}
+                  <div className={styles.paymentsSummary}>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Prix total</span>
+                      <span className={styles.summaryValue}>{booking.totalPrice.toFixed(2)} €</span>
+                    </div>
+                    {booking.voucherCode && (
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryLabel}>
+                          {booking.voucherCode.startsWith('PROMO') ? '🎉 Code promo' : '🎁 Bon cadeau'} ({booking.voucherCode})
+                        </span>
+                        <span className={styles.summaryValue} style={{ color: '#28a745' }}>
+                          -{booking.discountAmount?.toFixed(2) || 0} €
+                        </span>
+                      </div>
+                    )}
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Encaissé</span>
+                      <span className={styles.summaryValue} style={{ color: '#28a745', fontWeight: 'bold' }}>
+                        {booking.amountPaid.toFixed(2)} €
+                      </span>
+                    </div>
+                    <div className={styles.summaryItem}>
+                      <span className={styles.summaryLabel}>Reste à régler</span>
+                      <span className={styles.summaryValue} style={{ color: remainingAmount > 0 ? '#dc3545' : '#28a745', fontWeight: 'bold' }}>
+                        {booking.discountAmount >0 
+                          ? `${booking.totalPrice - (booking.discountAmount + booking.amountPaid)} €`
+                          : `${remainingAmount} €`
+                        }
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Liste des paiements */}
+                  <div className={styles.paymentsListSection}>
+                    <h4>Détails des paiements ({payments.length})</h4>
+                    {payments.length === 0 ? (
+                      <div className={styles.emptyPayments}>
+                        <p>Aucun paiement enregistré pour cette réservation.</p>
+                      </div>
+                    ) : (
+                      <div className={styles.paymentsList}>
+                        {payments.map((payment) => (
+                          <div key={payment.id} className={styles.paymentCard}>
+                            <div className={styles.paymentCardHeader}>
+                              <div className={styles.paymentMethod}>
+                                <span className={styles.paymentIcon}>
+                                  {payment.method === 'stripe' ? '💳' :
+                                   payment.method === 'CB' ? '💳' :
+                                   payment.method === 'espèces' ? '💵' :
+                                   payment.method === 'virement' ? '🏦' : '💰'}
+                                </span>
+                                <span className={styles.paymentMethodText}>
+                                  {payment.method === 'stripe' ? 'Stripe' :
+                                   payment.method === 'CB' ? 'Carte Bancaire' :
+                                   payment.method === 'espèces' ? 'Espèces' :
+                                   payment.method === 'virement' ? 'Virement' : payment.method}
+                                </span>
+                              </div>
+                              <div className={styles.paymentAmount}>{payment.amount.toFixed(2)} €</div>
+                            </div>
+
+                            <div className={styles.paymentCardBody}>
+                              <div className={styles.paymentDetail}>
+                                <span className={styles.paymentDetailLabel}>Date :</span>
+                                <span className={styles.paymentDetailValue}>
+                                  {format(new Date(payment.createdAt), 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                                </span>
+                              </div>
+
+                              {payment.voucherCode && (
+                                <div className={styles.paymentDetail}>
+                                  <span className={styles.paymentDetailLabel}>Code utilisé :</span>
+                                  <span className={styles.paymentDetailValue} style={{ color: '#28a745', fontWeight: 'bold' }}>
+                                    {payment.voucherCode}
+                                    {payment.discountAmount && ` (-${payment.discountAmount.toFixed(2)}€)`}
+                                  </span>
+                                </div>
+                              )}
+
+                              {payment.stripeId && (
+                                <div className={styles.paymentDetail}>
+                                  <span className={styles.paymentDetailLabel}>ID Stripe :</span>
+                                  <span className={styles.paymentDetailValue} style={{ fontSize: '0.85em', fontFamily: 'monospace' }}>
+                                    {payment.stripeId}
+                                  </span>
+                                </div>
+                              )}
+
+                              {payment.notes && (
+                                <div className={styles.paymentDetail}>
+                                  <span className={styles.paymentDetailLabel}>Notes :</span>
+                                  <span className={styles.paymentDetailValue}>{payment.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.paymentsModalFooter}>
+                  <button className={styles.btnGray} onClick={() => setShowPaymentsModal(false)}>
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Modal d'édition de réservation */}

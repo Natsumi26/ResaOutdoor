@@ -11,6 +11,7 @@
   "totalPrice": "Total price",
   "payMontant": "Amount paid",
   "Reste": "Remaining {{amount}}€",
+  "Reduction": "Reduction {{discountAmount}}€",
   "yoursInfos": "Your information",
   "Prénom": "Firstname",
   "Nom": "Name",

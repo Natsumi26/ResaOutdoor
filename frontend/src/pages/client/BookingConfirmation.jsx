@@ -41,7 +41,7 @@ const BookingConfirmation = () => {
     );
   }
 
-  const isPaid = booking.amountPaid >= booking.totalPrice;
+  const isPaid = (booking.amountPaid+booking.discountAmount) >= booking.totalPrice;
   console.log(booking)
   return (
     <div className={styles.clientContainer}>
@@ -92,8 +92,8 @@ const BookingConfirmation = () => {
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>{t('payMontant')}</span>
                 <strong className={isPaid ? styles.paidAmount : styles.partialAmount}>
-                  {booking.amountPaid}€
-                  {!isPaid && ` (${t('Reste', { amount: booking.totalPrice - booking.amountPaid })})`}
+                  {booking.amountPaid}€ {booking.discountAmount && `(${t('Reduction', {discountAmount: booking.discountAmount})})`}
+                  {!isPaid && ` (${t('Reste', { amount: booking.totalPrice - booking.amountPaid - booking.discountAmount })})`}
                 </strong>
               </div>
             </div>

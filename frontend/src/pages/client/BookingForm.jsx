@@ -133,22 +133,33 @@ const BookingForm = () => {
       total += session.shoeRentalPrice * shoeRentalCount;
     }
 
-    // Appliquer le bon cadeau ou code promo
-    if (voucherInfo) {
-      let discount = 0;
-      if (voucherInfo.discountType === 'percentage') {
-        // Réduction en pourcentage
-        discount = (total * voucherInfo.amount) / 100;
-      } else {
-        // Réduction fixe
-        discount = voucherInfo.amount;
-      }
+    return total;
+  };
 
-      total -= discount;
-      if (total < 0) total = 0;
+  const calculateDiscount = () => {
+    if (!voucherInfo) return 0;
+
+    const total = calculateTotal();
+    let discount = 0;
+
+    if (voucherInfo.discountType === 'percentage') {
+      // Réduction en pourcentage
+      discount = (total * voucherInfo.amount) / 100;
+    } else {
+      // Réduction fixe
+      discount = voucherInfo.amount;
     }
 
-    return total;
+    // S'assurer que la réduction ne dépasse pas le total
+    if (discount > total) discount = total;
+
+    return discount;
+  };
+
+  const calculateFinalPrice = () => {
+    const total = calculateTotal();
+    const discount = calculateDiscount();
+    return total - discount;
   };
 
   const handleSubmit = async (e) => {
@@ -178,7 +189,8 @@ const BookingForm = () => {
     try {
       setSubmitting(true);
 
-      const total = calculateTotal();
+      const totalPrice = calculateTotal(); // Prix AVANT réduction
+      const finalPrice = calculateFinalPrice(); // Prix APRÈS réduction
 
       // Calculer le nombre de locations de chaussures
       let shoeRentalCount = 0;
@@ -195,8 +207,8 @@ const BookingForm = () => {
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         clientNationality: formData.clientNationality,
-        totalPrice: total,
-        amountPaid: formData.paymentMethod === 'online' ? total : 0,
+        totalPrice: totalPrice, // Prix total AVANT réduction
+        amountPaid: formData.paymentMethod === 'online' ? finalPrice : 0, // Montant à payer APRÈS réduction
         status: formData.paymentMethod === 'online' ? 'confirmed' : 'pending',
         shoeRentalCount: shoeRentalCount || null,
         voucherCode: formData.voucherCode || null
@@ -216,10 +228,10 @@ const BookingForm = () => {
 
       // Rediriger selon le mode de paiement
       if (formData.paymentMethod === 'online') {
-        // Créer une session de paiement Stripe
+        // Créer une session de paiement Stripe avec le prix APRÈS réduction
         const stripeResponse = await stripeAPI.createCheckoutSession({
           bookingId: booking.id,
-          amount: total
+          amount: finalPrice
         });
         window.location.href = stripeResponse.data.url;
       } else {
@@ -243,6 +255,8 @@ const BookingForm = () => {
   }
 
   const total = calculateTotal();
+  const discount = calculateDiscount();
+  const finalPrice = calculateFinalPrice();
   const nationalityOptions = [
   "FR", "IT", "ES", "DE", "BE", "CH", "GB", "US", "CA", "NL",
   "PT", "SE", "NO", "DK", "AU", "NZ", "JP", "CN", "BR", "AR"
@@ -295,20 +309,24 @@ const BookingForm = () => {
             )}
 
             {voucherInfo && (
-              <div className={`${styles.priceItem} ${styles.discount}`}>
-                <span>{t('BonApply')} ({voucherInfo.code})</span>
-                <span>-{
-                  voucherInfo.discountType === 'percentage'
-                    ? `${voucherInfo.amount}%`
-                    : `${voucherInfo.amount}€`
-                }</span>
-              </div>
+              <>
+                <div className={`${styles.priceItem} ${styles.discount}`}>
+                  <span>{t('BonApply')} ({voucherInfo.code})</span>
+                  <span>-{discount.toFixed(2)}€</span>
+                </div>
+                <div className={`${styles.priceItem} ${styles.total}`}>
+                  <strong>{t('Total')}</strong>
+                  <strong>{finalPrice.toFixed(2)}€</strong>
+                </div>
+              </>
             )}
 
-            <div className={`${styles.priceItem} ${styles.total}`}>
-              <strong>{t('Total')}</strong>
-              <strong>{total}€</strong>
-            </div>
+            {!voucherInfo && (
+              <div className={`${styles.priceItem} ${styles.total}`}>
+                <strong>{t('Total')}</strong>
+                <strong>{total.toFixed(2)}€</strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -549,7 +567,7 @@ const BookingForm = () => {
                 disabled={submitting}
               >
                 {submitting ? t('Traitement...') : (
-                  formData.paymentMethod === 'online' ? `${t('Payer')} ${total}€` : t('comfirmResa')
+                  formData.paymentMethod === 'online' ? `${t('Payer')} ${finalPrice.toFixed(2)}€` : t('comfirmResa')
                 )}
               </button>
             </div>
