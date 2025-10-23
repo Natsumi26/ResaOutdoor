@@ -5,8 +5,7 @@ import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
 
-const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession }) => {
-  const [selectedDate, setSelectedDate] = useState('');
+const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession, onWeekChange, selectedDate }) => {
 
   // Générer les 7 jours de la semaine
   const weekStart = selectedDate
@@ -42,20 +41,16 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
   const sessionsByDay = organizeSessionsByDay();
 
   const goToPreviousWeek = () => {
-    const baseDate = selectedDate ? new Date(selectedDate) : new Date();
-    const newDate = addDays(baseDate, -7);
-    setSelectedDate(format(newDate, 'yyyy-MM-dd'));
+    onWeekChange(addDays(weekStart, -7));
   };
 
   const goToNextWeek = () => {
-    const baseDate = selectedDate ? new Date(selectedDate) : new Date();
-    const newDate = addDays(baseDate, 7);
-    setSelectedDate(format(newDate, 'yyyy-MM-dd'));
+    onWeekChange(addDays(weekStart, 7));
   };
 
 
   const goToToday = () => {
-    setSelectedDate('');
+    onWeekChange(new Date());
   };
 
   const handleDragEnd = (result) => {
@@ -100,8 +95,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             className={styles.filterBtn}
             value={selectedDate}
             onChange={(e) => {
-              const rawDate = e.target.value;
-              setSelectedDate(rawDate);
+              onWeekChange(new Date(e.target.value));
             }}
           />
         </div>

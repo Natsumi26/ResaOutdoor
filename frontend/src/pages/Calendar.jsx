@@ -36,14 +36,14 @@ const Calendar = () => {
   const [selectedSessionId, setSelectedSessionId] = useState(null); // Session sélectionnée pour le modal de détail
 
   // Charger les sessions de la semaine
-  const loadSessions = async () => {
+  const loadSessions = async (baseDate= new Date()) => {
     try {
       setLoading(true);
-        const today = new Date();
-        const weekEnd = addDays(today, 7);
+        const start = baseDate;
+        const end = addDays(baseDate, 7);
       const params = {
-        startDate: format(today, 'yyyy-MM-dd'),
-        endDate: format(weekEnd, 'yyyy-MM-dd')
+        startDate: format(start, 'yyyy-MM-dd'),
+        endDate: format(end, 'yyyy-MM-dd')
       };
 
       // Si un filtre guide est sélectionné, l'ajouter
@@ -73,7 +73,7 @@ const Calendar = () => {
   // Charger les données quand la semaine ou le filtre change
   useEffect(() => {
     if (currentUser) {
-      loadSessions();
+      loadSessions(currentWeek);
       loadProducts();
       loadGuides();
     }
@@ -108,6 +108,10 @@ const Calendar = () => {
       console.error('Erreur chargement utilisateur:', err);
     }
   };
+  //Gerer les changement de semaine
+  const handleWeekChange = (newDate) => {
+  setCurrentWeek(newDate); // newDate est un objet Date
+};
 
   // Gérer le déplacement d'une réservation
   const handleMoveBooking = async (bookingId, newSessionId, selectedProductId = null) => {
@@ -426,6 +430,8 @@ const Calendar = () => {
       ) : (
         <WeeklyCalendar
           sessions={sessions}
+          selectedDate={currentWeek}
+          onWeekChange={handleWeekChange}
           onMoveBooking={handleMoveBooking}
           onSessionClick={handleSessionClick}
           onBookingClick={handleBookingClick}
