@@ -1,6 +1,13 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { sendBookingConfirmation } from '../services/email.service.js';
+import {
+  notifyAdmins,
+  createNewBookingNotification,
+  createBookingCancelledNotification,
+  updateCalendar,
+  NotificationTypes
+} from '../services/notification.service.js';
 
 // Lister toutes les réservations
 export const getAllBookings = async (req, res, next) => {
@@ -342,6 +349,23 @@ export const createBooking = async (req, res, next) => {
       // L'email échoue mais la réservation est créée
     });
 
+    // 🔔 Envoyer notification en temps réel aux admins
+    const notification = createNewBookingNotification({
+      id: booking.id,
+      clientName: `${clientFirstName} ${clientLastName}`,
+      productName: booking.product.name,
+      sessionDate: booking.session.date,
+      totalAmount: totalPrice
+    });
+    notifyAdmins(notification);
+
+    // Mettre à jour le calendrier en temps réel
+    updateCalendar({
+      action: 'booking-created',
+      bookingId: booking.id,
+      sessionId: booking.sessionId
+    });
+
     res.status(201).json({
       success: true,
       booking
@@ -414,6 +438,25 @@ export const updateBooking = async (req, res, next) => {
       });
 
       return updatedBooking;
+    });
+
+    // 🔔 Notifier les admins de la modification
+    notifyAdmins({
+      type: NotificationTypes.BOOKING_UPDATED,
+      title: 'Réservation modifiée',
+      message: `La réservation de ${booking.clientFirstName} ${booking.clientLastName} a été modifiée`,
+      data: {
+        bookingId: booking.id,
+        productName: booking.product.name
+      },
+      priority: 'normal'
+    });
+
+    // Mettre à jour le calendrier en temps réel
+    updateCalendar({
+      action: 'booking-updated',
+      bookingId: booking.id,
+      sessionId: booking.sessionId
     });
 
     res.json({
@@ -514,6 +557,22 @@ export const cancelBooking = async (req, res, next) => {
       });
 
       return cancelledBooking;
+    });
+
+    // 🔔 Notifier les admins de l'annulation
+    const notification = createBookingCancelledNotification({
+      id: booking.id,
+      clientName: `${booking.clientFirstName} ${booking.clientLastName}`,
+      productName: booking.product.name,
+      cancellationReason: 'Annulation par le client'
+    });
+    notifyAdmins(notification);
+
+    // Mettre à jour le calendrier en temps réel
+    updateCalendar({
+      action: 'booking-cancelled',
+      bookingId: booking.id,
+      sessionId: booking.sessionId
     });
 
     res.json({

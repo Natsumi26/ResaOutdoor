@@ -161,6 +161,21 @@
   width: 100%;
 }
 
+.mainHeader {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 /* Overlay pour mobile */
 .overlay {
   position: fixed;

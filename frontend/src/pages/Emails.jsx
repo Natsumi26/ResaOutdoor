@@ -232,11 +232,6 @@ const Emails = () => {
     setIsPreviewOpen(true);
   };
 
-  const getTemplateTypeLabel = (type) => {
-    const found = templateTypes.find(t => t.value === type);
-    return found ? found.label : type;
-  };
-
   if (loading) {
     return <div className={styles.loading}>Chargement...</div>;
   }

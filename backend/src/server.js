@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Server } from 'socket.io';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import categoryRoutes from './routes/category.routes.js';
@@ -18,6 +19,7 @@ import stripeRoutes from './routes/stripe.routes.js';
 import resellerRoutes from './routes/reseller.routes.js';
 import emailTemplateRoutes from './routes/emailTemplate.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { initNotificationService } from './services/notification.service.js';
 
 dotenv.config();
 
@@ -70,6 +72,44 @@ app.use(errorHandler);
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// 🔔 Configuration Socket.io pour les notifications en temps réel
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Initialiser le service de notifications
+initNotificationService(io);
+
+// Gestion des connexions Socket.io
+io.on('connection', (socket) => {
+  console.log('👤 Client connecté:', socket.id);
+
+  // Rejoindre une room selon le rôle de l'utilisateur
+  socket.on('join-room', (data) => {
+    const { role, userId } = data;
+
+    if (role === 'admin') {
+      socket.join('admins');
+      console.log(`👨‍💼 Admin ${userId} a rejoint la room admins`);
+    } else if (role === 'client' && userId) {
+      socket.join(`client-${userId}`);
+      console.log(`👤 Client ${userId} a rejoint sa room personnelle`);
+    }
+  });
+
+  // Déconnexion
+  socket.on('disconnect', () => {
+    console.log('👋 Client déconnecté:', socket.id);
+  });
+});
+
+// Exporter io pour pouvoir l'utiliser dans les routes
+export { io };
 
 // 🔒 Gérer les arrêts propres pour éviter les conflits de port
 process.on('SIGTERM', () => {

@@ -162,7 +162,7 @@ GiftVoucher (bons cadeaux)
 - [x] Affichage des sessions et créneaux
 - [x] Visualisation des réservations (rectangles colorés)
 - [x] Barre de progression du remplissage
-- [ ] Drag & drop des réservations
+- [x] Drag & drop des réservations
 - [x] Navigation semaine précédente/suivante
 - [x] Bouton "Aujourd'hui"
 
@@ -171,7 +171,7 @@ GiftVoucher (bons cadeaux)
 - [x] Détails activité et session
 - [x] Historique des modifications
 - [x] Gestion des paiements
-- [ ] Actions (modifier, annuler, déplacer)
+- [x] Actions (modifier, annuler, déplacer)
 - [x] Envoi email
 
 ### Priorité 3 - Formulaire Produit Complet
@@ -201,7 +201,13 @@ GiftVoucher (bons cadeaux)
   - API pour emails de rappel et emails personnalisés
   - Templates HTML responsive
   - Voir [EMAIL_SETUP.md](EMAIL_SETUP.md) pour la configuration
-- [ ] Notifications temps réel (socket.io)
+- [x] Notifications temps réel (socket.io)
+  - Notifications en temps réel pour les admins (nouvelles réservations, modifications, annulations)
+  - Mise à jour automatique du calendrier
+  - Icône de cloche avec compteur de notifications non lues
+  - Toasts pour afficher les nouvelles notifications
+  - Support des notifications navigateur
+  - Socket.io configuré avec rooms pour admins et clients
 
 
 ## 🛠️ Commandes Utiles
@@ -253,4 +259,3 @@ Pour toute question sur le projet, consultez le README.md principal.
 
 ---
 
-**Note**: Ce projet est en cours de développement. L'interface client et certaines fonctionnalités avancées seront développées dans une phase ultérieure.

@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
 
-const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, onDeleteSession, filters = { reservations: true, paiements: false, stocks: false } }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
+const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const { bookings = [], startTime } = session;
 
   // Calculer le taux de remplissage

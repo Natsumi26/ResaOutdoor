@@ -229,9 +229,17 @@ console.log('Booking data:', booking);
         alert('Cette réservation a déjà un code promo/bon cadeau associé. Veuillez d\'abord le supprimer.');
         return;
       }
-
+      // Générer un code unique pour le bon cadeau
+      const generateVoucherCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 10; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
       // Créer un code promo unique pour cette réservation
-      const voucherCode = `DISCOUNT-${booking.id.substring(0, 8).toUpperCase()}`;
+      const voucherCode = generateVoucherCode();
 
       // Créer le code promo dans la base de données
       await giftVouchersAPI.create({
@@ -239,6 +247,7 @@ console.log('Booking data:', booking);
         amount: discountAmount,
         discountType: 'fixed',
         type: 'promo',
+        usageCount:1,
         maxUsages: 1 // Usage unique pour cette réservation
       });
 
