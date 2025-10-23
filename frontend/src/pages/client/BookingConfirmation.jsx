@@ -42,7 +42,7 @@ const BookingConfirmation = () => {
   }
 
   const isPaid = booking.amountPaid >= booking.totalPrice;
-
+  console.log(booking)
   return (
     <div className={styles.clientContainer}>
       <div className={styles.confirmationContainer}>

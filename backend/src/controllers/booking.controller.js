@@ -124,7 +124,9 @@ export const createBooking = async (req, res, next) => {
       status,
       sessionId,
       productId,  // Le client choisit un produit spécifique
-      resellerId  // Revendeur optionnel
+      resellerId, // Revendeur optionnel
+      voucherCode, // Code promo ou bon cadeau
+      shoeRentalCount // Nombre de locations de chaussures
     } = req.body;
 
     if (!clientFirstName || !clientLastName ||
@@ -194,6 +196,49 @@ export const createBooking = async (req, res, next) => {
       }
     }
 
+    // Vérifier et traiter le code promo/bon cadeau si fourni
+    let voucher = null;
+    let discountAmount = 0;
+
+    if (voucherCode) {
+      voucher = await prisma.giftVoucher.findUnique({
+        where: { code: voucherCode.toUpperCase() }
+      });
+
+      if (!voucher) {
+        throw new AppError('Code promo/bon cadeau invalide', 400);
+      }
+
+      // Vérifier l'expiration
+      if (voucher.expiresAt && new Date() > voucher.expiresAt) {
+        throw new AppError('Ce code a expiré', 410);
+      }
+
+      // Vérifier le nombre d'utilisations pour les codes promos
+      if (voucher.type === 'promo' && voucher.maxUsages !== null) {
+        if (voucher.usageCount >= voucher.maxUsages) {
+          throw new AppError('Ce code promo a atteint sa limite d\'utilisations', 409);
+        }
+      }
+
+      // Pour les bons cadeaux (usage unique), vérifier s'il a déjà été utilisé
+      if (voucher.type === 'voucher' && voucher.usageCount > 0) {
+        throw new AppError('Ce bon cadeau a déjà été utilisé', 409);
+      }
+
+      // Calculer le montant de réduction
+      if (voucher.discountType === 'fixed') {
+        discountAmount = voucher.amount;
+      } else if (voucher.discountType === 'percentage') {
+        discountAmount = (totalPrice * voucher.amount) / 100;
+      }
+
+      // S'assurer que la réduction ne dépasse pas le total
+      if (discountAmount > totalPrice) {
+        discountAmount = totalPrice;
+      }
+    }
+
     // Créer la réservation avec transaction
     const booking = await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
@@ -209,7 +254,9 @@ export const createBooking = async (req, res, next) => {
           status: status || 'pending',
           sessionId,
           productId,
-          resellerId: resellerId || null
+          resellerId: resellerId || null,
+          voucherCode: voucherCode ? voucherCode.toUpperCase() : null,
+          discountAmount: discountAmount > 0 ? discountAmount : null
         },
         include: {
           session: {
@@ -223,13 +270,47 @@ export const createBooking = async (req, res, next) => {
       });
 
       // Créer l'entrée historique
+      let historyDetails = `Réservation créée pour ${numberOfPeople} personne(s) - ${product.name}`;
+      if (voucherCode) {
+        historyDetails += ` | Code ${voucher.type === 'promo' ? 'promo' : 'cadeau'} ${voucherCode} appliqué (-${discountAmount.toFixed(2)}€)`;
+      }
+
       await tx.bookingHistory.create({
         data: {
           action: 'created',
-          details: `Réservation créée pour ${numberOfPeople} personne(s) - ${product.name}`,
+          details: historyDetails,
           bookingId: newBooking.id
         }
       });
+
+      // Si un code promo/bon cadeau a été utilisé, l'enregistrer
+      if (voucherCode && voucher) {
+        // Créer une entrée d'utilisation
+        await tx.promoCodeUsage.create({
+          data: {
+            voucherId: voucher.id,
+            usedBy: `${clientFirstName} ${clientLastName} (${clientEmail})`,
+            bookingId: newBooking.id
+          }
+        });
+
+        // Incrémenter le compteur d'utilisations
+        await tx.giftVoucher.update({
+          where: { id: voucher.id },
+          data: {
+            usageCount: { increment: 1 }
+          }
+        });
+
+        // Ajouter à l'historique
+        await tx.bookingHistory.create({
+          data: {
+            action: 'promo_applied',
+            details: `Code ${voucher.type === 'promo' ? 'promo' : 'cadeau'} ${voucherCode} appliqué - Réduction de ${discountAmount.toFixed(2)}€`,
+            bookingId: newBooking.id
+          }
+        });
+      }
 
       // Si un paiement initial est effectué
       if (amountPaid && amountPaid > 0) {
@@ -237,6 +318,8 @@ export const createBooking = async (req, res, next) => {
           data: {
             amount: parseFloat(amountPaid),
             method: 'other',
+            voucherCode: voucherCode ? voucherCode.toUpperCase() : null,
+            discountAmount: discountAmount > 0 ? discountAmount : null,
             bookingId: newBooking.id
           }
         });

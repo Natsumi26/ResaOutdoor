@@ -21,11 +21,6 @@ const CanyonDetails = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [weekDates, setWeekDates] = useState([]);
 
-  const parseDDMMYYYY = (dateStr) => {
-    const [day, month, year] = dateStr.split('-');
-    return new Date(`${year}-${month}-${day}`);
-  };
-
   // Vérifie que la date est bien définie et valide
   let formattedDate = '';
   if (startDateParam) {

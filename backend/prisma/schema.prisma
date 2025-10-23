@@ -165,6 +165,10 @@ model Booking {
   amountPaid                Float       @default(0)
   status                    String      @default("pending") // "pending", "confirmed", "cancelled"
 
+  // Code promo / Bon cadeau utilisé
+  voucherCode               String?     // Code du bon cadeau ou promo utilisé
+  discountAmount            Float?      // Montant de la réduction appliquée
+
   // Statuts de complétion pour le badge
   participantsFormCompleted Boolean     @default(false) // Le formulaire participants est complété
   productDetailsSent        Boolean     @default(false) // Les détails du produit ont été envoyés par le guide
@@ -197,6 +201,8 @@ model Payment {
   amount        Float
   method        String   // "CB", "virement", "espèces", "stripe"
   stripeId      String?  // ID transaction Stripe
+  voucherCode   String?  // Code promo/bon cadeau utilisé pour ce paiement
+  discountAmount Float?  // Montant de réduction appliqué
   notes         String?
 
   bookingId     String

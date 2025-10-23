@@ -69,69 +69,24 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
     const session = await retrieveCheckoutSession(sessionId);
 
     if (session.payment_status === 'paid') {
-  const bookingId = session.client_reference_id;
 
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-  if (!booking) throw new AppError('Réservation introuvable', 404);
-
-  const amountPaid = session.amount_total / 100;
-  const newTotalPaid = booking.amountPaid + amountPaid;
-
-  await prisma.payment.create({
-    data: {
-      amount: amountPaid,
-      method: 'stripe',
-      notes: `Payment Intent: ${session.payment_intent}`,
-      bookingId
-    }
-  });
-
-  const updatedBooking = await prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      amountPaid: newTotalPaid,
-      status: newTotalPaid >= booking.totalPrice ? 'confirmed' : booking.status
-    },
-    include: {
-    product: true,
-    session: {
-      include: {
-        guide: true // si tu veux aussi le guide dans l’email
-      }
-    }
-  }
-  });
-
-  await prisma.bookingHistory.create({
-    data: {
-      action: 'payment',
-      details: `Paiement Stripe de ${amountPaid}€`,
-      bookingId
-    }
-  });
-
-  sendPaymentConfirmation(updatedBooking, amountPaid).catch(err => {
-    console.log(updatedBooking)
-    console.error('Erreur envoi email:', err);
-  });
-
-  return res.json({
-    success: true,
-    paid: true,
-    bookingId,
-    amount: amountPaid
-  });
-} else {
-      res.json({
+      return res.json({
         success: true,
-        paid: false,
-        status: session.payment_status
+        paid: true,
+        bookingId: session.client_reference_id,
+        amount: session.amount_total / 100
       });
-    }
-  } catch (error) {
-    next(error);
-  }
-});
+    } else {
+          res.json({
+            success: true,
+            paid: false,
+            status: session.payment_status
+          });
+        }
+      } catch (error) {
+        next(error);
+      }
+    });
 
 /**
  * Webhook Stripe pour confirmer les paiements
@@ -198,18 +153,6 @@ router.post('/', async (req, res) => {
                 const existing = await prisma.giftVoucher.findUnique({ where: { code } });
                 if (!existing) isUnique = true;
               }
-              // Créer le bon cadeau
-              const voucher = await prisma.giftVoucher.create({
-                data: {
-                  code,
-                  amount,
-                  discountType: 'fixed',
-                  type: 'voucher',
-                  maxUsages: 1,
-                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 an
-                  notes: paymentIntentId
-                }
-              });
 
               console.log('✅ Bon cadeau créé :', code, 'pour', amount, '€');
 
@@ -245,6 +188,8 @@ router.post('/', async (req, res) => {
             amount: amountPaid,
             method: 'stripe',
             notes: `Payment Intent: ${session.payment_intent}`,
+            voucherCode: booking.voucherCode,
+            discountAmount: booking.discountAmount,
             bookingId: booking.id
           }
         });
@@ -268,6 +213,10 @@ router.post('/', async (req, res) => {
           }
         });
 
+          sendPaymentConfirmation(updatedBooking, newTotalPaid).catch(err => {
+            console.error('Erreur envoi email:', err);
+          });
+          
         // Ajouter à l'historique
         await prisma.bookingHistory.create({
           data: {

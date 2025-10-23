@@ -133,9 +133,18 @@ const BookingForm = () => {
       total += session.shoeRentalPrice * shoeRentalCount;
     }
 
-    // Appliquer le bon cadeau
+    // Appliquer le bon cadeau ou code promo
     if (voucherInfo) {
-      total -= voucherInfo.amount;
+      let discount = 0;
+      if (voucherInfo.discountType === 'percentage') {
+        // Réduction en pourcentage
+        discount = (total * voucherInfo.amount) / 100;
+      } else {
+        // Réduction fixe
+        discount = voucherInfo.amount;
+      }
+
+      total -= discount;
       if (total < 0) total = 0;
     }
 
@@ -287,8 +296,12 @@ const BookingForm = () => {
 
             {voucherInfo && (
               <div className={`${styles.priceItem} ${styles.discount}`}>
-                <span>{t('BonApply')}</span>
-                <span>-{voucherInfo.amount}€</span>
+                <span>{t('BonApply')} ({voucherInfo.code})</span>
+                <span>-{
+                  voucherInfo.discountType === 'percentage'
+                    ? `${voucherInfo.amount}%`
+                    : `${voucherInfo.amount}€`
+                }</span>
               </div>
             )}
 
@@ -395,7 +408,13 @@ const BookingForm = () => {
               {voucherError && <p className={styles.error}>{voucherError}</p>}
               {voucherInfo && (
                 <p className={styles.success}>
-                  {t('ValidBon')} : {voucherInfo.amount}€
+                  {voucherInfo.type === 'promo' ? '🎉 Code promo valide' : '🎁 Bon cadeau valide'} :
+                  {voucherInfo.discountType === 'percentage'
+                    ? ` ${voucherInfo.amount}% de réduction`
+                    : ` ${voucherInfo.amount}€ de réduction`}
+                  {voucherInfo.type === 'promo' && voucherInfo.maxUsages && (
+                    <span> ({voucherInfo.maxUsages - voucherInfo.usageCount} utilisations restantes)</span>
+                  )}
                 </p>
               )}
             </div>
