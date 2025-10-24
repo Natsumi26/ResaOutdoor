@@ -719,3 +719,586 @@ export const sendGiftVoucherEmail = async (recipientEmail, code, amount, metadat
     throw error;
   }
 };
+
+/**
+ * Template HTML pour notification de nouvelle réservation au guide
+ */
+const guideNewBookingTemplate = (booking) => {
+  const { session, product, clientFirstName, clientLastName, clientEmail, clientPhone, numberOfPeople, totalPrice } = booking;
+  const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+  const sessionTime = session.startTime;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .label {
+          font-weight: bold;
+          color: #6b7280;
+        }
+        .value {
+          color: #111827;
+        }
+        .alert {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🎉 Nouvelle Réservation !</h1>
+        <p>Une nouvelle réservation a été effectuée pour votre session</p>
+      </div>
+      <div class="content">
+        <div class="info-box">
+          <h2>📅 Détails de la Session</h2>
+          <div class="info-row">
+            <span class="label">Canyon :</span>
+            <span class="value">${product.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Date :</span>
+            <span class="value">${sessionDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Heure :</span>
+            <span class="value">${sessionTime}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Nombre de personnes :</span>
+            <span class="value">${numberOfPeople}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Montant :</span>
+            <span class="value">${totalPrice.toFixed(2)} €</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h2>👤 Informations Client</h2>
+          <div class="info-row">
+            <span class="label">Nom :</span>
+            <span class="value">${clientFirstName} ${clientLastName}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Email :</span>
+            <span class="value">${clientEmail}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Téléphone :</span>
+            <span class="value">${clientPhone || 'Non renseigné'}</span>
+          </div>
+        </div>
+
+        <div class="alert">
+          <strong>💡 Action requise :</strong> Connectez-vous au tableau de bord pour voir tous les détails de cette réservation.
+        </div>
+
+        <div class="footer">
+          <p>Canyon Life - Système de gestion de réservations</p>
+          <p>Cet email a été envoyé automatiquement</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Template HTML pour notification de paiement au guide
+ */
+const guidePaymentReceivedTemplate = (booking, payment) => {
+  const { session, product, clientFirstName, clientLastName } = booking;
+  const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #3b82f6;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .label {
+          font-weight: bold;
+          color: #6b7280;
+        }
+        .value {
+          color: #111827;
+        }
+        .amount {
+          font-size: 1.5em;
+          color: #3b82f6;
+          font-weight: bold;
+          text-align: center;
+          padding: 20px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>💰 Paiement Reçu</h1>
+        <p>Un paiement a été effectué pour une réservation</p>
+      </div>
+      <div class="content">
+        <div class="amount">
+          ${payment.amount.toFixed(2)} €
+        </div>
+
+        <div class="info-box">
+          <h2>📅 Détails de la Réservation</h2>
+          <div class="info-row">
+            <span class="label">Client :</span>
+            <span class="value">${clientFirstName} ${clientLastName}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Canyon :</span>
+            <span class="value">${product.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Date :</span>
+            <span class="value">${sessionDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Méthode de paiement :</span>
+            <span class="value">${payment.method === 'card' ? 'Carte bancaire' : payment.method === 'cash' ? 'Espèces' : 'Autre'}</span>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Canyon Life - Système de gestion de réservations</p>
+          <p>Cet email a été envoyé automatiquement</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Template HTML pour notification d'annulation au guide
+ */
+const guideCancellationTemplate = (booking) => {
+  const { session, product, clientFirstName, clientLastName, numberOfPeople } = booking;
+  const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #ef4444;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .label {
+          font-weight: bold;
+          color: #6b7280;
+        }
+        .value {
+          color: #111827;
+        }
+        .alert {
+          background: #fee2e2;
+          border-left: 4px solid #ef4444;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>❌ Réservation Annulée</h1>
+        <p>Une réservation a été annulée</p>
+      </div>
+      <div class="content">
+        <div class="info-box">
+          <h2>📅 Détails de la Réservation Annulée</h2>
+          <div class="info-row">
+            <span class="label">Client :</span>
+            <span class="value">${clientFirstName} ${clientLastName}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Canyon :</span>
+            <span class="value">${product.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Date :</span>
+            <span class="value">${sessionDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Nombre de personnes :</span>
+            <span class="value">${numberOfPeople}</span>
+          </div>
+        </div>
+
+        <div class="alert">
+          <strong>📊 Capacité disponible :</strong> ${numberOfPeople} place(s) sont maintenant disponibles pour cette session.
+        </div>
+
+        <div class="footer">
+          <p>Canyon Life - Système de gestion de réservations</p>
+          <p>Cet email a été envoyé automatiquement</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Template HTML pour notification de modification au guide
+ */
+const guideModificationTemplate = (booking) => {
+  const { session, product, clientFirstName, clientLastName, numberOfPeople } = booking;
+  const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #f59e0b;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .label {
+          font-weight: bold;
+          color: #6b7280;
+        }
+        .value {
+          color: #111827;
+        }
+        .alert {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>✏️ Réservation Modifiée</h1>
+        <p>Une réservation a été mise à jour</p>
+      </div>
+      <div class="content">
+        <div class="info-box">
+          <h2>📅 Détails de la Réservation</h2>
+          <div class="info-row">
+            <span class="label">Client :</span>
+            <span class="value">${clientFirstName} ${clientLastName}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Canyon :</span>
+            <span class="value">${product.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Date :</span>
+            <span class="value">${sessionDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Nombre de personnes :</span>
+            <span class="value">${numberOfPeople}</span>
+          </div>
+        </div>
+
+        <div class="alert">
+          <strong>💡 Info :</strong> Connectez-vous au tableau de bord pour voir les détails des modifications.
+        </div>
+
+        <div class="footer">
+          <p>Canyon Life - Système de gestion de réservations</p>
+          <p>Cet email a été envoyé automatiquement</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Envoyer une notification au guide lors d'une nouvelle réservation
+ */
+export const sendGuideNewBookingNotification = async (booking) => {
+  try {
+    // Vérifier que le guide a un email
+    if (!booking.session?.guide?.email) {
+      console.log('Pas d\'email pour le guide, notification ignorée');
+      return { success: false, reason: 'no_guide_email' };
+    }
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: booking.session.guide.email,
+      subject: `🎉 Nouvelle réservation - ${booking.product.name}`,
+      html: guideNewBookingTemplate(booking)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email de nouvelle réservation envoyé au guide:', info.messageId);
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email au guide (nouvelle réservation):', error);
+    // Ne pas bloquer la réservation si l'email échoue
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envoyer une notification au guide lors d'un paiement
+ */
+export const sendGuidePaymentNotification = async (booking, payment) => {
+  try {
+    if (!booking.session?.guide?.email) {
+      console.log('Pas d\'email pour le guide, notification ignorée');
+      return { success: false, reason: 'no_guide_email' };
+    }
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: booking.session.guide.email,
+      subject: `💰 Paiement reçu - ${booking.clientFirstName} ${booking.clientLastName}`,
+      html: guidePaymentReceivedTemplate(booking, payment)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email de paiement envoyé au guide:', info.messageId);
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email au guide (paiement):', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envoyer une notification au guide lors d'une annulation
+ */
+export const sendGuideCancellationNotification = async (booking) => {
+  try {
+    if (!booking.session?.guide?.email) {
+      console.log('Pas d\'email pour le guide, notification ignorée');
+      return { success: false, reason: 'no_guide_email' };
+    }
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: booking.session.guide.email,
+      subject: `❌ Annulation - ${booking.product.name}`,
+      html: guideCancellationTemplate(booking)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email d\'annulation envoyé au guide:', info.messageId);
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email au guide (annulation):', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envoyer une notification au guide lors d'une modification
+ */
+export const sendGuideModificationNotification = async (booking) => {
+  try {
+    if (!booking.session?.guide?.email) {
+      console.log('Pas d\'email pour le guide, notification ignorée');
+      return { success: false, reason: 'no_guide_email' };
+    }
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: booking.session.guide.email,
+      subject: `✏️ Modification - ${booking.product.name}`,
+      html: guideModificationTemplate(booking)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email de modification envoyé au guide:', info.messageId);
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email au guide (modification):', error);
+    return { success: false, error: error.message };
+  }
+};

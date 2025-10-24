@@ -1,6 +1,12 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { sendBookingConfirmation } from '../services/email.service.js';
+import {
+  sendBookingConfirmation,
+  sendGuideNewBookingNotification,
+  sendGuidePaymentNotification,
+  sendGuideCancellationNotification,
+  sendGuideModificationNotification
+} from '../services/email.service.js';
 import {
   notifyAdmins,
   createNewBookingNotification,
@@ -349,6 +355,12 @@ export const createBooking = async (req, res, next) => {
       // L'email échoue mais la réservation est créée
     });
 
+    // 📧 Envoyer email de notification au guide
+    sendGuideNewBookingNotification(booking).catch(err => {
+      console.error('Erreur envoi email au guide:', err);
+      // L'email échoue mais la réservation est créée
+    });
+
     // 🔔 Envoyer notification en temps réel aux admins
     const notification = createNewBookingNotification({
       id: booking.id,
@@ -440,6 +452,11 @@ export const updateBooking = async (req, res, next) => {
       return updatedBooking;
     });
 
+    // 📧 Envoyer email de notification de modification au guide
+    sendGuideModificationNotification(booking).catch(err => {
+      console.error('Erreur envoi email au guide (modification):', err);
+    });
+
     // 🔔 Notifier les admins de la modification
     notifyAdmins({
       type: NotificationTypes.BOOKING_UPDATED,
@@ -523,6 +540,24 @@ export const addPayment = async (req, res, next) => {
       return payment;
     });
 
+    // Récupérer la réservation complète avec le guide pour l'email
+    const bookingWithGuide = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        session: {
+          include: {
+            guide: true
+          }
+        },
+        product: true
+      }
+    });
+
+    // 📧 Envoyer email de notification de paiement au guide
+    sendGuidePaymentNotification(bookingWithGuide, result).catch(err => {
+      console.error('Erreur envoi email au guide (paiement):', err);
+    });
+
     res.status(201).json({
       success: true,
       payment: result
@@ -557,6 +592,11 @@ export const cancelBooking = async (req, res, next) => {
       });
 
       return cancelledBooking;
+    });
+
+    // 📧 Envoyer email de notification d'annulation au guide
+    sendGuideCancellationNotification(booking).catch(err => {
+      console.error('Erreur envoi email au guide (annulation):', err);
     });
 
     // 🔔 Notifier les admins de l'annulation
