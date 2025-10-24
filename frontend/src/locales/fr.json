@@ -22,7 +22,7 @@
     "MailEnvoi":"Un email de confirmation vous a été envoyé à ",
     "soldePayment":"Paiement du solde",
     "PouvezPay":"Vous pouvez payer le solde restant",
-    "depuisResa":"depuis votre page de réservation",
+    "LorsActivity":"lors de l'activité. (Ne prends pas la carte)",
     "InfoParts":"Informations participants",
     "RemplirForm":"Remplissez les informations de taille, poids et pointure pour la préparation du matériel (Si pas déjà rempli)",
     "MessageGuide":"Message du guide",
@@ -46,7 +46,7 @@
     "FormLaterPart":"Vous pourrez aussi les remplir plus tard depuis votre page de réservation",
     "FormNowPart":"Remplir les informations des participants maintenant (taille, poids",
     "shoesLoc":", location de chaussures",
-    "AskLaterShoesLoc":"La location de chaussures pourra être demandée plus tard lors du remplissage des informations participants",
+    "AskLaterShoesLoc":"La location de chaussures est demandée lors du remplissage des informations participants",
     "InfosPart":"Informations des participants",
     "Poids":"Poids",
     "Taille":"Taille",
@@ -165,6 +165,7 @@
         "champsOblig":"Veuillez remplir tous les champs obligatoires",
         "CopyPressPapier":"Code copié dans le presse-papier !",
         "RemplirAllChamps":"Veuillez remplir les informations de tous les participants (y compris les pointures si location de chaussures)",
+        "allParticipants":"Veuillez remplir les informations de tous les participants ou ne remplir aucun participant",
         "ErreurSessionPayment":"Une erreur est survenue lors de la création du paiement. Veuillez réessayer."
     },
 

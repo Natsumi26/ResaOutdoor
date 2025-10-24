@@ -35,49 +35,45 @@ const BookingForm = () => {
   const [voucherInfo, setVoucherInfo] = useState(null);
   const [voucherError, setVoucherError] = useState('');
 
-  useEffect(() => {
-    loadSession();
-    loadProduct();
-  }, [sessionId, productId]);
+  
 
   useEffect(() => {
     // Initialiser les participants quand le nombre de personnes change (toujours afficher)
-    const newParticipants = Array(formData.numberOfPeople).fill(null).map((_, i) => ({
-      firstName: participants[i]?.firstName || '',
-      age: participants[i]?.age || '',
-      weight: participants[i]?.weight || '',
-      height: participants[i]?.height || '',
-      shoeRental: participants[i]?.shoeRental || false,
-      shoeSize: participants[i]?.shoeSize || ''
-    }));
-    setParticipants(newParticipants);
+    setParticipants(prevParticipants => {
+      const newParticipants = Array(formData.numberOfPeople).fill(null).map((_, i) => ({
+        firstName: prevParticipants[i]?.firstName || '',
+        age: prevParticipants[i]?.age || '',
+        weight: prevParticipants[i]?.weight || '',
+        height: prevParticipants[i]?.height || '',
+        // ✅ Conserver la valeur exacte (false ou true), pas de || false
+        shoeRental: prevParticipants[i]?.shoeRental ?? false,
+        shoeSize: prevParticipants[i]?.shoeSize || ''
+      }));
+      return newParticipants;
+    });
   }, [formData.numberOfPeople]);
 
-  const loadSession = async () => {
-    try {
-      setLoading(true);
-      const response = await sessionsAPI.getById(sessionId);
-      setSession(response.data.session);
-    } catch (error) {
-      console.error('Erreur chargement session:', error);
-      navigate('/client/search');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [sessionRes, productRes] = await Promise.all([
+          sessionsAPI.getById(sessionId),
+          productsAPI.getById(productId)
+        ]);
+        setSession(sessionRes.data.session);
+        setProduct(productRes.data.product);
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+        navigate('/client/search');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadProduct = async () => {
-    try {
-      setLoading(true);
-      const response = await productsAPI.getById(productId);
-      setProduct(response.data.product);
-    } catch (error) {
-      console.error('Erreur chargement produit:', error);
-      navigate('/client/search');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadData();
+  }, [sessionId, productId]);
+
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -171,17 +167,29 @@ const BookingForm = () => {
       return;
     }
 
-    // Validation optionnelle des participants : uniquement si au moins un champ est rempli
-    // Si des champs participants sont remplis, vérifier la cohérence
-    const hasAnyParticipantData = participants.some(p =>
-      p.firstName || p.age || p.weight || p.height || p.shoeRental
-    );
+    // Validation des participants : vérifier que tous les participants obligatoires sont remplis
+    const filledParticipants = participants.filter(p => p.firstName && p.firstName.trim() !== '');
 
-    if (hasAnyParticipantData) {
-      // Si des données sont saisies, vérifier que les participants avec des chaussures ont bien une pointure
-      const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
-      if (shoeSizeError) {
-        alert(t('alerts.RemplirAllChamps'));
+    // Si au moins un participant est rempli, tous doivent l'être
+    if (filledParticipants.length > 0 && filledParticipants.length < formData.numberOfPeople) {
+      alert(t('alerts.allParticipants') || `Veuillez remplir les informations de tous les ${formData.numberOfPeople} participants ou ne remplir aucun participant.`);
+      return;
+    }
+
+    // Vérifier que les participants avec location de chaussures ont bien une pointure
+    const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
+    if (shoeSizeError) {
+      alert(t('alerts.RemplirAllChamps') || 'Veuillez renseigner la pointure pour chaque location de chaussures.');
+      return;
+    }
+
+    // Vérifier que si des participants sont remplis, ils ont tous les champs obligatoires
+    if (filledParticipants.length > 0) {
+      const incompleteParticipant = participants.find(p =>
+        p.firstName && (!p.age || !p.weight || !p.height)
+      );
+      if (incompleteParticipant) {
+        alert(t('alerts.RemplirAllChamps') || 'Veuillez remplir tous les champs obligatoires (prénom, âge, poids, taille) pour chaque participant.');
         return;
       }
     }
@@ -197,7 +205,7 @@ const BookingForm = () => {
       if (session.shoeRentalPrice) {
         shoeRentalCount = participants.filter(p => p.shoeRental).length;
       }
-
+      console.log(totalPrice)
       const bookingData = {
         sessionId: session.id,
         productId: productId,

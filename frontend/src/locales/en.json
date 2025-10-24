@@ -22,7 +22,7 @@
   "MailEnvoi": "A confirmation email has been sent to",
   "soldePayment": "Balance payment",
   "PouvezPay": "You can pay the remaining balance",
-  "depuisResa": "from your reservation page",
+  "LorsActivity": "during the activity. (Does not take the card)",
   "InfoParts": "Participant information",
   "RemplirForm": "Fill in size, weight and shoe size for equipment preparation (if not already filled)",
   "MessageGuide": "Guide's message",
@@ -46,7 +46,7 @@
   "FormLaterPart": "You can also fill them later from your reservation page",
   "FormNowPart": "Fill in participant information now (size, weight",
   "shoesLoc": ", shoe rental",
-  "AskLaterShoesLoc": "Shoe rental can be requested later when filling in participant information",
+  "AskLaterShoesLoc": "Shoe rental is requested when filling in participant information",
   "InfosPart": "Participant information",
   "Poids": "Weight",
   "Taille": "Height",
@@ -166,6 +166,7 @@
     "champsOblig": "Please fill in all required fields",
     "CopyPressPapier": "Code copied to clipboard!",
     "RemplirAllChamps": "Please fill in all participant information (including shoe sizes if renting)",
+    "allParticipants": "Please fill in information for all participants or leave all participants empty",
     "ErreurSessionPayment": "An error occurred while creating the payment. Please try again."
   },
 

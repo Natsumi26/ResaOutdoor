@@ -132,7 +132,7 @@ const BookingConfirmation = () => {
                   <span className={styles.stepIcon}>💳</span>
                   <div>
                     <strong>{t('soldePayment')}</strong>
-                    <p>{t('PouvezPay')} ({booking.totalPrice - booking.amountPaid}€) {t('depuisResa')}</p>
+                    <p>{t('PouvezPay')} ({booking.totalPrice - booking.amountPaid}€) {t('LorsActivity')}</p>
                   </div>
                 </div>
               )}
