@@ -571,13 +571,66 @@ export const addPayment = async (req, res, next) => {
 export const cancelBooking = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { reason } = req.body; // Raison de l'annulation (optionnelle)
+
+    // Récupérer la réservation avant annulation
+    const existingBooking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        session: true,
+        product: true,
+        payments: true
+      }
+    });
+
+    if (!existingBooking) {
+      throw new AppError('Réservation non trouvée', 404);
+    }
+
+    // Vérifier si la réservation est déjà annulée
+    if (existingBooking.status === 'cancelled') {
+      throw new AppError('Cette réservation est déjà annulée', 400);
+    }
+
+    // Calculer la politique d'annulation
+    const sessionDate = new Date(existingBooking.session.date);
+    const now = new Date();
+    const hoursUntilSession = (sessionDate - now) / (1000 * 60 * 60);
+
+    let refundPercentage = 0;
+    let refundPolicy = '';
+
+    // Politique d'annulation :
+    // - Plus de 48h avant : remboursement 100%
+    // - Entre 24h et 48h : remboursement 50%
+    // - Moins de 24h : pas de remboursement
+    if (hoursUntilSession >= 48) {
+      refundPercentage = 100;
+      refundPolicy = 'Remboursement intégral (plus de 48h avant la session)';
+    } else if (hoursUntilSession >= 24) {
+      refundPercentage = 50;
+      refundPolicy = 'Remboursement partiel de 50% (entre 24h et 48h avant la session)';
+    } else {
+      refundPercentage = 0;
+      refundPolicy = 'Pas de remboursement (moins de 24h avant la session)';
+    }
+
+    const refundAmount = (existingBooking.amountPaid * refundPercentage) / 100;
 
     const booking = await prisma.$transaction(async (tx) => {
       const cancelledBooking = await tx.booking.update({
         where: { id },
-        data: { status: 'cancelled' },
+        data: {
+          status: 'cancelled',
+          cancellationReason: reason || 'Annulé par le client',
+          cancelledAt: new Date()
+        },
         include: {
-          session: true,
+          session: {
+            include: {
+              guide: true
+            }
+          },
           product: true,
           payments: true
         }
@@ -586,7 +639,7 @@ export const cancelBooking = async (req, res, next) => {
       await tx.bookingHistory.create({
         data: {
           action: 'cancelled',
-          details: 'Réservation annulée',
+          details: `Réservation annulée - ${refundPolicy}${reason ? ` - Raison: ${reason}` : ''}`,
           bookingId: id
         }
       });
@@ -617,7 +670,13 @@ export const cancelBooking = async (req, res, next) => {
 
     res.json({
       success: true,
-      booking
+      booking,
+      cancellationPolicy: {
+        refundPercentage,
+        refundAmount,
+        policy: refundPolicy,
+        hoursUntilSession: Math.round(hoursUntilSession)
+      }
     });
   } catch (error) {
     if (error.code === 'P2025') {

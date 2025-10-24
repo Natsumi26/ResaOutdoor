@@ -165,6 +165,10 @@ model Booking {
   amountPaid                Float       @default(0)
   status                    String      @default("pending") // "pending", "confirmed", "cancelled"
 
+  // Annulation
+  cancellationReason        String?     // Raison de l'annulation
+  cancelledAt               DateTime?   // Date d'annulation
+
   // Code promo / Bon cadeau utilisé
   voucherCode               String?     // Code du bon cadeau ou promo utilisé
   discountAmount            Float?      // Montant de la réduction appliquée

@@ -2389,6 +2389,233 @@ input[type="number"] {
   100% { transform: rotate(360deg); }
 }
 
+/* Cancellation Page Styles */
+.bookingSummary {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.bookingSummary h2 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summaryRow:last-child {
+  border-bottom: none;
+}
+
+.summaryRow span {
+  color: #6b7280;
+}
+
+.summaryRow strong {
+  color: #111827;
+}
+
+.policyCard {
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 25px;
+  margin: 25px 0;
+}
+
+.policyCard h2 {
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  font-size: 1.3rem;
+}
+
+.policyHighlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 10px;
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.refundInfo {
+  text-align: center;
+}
+
+.refundPercentage {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #3b82f6;
+  line-height: 1;
+}
+
+.refundLabel {
+  color: #6b7280;
+  margin-top: 5px;
+  font-size: 0.9rem;
+}
+
+.refundAmount {
+  text-align: center;
+}
+
+.refundAmount strong {
+  font-size: 2rem;
+  color: #10b981;
+  display: block;
+}
+
+.refundAmount span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.policyDetails {
+  background: #f9fafb;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+}
+
+.policyDetails p {
+  margin: 5px 0;
+  color: #374151;
+}
+
+.timeInfo {
+  color: #6b7280 !important;
+  font-size: 0.95rem;
+}
+
+.policyRules {
+  margin-top: 20px;
+}
+
+.policyRules h3 {
+  font-size: 1rem;
+  color: #374151;
+  margin: 0 0 10px 0;
+}
+
+.policyRules ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.policyRules li {
+  padding: 8px 0;
+  color: #6b7280;
+}
+
+.policyInfo {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.policyRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.policyRow:last-child {
+  border-bottom: none;
+}
+
+.policyDescription {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.policyDescription p {
+  color: #374151;
+  font-weight: 500;
+  margin: 0;
+}
+
+.warningBox {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 15px 20px;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.warningBox strong {
+  display: block;
+  color: #92400e;
+  margin-bottom: 5px;
+}
+
+.warningBox p {
+  color: #78350f;
+  margin: 0;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 25px;
+}
+
+.dangerButton {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.dangerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nextSteps {
+  background: #f0fdf4;
+  border-left: 4px solid #10b981;
+  padding: 20px;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.nextSteps h3 {
+  margin: 0 0 15px 0;
+  color: #065f46;
+}
+
+.nextSteps ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #064e3b;
+}
+
+.nextSteps li {
+  margin: 8px 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .clientContainer {

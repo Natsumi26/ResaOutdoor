@@ -159,8 +159,19 @@ const bookingConfirmationTemplate = (booking) => {
 
         <div class="info-box">
           <h3>Gérer sa réservation</h3>
-          <p>Vous pouvez visualiser et compléter votre réservation en cliquant sur ce lien,</p>
-          <a href='${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}'>Ma réservation</a>
+          <p>Vous pouvez compléter votre formulaire des participants en cliquant sur ce lien,</p>
+          <a href='${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}' class="button">📋 Ma réservation</a>
+        </div>
+
+        <div class="info-box" style="background: #fef3c7; border-left-color: #f59e0b;">
+          <h3>❌ Besoin d'annuler ?</h3>
+          <p>Vous pouvez annuler votre réservation en respectant notre politique d'annulation :</p>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>Plus de 48h avant : Remboursement intégral (100%)</li>
+            <li>Entre 24h et 48h : Remboursement partiel (50%)</li>
+            <li>Moins de 24h : Pas de remboursement</li>
+          </ul>
+          <a href='${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/cancel-booking/${booking.id}' class="button" style="background: #ef4444;">Annuler ma réservation</a>
         </div>
 
         <div class="info-box">

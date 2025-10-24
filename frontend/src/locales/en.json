@@ -157,6 +157,8 @@
   "DoubleClick":"click on another date to create a period",
   "Valider":"To validate",
   "ClickDate":"💡 Click on a date for a specific day, or click on two dates to select a period.",
+  "refundPolicyFull": "Full refund (more than 48h before the session)",
+
   "payment": {
     "processing": "Processing...",
     "proceed": "Proceed to payment"
