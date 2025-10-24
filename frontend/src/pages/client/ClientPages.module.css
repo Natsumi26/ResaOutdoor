@@ -7,6 +7,21 @@
   min-height: 100vh;
 }
 
+/* Container pour la page de recherche avec image de fond */
+.searchPageContainer {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2rem;
+  position: relative;
+}
+
 /* Loading et Error */
 .loading {
   display: flex;
@@ -51,6 +66,151 @@
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+}
+
+/* Encadré blanc centré pour la recherche */
+.searchBox {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+}
+
+/* Titre et informations de contact */
+.searchBoxHeader {
+  margin-bottom: 2rem;
+}
+
+.searchBoxHeader h2 {
+  color: #2c3e50;
+  font-size: 1.4rem;
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.searchBoxHeader .contactInfo {
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.searchBoxHeader .contactInfo a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.searchBoxHeader .contactInfo a:hover {
+  text-decoration: underline;
+}
+
+/* Compteurs d'âge */
+.ageCounters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ageCounter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.ageCounter:last-child {
+  border-bottom: none;
+}
+
+.ageLabel {
+  display: flex;
+  flex-direction: column;
+}
+
+.ageLabel strong {
+  color: #2c3e50;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ageLabel small {
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.counterControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.counterBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #dee2e6;
+  background: white;
+  color: #495057;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.counterBtn:hover:not(:disabled) {
+  border-color: #3498db;
+  background: #e8f4f8;
+  color: #3498db;
+}
+
+.counterBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.counterValue {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+/* Bouton de recherche principal */
+.searchButton {
+  width: 100%;
+  padding: 1rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 1rem;
+}
+
+.searchButton:hover:not(:disabled) {
+  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.searchButton:disabled {
+  background: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .filtersGrid {
@@ -146,16 +306,21 @@
 
 .noResults {
   text-align: center;
-  padding: 3rem;
+  padding: 1.5rem;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.noResults h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
 .noResults p {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #6c757d;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .productsGrid {
@@ -370,6 +535,30 @@
 
 /* ========== PAGE DE DÉTAILS ========== */
 
+/* Container 2 colonnes pour infos + photos */
+.topDetailsContainer {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.topDetailsContainer .detailsSection {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.topDetailsContainer .gallerySection {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Mobile: disposition verticale */
+@media (max-width: 768px) {
+  .topDetailsContainer {
+    flex-direction: column;
+  }
+}
+
 .gallerySection {
   margin-bottom: 2rem;
 }
@@ -380,12 +569,17 @@
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin-bottom: 1rem;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .mainImage img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
 }
 
 .thumbnails {
@@ -587,6 +781,35 @@
   color: #2c3e50;
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
+}
+
+/* Layout 2 colonnes: Calendrier + Résultats */
+.calendarResultsContainer {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.calendarColumn {
+  flex: 0 0 auto;
+  min-width: 350px;
+}
+
+.resultsColumn {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile: disposition verticale */
+@media (max-width: 768px) {
+  .calendarResultsContainer {
+    flex-direction: column;
+  }
+
+  .calendarColumn {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .dateSelector {
@@ -1910,28 +2133,28 @@ input[type="number"] {
 /* Section dates alternatives */
 .alternativeDatesSection {
   text-align: center;
-  margin: 2rem 0;
-  padding: 2rem 0;
+  margin: 1rem 0;
+  padding: 1rem 0;
 }
 
 .alternativeDatesSection h3 {
   color: #2c3e50;
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .alternativeDatesSection > p {
   color: #6c757d;
-  font-size: 1rem;
-  margin: 0 0 2rem 0;
+  font-size: 0.95rem;
+  margin: 0 0 1rem 0;
 }
 
 .alternativeDateButtons {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-wrap: wrap;
-  margin-top: 1.5rem;
+  margin-top: 0.75rem;
 }
 
 .alternativeDateButton {
@@ -1939,13 +2162,13 @@ input[type="number"] {
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 1rem 2.5rem;
-  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-  min-width: 200px;
+  min-width: 180px;
 }
 
 .alternativeDateButton:hover {
@@ -1958,8 +2181,8 @@ input[type="number"] {
 .contactCard {
   background: white;
   border-radius: 12px;
-  padding: 2rem;
-  margin: 2rem 0;
+  padding: 1.5rem;
+  margin: 1.5rem 0 0 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
@@ -1967,41 +2190,87 @@ input[type="number"] {
 .contactCard h3 {
   color: #2c3e50;
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
 }
 
 .contactCard > p {
   color: #495057;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
 }
 
 .contactInfo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-top: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .contactItem {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   background: #f8f9fa;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   text-align: left;
 }
 
+.contactButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: #2c3e50;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid #3498db;
+  text-decoration: none;
+}
+
+.contactButton:hover {
+  background: #3498db;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.contactButton:hover strong {
+  color: white;
+}
+
+.contactButton:hover p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.contactButton strong {
+  display: block;
+  color: #2c3e50;
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.contactButton p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
 .contactIcon {
-  font-size: 2.5rem;
+  font-size: 2rem;
   flex-shrink: 0;
 }
 
 .contactItem strong {
   display: block;
   color: #2c3e50;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
 }
 
 .contactItem p {
@@ -2616,14 +2885,113 @@ input[type="number"] {
   margin: 8px 0;
 }
 
+/* Carte canyon pour la recherche */
+.canyonCard {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #e9ecef;
+}
+
+.canyonCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.canyonCardImage {
+  position: relative;
+  width: 280px;
+  height: 300px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px; /* Tous les coins arrondis */
+  overflow: hidden;
+  margin: 12px; /* Ajouter un peu d'espace autour */
+}
+
+.canyonCardContent {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeSlotButton {
+  background: white;
+  color: #2c3e50;
+  padding: 10px 20px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.timeSlotButton:hover {
+  background: #3498db;
+  color: white;
+  transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .clientContainer {
     padding: 1rem;
   }
 
+  .mainImage {
+    height: 300px;
+  }
+
+  .mainImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  .canyonCard {
+    flex-direction: column;
+  }
+
+  .canyonCardImage {
+    width: calc(100% - 24px);
+    height: 200px;
+    border-radius: 12px; /* Tous les coins arrondis */
+    margin: 12px;
+  }
+
+  .canyonCardContent {
+    padding: 1rem;
+  }
+
   .searchHeader h1 {
     font-size: 2rem;
+  }
+
+  .searchBox {
+    max-width: 100%;
+    padding: 1.5rem;
+    margin-top: 1rem !important;
+  }
+
+  .searchPageContainer {
+    padding: 1rem;
+  }
+
+  .timeSlotButton {
+    min-width: 90px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
   }
 
   .filtersGrid {

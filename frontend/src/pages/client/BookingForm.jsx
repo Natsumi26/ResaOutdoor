@@ -11,7 +11,6 @@ const BookingForm = () => {
   const { sessionId } = useParams();
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('productId');
-  console.log(productId)
   const navigate = useNavigate();
 
   const [session, setSession] = useState(null);

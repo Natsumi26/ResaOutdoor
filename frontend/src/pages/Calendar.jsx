@@ -8,6 +8,7 @@ import BookingForm from '../components/BookingForm';
 import SessionDuplicateDialog from '../components/SessionDuplicateDialog';
 import SessionDeleteDialog from '../components/SessionDeleteDialog';
 import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
+import NotificationBell from '../components/NotificationBell';
 import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
 import styles from './Calendar.module.css';
 import { addDays } from 'date-fns';
@@ -327,9 +328,6 @@ const Calendar = () => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1>📅 Calendrier Hebdomadaire</h1>
-        </div>
         <div className={styles.calendarContainer}>
           <p className={styles.placeholder}>Chargement...</p>
         </div>
@@ -340,9 +338,6 @@ const Calendar = () => {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1>📅 Calendrier Hebdomadaire</h1>
-        </div>
         <div className={styles.calendarContainer}>
           <p className={styles.placeholder} style={{ color: '#ef4444' }}>{error}</p>
         </div>
@@ -354,8 +349,6 @@ const Calendar = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <h1>📅 Calendrier Hebdomadaire</h1>
-
           {/* Filtre par guide (admin uniquement) */}
           {currentUser?.role === 'admin' && !showSessionForm && !showBookingForm && (
             <div className={styles.guideFilter}>
@@ -403,6 +396,7 @@ const Calendar = () => {
                 </button>
               </div>
             )}
+            <NotificationBell />
           </div>
         )}
       </div>

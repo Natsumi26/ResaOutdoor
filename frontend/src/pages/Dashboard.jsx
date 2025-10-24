@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import NotificationBell from '../components/NotificationBell';
 import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
 
@@ -160,6 +159,16 @@ const Dashboard = () => {
                   <span className={styles.icon}>🏪</span>
                   <span>Revendeurs</span>
                 </NavLink>
+
+                <NavLink
+                  to="/settings/preferences"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>⚙️</span>
+                  <span>Préférences</span>
+                </NavLink>
               </div>
             )}
           </div>
@@ -187,13 +196,6 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className={styles.main}>
-        {/* Header avec notifications */}
-        <div className={styles.mainHeader}>
-          <div className={styles.headerRight}>
-            <NotificationBell />
-          </div>
-        </div>
-
         <Outlet />
       </main>
 

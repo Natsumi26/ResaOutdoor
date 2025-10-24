@@ -12,6 +12,7 @@ import Reservations from './pages/Reservations';
 import Emails from './pages/Emails';
 import OnlineSales from './pages/OnlineSales';
 import Resellers from './pages/Resellers';
+import Preferences from './pages/Preferences';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
@@ -76,6 +77,7 @@ const AppRoutes = () => {
         <Route path="settings/emails" element={<Emails />} />
         <Route path="settings/online-sales" element={<OnlineSales />} />
         <Route path="settings/resellers" element={<Resellers />} />
+        <Route path="settings/preferences" element={<Preferences />} />
       </Route>
     </Routes>
   );
