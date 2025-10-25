@@ -279,10 +279,10 @@ const CanyonSearch = () => {
                   ? new Date(filters.date).toLocaleDateString('fr-FR')
                   : filters.startDate && filters.endDate
                   ? `${new Date(filters.startDate).toLocaleDateString('fr-FR')} - ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
-                  : 'vendredi 24 oct.'
+                  : ''
               }
               onClick={() => setShowCalendar(!showCalendar)}
-              placeholder="Sélectionner une date"
+              placeholder="Sélectionner"
               style={{
                 width: '100%',
                 padding: '0.75rem',

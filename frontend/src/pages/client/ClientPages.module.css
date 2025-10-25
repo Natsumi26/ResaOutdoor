@@ -1118,6 +1118,13 @@
   color: #495057;
 }
 
+/* Grid 2 colonnes pour les champs du formulaire client */
+.clientFieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 .participantGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -3051,6 +3058,7 @@ input[type="number"] {
     position: static;
   }
 
+  .clientFieldsGrid,
   .participantGrid,
   .participantEditGrid,
   .participantViewGrid {

@@ -33,6 +33,7 @@ const BookingForm = () => {
   const [participants, setParticipants] = useState([]);
   const [voucherInfo, setVoucherInfo] = useState(null);
   const [voucherError, setVoucherError] = useState('');
+  const [showParticipantsForm, setShowParticipantsForm] = useState(true);
 
   
 
@@ -355,48 +356,54 @@ const BookingForm = () => {
               </select>
             </div>
 
-            <div className={styles.formGroup}>
-              <label>{t('Prénom')} *</label>
-              <input
-                type="text"
-                value={formData.clientFirstName}
-                onChange={(e) => handleChange('clientFirstName', e.target.value)}
-                placeholder="Jean"
-                required
-              />
+            {/* Prénom et Nom sur la même ligne */}
+            <div className={styles.clientFieldsGrid}>
+              <div className={styles.formGroup}>
+                <label>{t('Prénom')} *</label>
+                <input
+                  type="text"
+                  value={formData.clientFirstName}
+                  onChange={(e) => handleChange('clientFirstName', e.target.value)}
+                  placeholder="Jean"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>{t('Nom')} *</label>
+                <input
+                  type="text"
+                  value={formData.clientLastName}
+                  onChange={(e) => handleChange('clientLastName', e.target.value)}
+                  placeholder="Dupont"
+                  required
+                />
+              </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label>{t('Nom')} *</label>
-              <input
-                type="text"
-                value={formData.clientLastName}
-                onChange={(e) => handleChange('clientLastName', e.target.value)}
-                placeholder="Dupont"
-                required
-              />
-            </div>
+            {/* Email et Téléphone sur la même ligne */}
+            <div className={styles.clientFieldsGrid}>
+              <div className={styles.formGroup}>
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={formData.clientEmail}
+                  onChange={(e) => handleChange('clientEmail', e.target.value)}
+                  placeholder="jean.dupont@example.com"
+                  required
+                />
+              </div>
 
-            <div className={styles.formGroup}>
-              <label>Email *</label>
-              <input
-                type="email"
-                value={formData.clientEmail}
-                onChange={(e) => handleChange('clientEmail', e.target.value)}
-                placeholder="jean.dupont@example.com"
-                required
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>{t('Téléphone')} *</label>
-              <input
-                type="tel"
-                value={formData.clientPhone}
-                onChange={(e) => handleChange('clientPhone', e.target.value)}
-                placeholder="06 12 34 56 78"
-                required
-              />
+              <div className={styles.formGroup}>
+                <label>{t('Téléphone')} *</label>
+                <input
+                  type="tel"
+                  value={formData.clientPhone}
+                  onChange={(e) => handleChange('clientPhone', e.target.value)}
+                  placeholder="06 12 34 56 78"
+                  required
+                />
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -415,42 +422,27 @@ const BookingForm = () => {
               </select>
             </div>
 
-
-            {/* Bon cadeau */}
-            <div className={styles.voucherSection}>
-              <label>{t('CodeCadeau')}</label>
-              <div className={styles.voucherInput}>
-                <input
-                  type="text"
-                  value={formData.voucherCode}
-                  onChange={(e) => handleChange('voucherCode', e.target.value.toUpperCase())}
-                  placeholder="XXXXXX"
-                />
-                <button type="button" onClick={handleVerifyVoucher} className={styles.btnSecondary}>
-                  {t('Vérifier')}
-                </button>
-              </div>
-              {voucherError && <p className={styles.error}>{voucherError}</p>}
-              {voucherInfo && (
-                <p className={styles.success}>
-                  {voucherInfo.type === 'promo' ? '🎉 Code promo valide' : '🎁 Bon cadeau valide'} :
-                  {voucherInfo.discountType === 'percentage'
-                    ? ` ${voucherInfo.amount}% de réduction`
-                    : ` ${voucherInfo.amount}€ de réduction`}
-                  {voucherInfo.type === 'promo' && voucherInfo.maxUsages && (
-                    <span> ({voucherInfo.maxUsages - voucherInfo.usageCount} utilisations restantes)</span>
-                  )}
-                </p>
-              )}
-            </div>
-
             {/* Formulaire participants - toujours visible mais optionnel */}
             <div className={styles.participantsSection}>
               <h3>{t('InfosPart')}</h3>
-              <small>{t('FormLaterPart')}</small>
+              <p style={{ fontSize: '0.9rem', color: '#6c757d', marginBottom: '1rem' }}>
+                Vous recevrez un lien vers ce formulaire dans l'email de confirmation de votre réservation.
+              </p>
               {session.shoeRentalAvailable && (
                 <small className={styles.infoNote}>ℹ️ {t('AskLaterShoesLoc')}</small>
               )}
+
+              {/* Bouton pour basculer l'affichage du formulaire */}
+              <button
+                type="button"
+                onClick={() => setShowParticipantsForm(!showParticipantsForm)}
+                className={styles.btnSecondary}
+                style={{ marginBottom: '1rem' }}
+              >
+                {showParticipantsForm ? 'Remplir plus tard' : 'Remplir maintenant'}
+              </button>
+
+              {showParticipantsForm && (
               <div style={{ marginTop: '1rem' }}>
                 {participants.map((participant, index) => (
                   <div key={index} className={styles.participantCard}>
@@ -522,6 +514,35 @@ const BookingForm = () => {
                   </div>
                 ))}
               </div>
+              )}
+            </div>
+
+            {/* Bon cadeau */}
+            <div className={styles.voucherSection}>
+              <label>{t('CodeCadeau')}</label>
+              <div className={styles.voucherInput}>
+                <input
+                  type="text"
+                  value={formData.voucherCode}
+                  onChange={(e) => handleChange('voucherCode', e.target.value.toUpperCase())}
+                  placeholder="XXXXXX"
+                />
+                <button type="button" onClick={handleVerifyVoucher} className={styles.btnSecondary}>
+                  {t('Vérifier')}
+                </button>
+              </div>
+              {voucherError && <p className={styles.error}>{voucherError}</p>}
+              {voucherInfo && (
+                <p className={styles.success}>
+                  {voucherInfo.type === 'promo' ? '🎉 Code promo valide' : '🎁 Bon cadeau valide'} :
+                  {voucherInfo.discountType === 'percentage'
+                    ? ` ${voucherInfo.amount}% de réduction`
+                    : ` ${voucherInfo.amount}€ de réduction`}
+                  {voucherInfo.type === 'promo' && voucherInfo.maxUsages && (
+                    <span> ({voucherInfo.maxUsages - voucherInfo.usageCount} utilisations restantes)</span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* Mode de paiement */}
