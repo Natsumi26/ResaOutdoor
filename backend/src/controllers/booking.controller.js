@@ -176,6 +176,24 @@ export const createBooking = async (req, res, next) => {
 
     const product = sessionProduct.product;
 
+    // Vérifier la fermeture automatique
+    if (product.autoCloseHoursBefore) {
+      const now = new Date();
+      // Créer une date complète avec l'heure de début
+      const sessionDateTime = new Date(session.date);
+      const [hours, minutes] = session.startTime.split(':');
+      sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Calculer l'heure limite de réservation
+      const closeDateTime = new Date(sessionDateTime);
+      closeDateTime.setHours(closeDateTime.getHours() - product.autoCloseHoursBefore);
+
+      // Si on est après l'heure limite, empêcher la réservation
+      if (now >= closeDateTime) {
+        throw new AppError('Les réservations en ligne sont fermées pour ce créneau. Veuillez contacter le guide directement.', 403);
+      }
+    }
+
     // LOGIQUE DE ROTATION MAGIQUE
     if (session.isMagicRotation) {
       // Vérifier si le guide a déjà une réservation sur ce créneau

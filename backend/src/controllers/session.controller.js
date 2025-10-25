@@ -154,6 +154,8 @@ export const searchAvailableProducts = async (req, res, next) => {
     // Construire un dictionnaire de disponibilités par produit
     const productAvailability = {};
 
+    const now = new Date();
+
     sessions.forEach(session => {
       // Déterminer le produit verrouillé par la première réservation (rotation magique)
       const lockedProductId = session.bookings.length > 0
@@ -177,7 +179,27 @@ export const searchAvailableProducts = async (req, res, next) => {
         // Places disponibles pour ce produit
         const availableCapacity = product.maxCapacity - bookedForProduct;
 
-        // Si le nombre de participants demandé n'est pas spécifié OU s'il y a assez de places
+        // Vérifier la fermeture automatique
+        let isAutoClosed = false;
+        if (product.autoCloseHoursBefore) {
+          // Créer une date complète avec l'heure de début
+          const sessionDateTime = new Date(session.date);
+          const [hours, minutes] = session.startTime.split(':');
+          sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+          // Calculer l'heure limite de réservation
+          const closeDateTime = new Date(sessionDateTime);
+          closeDateTime.setHours(closeDateTime.getHours() - product.autoCloseHoursBefore);
+
+          // Si on est après l'heure limite, fermer automatiquement
+          if (now >= closeDateTime) {
+            isAutoClosed = true;
+          }
+        }
+
+        // Afficher la session si:
+        // - Il y a assez de places pour le nombre de participants demandé (ou pas de filtre participants)
+        // - Même si fermée automatiquement (pour afficher le message)
         if (!participants || availableCapacity >= parseInt(participants)) {
           if (!productAvailability[productId]) {
             productAvailability[productId] = {
@@ -191,7 +213,8 @@ export const searchAvailableProducts = async (req, res, next) => {
             date: session.date,
             timeSlot: session.timeSlot,
             startTime: session.startTime,
-            availableCapacity: availableCapacity
+            availableCapacity: availableCapacity,
+            isAutoClosed: isAutoClosed  // Nouveau flag
           });
         }
       });
@@ -288,9 +311,45 @@ export const getAllSessions = async (req, res, next) => {
       );
     }
 
+    // Ajouter le flag isAutoClosed pour chaque produit dans chaque session
+    const now = new Date();
+    const sessionsWithAutoClose = filteredSessions.map(session => {
+      return {
+        ...session,
+        products: session.products.map(sp => {
+          const product = sp.product;
+          let isAutoClosed = false;
+
+          if (product.autoCloseHoursBefore) {
+            // Créer une date complète avec l'heure de début
+            const sessionDateTime = new Date(session.date);
+            const [hours, minutes] = session.startTime.split(':');
+            sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+            // Calculer l'heure limite de réservation
+            const closeDateTime = new Date(sessionDateTime);
+            closeDateTime.setHours(closeDateTime.getHours() - product.autoCloseHoursBefore);
+
+            // Si on est après l'heure limite, fermer automatiquement
+            if (now >= closeDateTime) {
+              isAutoClosed = true;
+            }
+          }
+
+          return {
+            ...sp,
+            product: {
+              ...product,
+              isAutoClosed
+            }
+          };
+        })
+      };
+    });
+
     res.json({
       success: true,
-      sessions: filteredSessions
+      sessions: sessionsWithAutoClose
     });
   } catch (error) {
     next(error);

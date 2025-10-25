@@ -150,6 +150,40 @@ const MyBooking = () => {
 
   return (
     <div className={styles.clientContainer}>
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          background: 'white',
+          border: 'none',
+          fontSize: '2rem',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        }}
+        title="Retour"
+      >
+        ←
+      </button>
+
       <div className={styles.myBookingContainer}>
         {/* En-tête simplifié */}
         <div className={styles.compactHeader}>

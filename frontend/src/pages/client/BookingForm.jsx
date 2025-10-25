@@ -7,7 +7,7 @@ import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 
 const BookingForm = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { sessionId } = useParams();
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('productId');
@@ -18,15 +18,18 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Déterminer la langue initiale basée sur la langue de l'interface
+  const initialLanguage = i18n.language?.startsWith('en') ? 'EN' : 'FR';
+
   const [formData, setFormData] = useState({
     numberOfPeople: 1,
     clientFirstName: '',
     clientLastName: '',
     clientEmail: '',
     clientPhone: '',
-    clientNationality:'',
+    clientNationality: initialLanguage,
     voucherCode: '',
-    paymentMethod: 'online', // 'online' ou 'onsite'
+    paymentMethod: 'onsite', // 'online' ou 'onsite'
     fillParticipantsNow: true // Toujours afficher le formulaire des participants
   });
 
@@ -34,8 +37,9 @@ const BookingForm = () => {
   const [voucherInfo, setVoucherInfo] = useState(null);
   const [voucherError, setVoucherError] = useState('');
   const [showParticipantsForm, setShowParticipantsForm] = useState(true);
+  const [isUrgent, setIsUrgent] = useState(false); // Pour forcer le re-render
 
-  
+
 
   useEffect(() => {
     // Initialiser les participants quand le nombre de personnes change (toujours afficher)
@@ -52,6 +56,48 @@ const BookingForm = () => {
       return newParticipants;
     });
   }, [formData.numberOfPeople]);
+
+  // Copier automatiquement le prénom du client dans le participant 1
+  useEffect(() => {
+    if (formData.clientFirstName && participants.length > 0) {
+      setParticipants(prevParticipants => {
+        const newParticipants = [...prevParticipants];
+        if (newParticipants[0]) {
+          newParticipants[0] = {
+            ...newParticipants[0],
+            firstName: formData.clientFirstName
+          };
+        }
+        return newParticipants;
+      });
+    }
+  }, [formData.clientFirstName]);
+
+  // Vérifier si la session est dans moins de 24h
+  const isLessThan24Hours = () => {
+    if (!session) {
+      console.log('❌ Pas de session chargée');
+      return false;
+    }
+
+    const now = new Date();
+    const sessionDateTime = new Date(session.date);
+    const [hours, minutes] = session.startTime.split(':');
+    sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+    const diffInHours = (sessionDateTime - now) / (1000 * 60 * 60);
+
+    console.log('🕒 CALCUL 24H:', {
+      maintenant: now.toLocaleString('fr-FR'),
+      dateSession: sessionDateTime.toLocaleString('fr-FR'),
+      differenceHeures: diffInHours.toFixed(2),
+      estMoinsDe24h: diffInHours <= 30
+    });
+
+    // Utiliser 30 heures pour être sûr de couvrir "le lendemain"
+    // (problèmes de timezone peuvent ajouter quelques heures)
+    return diffInHours <= 30;
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -73,6 +119,19 @@ const BookingForm = () => {
 
     loadData();
   }, [sessionId, productId]);
+
+  // Calculer si la session est dans moins de 24h quand session change
+  useEffect(() => {
+    if (session) {
+      const urgent = isLessThan24Hours();
+      console.log('Session chargée - Vérification 24h:', {
+        sessionDate: session.date,
+        startTime: session.startTime,
+        isUrgent: urgent
+      });
+      setIsUrgent(urgent);
+    }
+  }, [session]);
 
 
   const handleChange = (field, value) => {
@@ -167,32 +226,27 @@ const BookingForm = () => {
       return;
     }
 
-    // Validation des participants : vérifier que tous les participants obligatoires sont remplis
-    const filledParticipants = participants.filter(p => p.firstName && p.firstName.trim() !== '');
-
-    // Si au moins un participant est rempli, tous doivent l'être
-    if (filledParticipants.length > 0 && filledParticipants.length < formData.numberOfPeople) {
-      alert(t('alerts.allParticipants') || `Veuillez remplir les informations de tous les ${formData.numberOfPeople} participants ou ne remplir aucun participant.`);
-      return;
-    }
-
-    // Vérifier que les participants avec location de chaussures ont bien une pointure
-    const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
-    if (shoeSizeError) {
-      alert(t('alerts.RemplirAllChamps') || 'Veuillez renseigner la pointure pour chaque location de chaussures.');
-      return;
-    }
-
-    // Vérifier que si des participants sont remplis, ils ont tous les champs obligatoires
-    if (filledParticipants.length > 0) {
-      const incompleteParticipant = participants.find(p =>
-        p.firstName && (!p.age || !p.weight || !p.height)
+    // Si la session est dans moins de 24h, les informations des participants sont obligatoires
+    if (isUrgent) {
+      // Vérifier que tous les participants ont leurs informations complètes
+      const incompleteParticipants = participants.filter(p =>
+        !p.firstName || !p.age || !p.weight || !p.height
       );
-      if (incompleteParticipant) {
-        alert(t('alerts.RemplirAllChamps') || 'Veuillez remplir tous les champs obligatoires (prénom, âge, poids, taille) pour chaque participant.');
+
+      if (incompleteParticipants.length > 0) {
+        alert('La session étant dans moins de 24h, les informations de tous les participants (prénom, âge, poids, taille) sont obligatoires.');
+        return;
+      }
+
+      // Vérifier les pointures pour ceux qui louent des chaussures
+      const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
+      if (shoeSizeError) {
+        alert('Veuillez renseigner la pointure pour chaque location de chaussures.');
         return;
       }
     }
+    // Sinon, les informations des participants sont optionnelles
+    // Elles peuvent être remplies plus tard via le lien envoyé par email
 
     try {
       setSubmitting(true);
@@ -226,12 +280,10 @@ const BookingForm = () => {
       const bookingResponse = await bookingsAPI.create(bookingData);
       const booking = bookingResponse.data.booking;
 
-      // Enregistrer les participants si au moins un participant a des données
-      const participantsToSave = participants.filter(p =>
-        p.firstName || p.age || p.weight || p.height || p.shoeRental
-      );
-      if (participantsToSave.length > 0) {
-        await participantsAPI.upsert(booking.id, { participants: participantsToSave });
+      // Enregistrer tous les participants (même vides) pour correspondre au nombre de personnes
+      // Les participants peuvent être complétés plus tard via le lien dans l'email
+      if (participants.length > 0) {
+        await participantsAPI.upsert(booking.id, { participants: participants });
       }
 
       // Rediriger selon le mode de paiement
@@ -265,13 +317,48 @@ const BookingForm = () => {
   const total = calculateTotal();
   const discount = calculateDiscount();
   const finalPrice = calculateFinalPrice();
-  const nationalityOptions = [
-  "FR", "IT", "ES", "DE", "BE", "CH", "GB", "US", "CA", "NL",
-  "PT", "SE", "NO", "DK", "AU", "NZ", "JP", "CN", "BR", "AR"
-];
+
+  const languageOptions = [
+    { code: "FR", label: "🇫🇷 Français", flag: "🇫🇷" },
+    { code: "EN", label: "🇬🇧 English", flag: "🇬🇧" }
+  ];
 
   return (
     <div className={styles.clientContainer}>
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          background: 'white',
+          border: 'none',
+          fontSize: '2rem',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        }}
+        title="Retour"
+      >
+        ←
+      </button>
+
       <div className={styles.bookingFormContainer}>
         {/* Résumé de la session */}
         <div className={styles.bookingSummary}>
@@ -280,10 +367,12 @@ const BookingForm = () => {
           <div className={styles.summaryCard}>
             <h3>{product.name}</h3>
             <div className={styles.summaryDetails}>
-              <p><strong>Date:</strong> {format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
-              <p><strong>{t('Horaire')}:</strong> {session.timeSlot} - {session.startTime}</p>
-              <p><strong>{t('Durée')}:</strong> {product.duration / 60}h</p>
-              <p><strong>Guide:</strong> {session.guide.login}</p>
+              <p><strong>📅 Date:</strong> {format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
+              <p style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+                <span><strong>🕐 {t('Horaire')}:</strong> {session.timeSlot} - {session.startTime}</span>
+                <span><strong>⏱️ {t('Durée')}:</strong> {product.duration / 60}h</span>
+              </p>
+              <p><strong>Votre guide:</strong> {session.guide.login}</p>
             </div>
 
             {product.images && product.images.length > 0 && (
@@ -407,77 +496,123 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>{t('Nationalité')} *</label>
-              <select
-                value={formData.clientNationality}
-                onChange={(e) => handleChange('clientNationality', e.target.value)}
-                required
-              >
-                <option value="">{t('nationalities.placeholder')}</option>
-                {nationalityOptions.map((code) => (
-                  <option key={code} value={code}>
-                    {t(`nationalities.${code}`)}
-                  </option>
-                ))}
-              </select>
+              <label>Langue parlée *</label>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                {languageOptions.map((lang) => {
+                  // Mapper le code langue vers le code pays pour les drapeaux
+                  const flagCode = lang.code === 'EN' ? 'gb' : 'fr';
+                  return (
+                    <div
+                      key={lang.code}
+                      onClick={() => handleChange('clientNationality', lang.code)}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        border: formData.clientNationality === lang.code ? '2px solid #3498db' : '2px solid #dee2e6',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        backgroundColor: formData.clientNationality === lang.code ? '#e3f2fd' : 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <img
+                        src={`https://flagcdn.com/24x18/${flagCode}.png`}
+                        alt={lang.code}
+                        style={{ width: '24px', height: '18px' }}
+                      />
+                      <span style={{ fontWeight: formData.clientNationality === lang.code ? '600' : '400' }}>
+                        {lang.code === 'FR' ? 'Français' : 'English'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Formulaire participants - toujours visible mais optionnel */}
+            {/* Formulaire participants */}
             <div className={styles.participantsSection}>
               <h3>{t('InfosPart')}</h3>
-              <p style={{ fontSize: '0.9rem', color: '#6c757d', marginBottom: '1rem' }}>
-                Vous recevrez un lien vers ce formulaire dans l'email de confirmation de votre réservation.
-              </p>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#495057',
+                marginBottom: '1rem',
+                backgroundColor: isUrgent ? '#f8d7da' : '#fff3cd',
+                padding: '1rem',
+                borderRadius: '8px',
+                borderLeft: isUrgent ? '4px solid #dc3545' : '4px solid #ffc107'
+              }}>
+                <p style={{ margin: 0, fontWeight: '500' }}>
+                  {isUrgent ? (
+                    <>🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.</>
+                  ) : (
+                    <>⚠️ Ces informations sont <strong>obligatoires</strong> pour participer à l'activité.</>
+                  )}
+                </p>
+                {!isUrgent && (
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+                    Vous pouvez les remplir maintenant ou plus tard. Votre <strong>email de confirmation</strong> contiendra un lien pour <strong>compléter ou modifier</strong> ces informations avant l'activité.
+                  </p>
+                )}
+              </div>
               {session.shoeRentalAvailable && (
                 <small className={styles.infoNote}>ℹ️ {t('AskLaterShoesLoc')}</small>
               )}
 
-              {/* Bouton pour basculer l'affichage du formulaire */}
-              <button
-                type="button"
-                onClick={() => setShowParticipantsForm(!showParticipantsForm)}
-                className={styles.btnSecondary}
-                style={{ marginBottom: '1rem' }}
-              >
-                {showParticipantsForm ? 'Remplir plus tard' : 'Remplir maintenant'}
-              </button>
+              {/* Bouton pour basculer l'affichage du formulaire - caché si moins de 24h */}
+              {!isUrgent && (
+                <button
+                  type="button"
+                  onClick={() => setShowParticipantsForm(!showParticipantsForm)}
+                  className={styles.btnSecondary}
+                  style={{ marginBottom: '1rem' }}
+                >
+                  {showParticipantsForm ? 'Remplir plus tard' : 'Remplir maintenant'}
+                </button>
+              )}
 
-              {showParticipantsForm && (
+              {(showParticipantsForm || isUrgent) && (
               <div style={{ marginTop: '1rem' }}>
                 {participants.map((participant, index) => (
                   <div key={index} className={styles.participantCard}>
                     <h4>Participant {index + 1}</h4>
                     <div className={styles.participantGrid}>
                       <div className={styles.formGroup}>
-                        <label>{t('Prénom')}</label>
+                        <label>{t('Prénom')}{isUrgent && ' *'}</label>
                         <input
                           type="text"
                           value={participant.firstName}
                           onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
+                          required={isUrgent}
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label>{t('Poids')} (kg)</label>
-                        <input
-                          type="number"
-                          value={participant.weight}
-                          onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label>{t('Taille')} (cm)</label>
-                        <input
-                          type="number"
-                          value={participant.height}
-                          onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label>Age (an)</label>
+                        <label>Age{isUrgent && ' *'}</label>
                         <input
                           type="number"
                           value={participant.age}
                           onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
+                          required={isUrgent}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>{t('Taille')} (cm){isUrgent && ' *'}</label>
+                        <input
+                          type="number"
+                          value={participant.height}
+                          onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
+                          required={isUrgent}
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>{t('Poids')} (kg){isUrgent && ' *'}</label>
+                        <input
+                          type="number"
+                          value={participant.weight}
+                          onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
+                          required={isUrgent}
                         />
                       </div>
                     </div>
@@ -498,10 +633,11 @@ const BookingForm = () => {
 
                         {participant.shoeRental && (
                           <div className={styles.formGroup}>
-                            <label>{t('Pointure')}</label>
+                            <label>{t('Pointure')}{isUrgent && ' *'}</label>
                             <input
                               type="number"
                               value={participant.shoeSize}
+                              required={isUrgent}
                               onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
                               placeholder="Ex: 42"
                               min="20"
@@ -519,7 +655,7 @@ const BookingForm = () => {
 
             {/* Bon cadeau */}
             <div className={styles.voucherSection}>
-              <label>{t('CodeCadeau')}</label>
+              <label>Code promo / bon cadeau</label>
               <div className={styles.voucherInput}>
                 <input
                   type="text"
@@ -553,13 +689,13 @@ const BookingForm = () => {
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="online"
-                    checked={formData.paymentMethod === 'online'}
+                    value="onsite"
+                    checked={formData.paymentMethod === 'onsite'}
                     onChange={(e) => handleChange('paymentMethod', e.target.value)}
                   />
                   <div>
-                    <strong>{t('payNow')}</strong>
-                    <p>{t('cbPay')}</p>
+                    <strong>{t('payOnPlace')}</strong>
+                    <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
                   </div>
                 </label>
 
@@ -567,13 +703,13 @@ const BookingForm = () => {
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="onsite"
-                    checked={formData.paymentMethod === 'onsite'}
+                    value="online"
+                    checked={formData.paymentMethod === 'online'}
                     onChange={(e) => handleChange('paymentMethod', e.target.value)}
                   />
                   <div>
-                    <strong>{t('payOnPlace')}</strong>
-                    <p>{t('payDayActivity')}</p>
+                    <strong>{t('payNow')}</strong>
+                    <p>{t('cbPay')}</p>
                   </div>
                 </label>
               </div>

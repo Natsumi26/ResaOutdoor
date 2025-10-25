@@ -35,17 +35,10 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
     // Retirer tous les espaces et caractères spéciaux
     let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
 
-    // Indicatifs pays courants
+    // Indicatifs pays pour FR et EN (UK)
     const countryPrefixes = {
       'FR': '+33',
-      'BE': '+32',
-      'CH': '+41',
-      'ES': '+34',
-      'IT': '+39',
-      'DE': '+49',
-      'GB': '+44',
-      'US': '+1',
-      'CA': '+1',
+      'EN': '+44', // Angleterre (UK)
     };
 
     let prefix = countryPrefixes[countryCode?.toUpperCase()] || '';
@@ -105,7 +98,7 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
             {numberOfPeople > 1 && <span className={styles.numberOfPeople}>{numberOfPeople}</span>}
             {booking.clientNationality && (
               <img
-                src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
+                src={`https://flagcdn.com/16x12/${booking.clientNationality === 'EN' ? 'gb' : 'fr'}.png`}
                 alt={booking.clientNationality}
                 className={styles.flagIcon}
                 onError={(e) => {

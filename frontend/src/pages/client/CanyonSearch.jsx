@@ -19,6 +19,7 @@ const CanyonSearch = () => {
   const startDateParam = queryParams.get('startDate'); // format attendu : yyyy-MM-dd
   const [selectedDate, setSelectedDate] = useState(null);
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Tous les produits avant filtrage
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [nextAvailableDates, setNextAvailableDates] = useState([]);
@@ -29,6 +30,25 @@ const CanyonSearch = () => {
     endDate: searchParams.get('endDate') || ''
   });
   const [showCalendar, setShowCalendar] = useState(false);
+
+  // Filtres supplémentaires pour les résultats
+  const [resultFilters, setResultFilters] = useState({
+    category: '',
+    massif: '',
+    difficulty: ''
+  });
+
+  // Détecter si on est sur mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Retirer le chargement automatique au démarrage
   useEffect(() => {
@@ -45,6 +65,38 @@ const CanyonSearch = () => {
       loadProducts();
     }
   }, []);
+
+  // Appliquer les filtres sur les résultats
+  useEffect(() => {
+    if (allProducts.length === 0) return;
+
+    let filtered = [...allProducts];
+
+    // Filtre par catégorie
+    if (resultFilters.category) {
+      filtered = filtered.filter(product =>
+        product.categories && product.categories.some(cat =>
+          cat.category && cat.category.name === resultFilters.category
+        )
+      );
+    }
+
+    // Filtre par massif (à implémenter quand le champ sera ajouté)
+    if (resultFilters.massif) {
+      filtered = filtered.filter(product =>
+        product.massif === resultFilters.massif
+      );
+    }
+
+    // Filtre par difficulté
+    if (resultFilters.difficulty) {
+      filtered = filtered.filter(product =>
+        product.level && product.level.toLowerCase() === resultFilters.difficulty.toLowerCase()
+      );
+    }
+
+    setProducts(filtered);
+  }, [resultFilters, allProducts]);
 
   const loadProducts = async (customFilters = null) => {
     const currentFilters = customFilters || filters;
@@ -80,10 +132,12 @@ const CanyonSearch = () => {
       // Utiliser la nouvelle API de recherche
       const response = await sessionsAPI.searchAvailable(params);
       console.log(response)
-      setProducts(response.data.products || []);
+      const fetchedProducts = response.data.products || [];
+      setAllProducts(fetchedProducts);
+      setProducts(fetchedProducts);
 
       // Si aucun produit trouvé, chercher les 2 prochaines dates disponibles
-      if (!response.data.products || response.data.products.length === 0) {
+      if (!fetchedProducts || fetchedProducts.length === 0) {
         try {
           const nextDatesResponse = await sessionsAPI.getNextAvailableDates(currentFilters.participants);
           setNextAvailableDates(nextDatesResponse.data.dates || []);
@@ -162,6 +216,12 @@ const CanyonSearch = () => {
   };
 
   const handleSearch = () => {
+    // Réinitialiser les filtres de résultats
+    setResultFilters({
+      category: '',
+      massif: '',
+      difficulty: ''
+    });
     loadProducts();
     // Scroll automatique vers les résultats après un court délai
     setTimeout(() => {
@@ -213,21 +273,56 @@ const CanyonSearch = () => {
     return colorMap[level?.toLowerCase()] || '#6c757d';
   };
 
+  // Obtenir les catégories uniques des produits
+  const getUniqueCategories = () => {
+    const categories = new Set();
+    allProducts.forEach(product => {
+      if (product.categories && product.categories.length > 0) {
+        product.categories.forEach(cat => {
+          if (cat.category && cat.category.name) {
+            categories.add(cat.category.name);
+          }
+        });
+      }
+    });
+    return Array.from(categories).sort();
+  };
+
+  // Obtenir les massifs uniques (à implémenter plus tard)
+  const getUniqueMassifs = () => {
+    const massifs = new Set();
+    allProducts.forEach(product => {
+      if (product.massif) {
+        massifs.add(product.massif);
+      }
+    });
+    return Array.from(massifs).sort();
+  };
+
+  // Obtenir les difficultés uniques
+  const getUniqueDifficulties = () => {
+    const difficulties = new Set();
+    allProducts.forEach(product => {
+      if (product.level) {
+        difficulties.add(product.level);
+      }
+    });
+    return Array.from(difficulties).sort();
+  };
+
   // Afficher l'interface de recherche (toujours visible maintenant)
   return (
     <div className={styles.searchPageContainer}>
-      <div className={styles.searchBox} style={{ marginTop: '2rem' }}>
-        {/* Header avec traduction */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ flex: 1 }}>
-            <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '1.4rem', fontWeight: 700 }}>
-              Trouvez et réservez votre sortie
-            </h2>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <LanguageSwitcher />
-          </div>
+      <div className={styles.searchBox} style={{ marginTop: '2rem', position: 'relative' }}>
+        {/* Sélecteur de langue à cheval dans le coin */}
+        <div style={{ position: 'absolute', top: '-8px', right: '-8px', zIndex: 10, transform: 'scale(1.2)' }}>
+          <LanguageSwitcher />
         </div>
+
+        {/* Titre */}
+        <h2 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.5rem', fontWeight: 700, textAlign: 'center' }}>
+          Trouvez et réservez votre sortie
+        </h2>
 
         {/* Informations de contact */}
         <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#495057', lineHeight: 1.5, textAlign: 'center' }}>
@@ -236,8 +331,84 @@ const CanyonSearch = () => {
           </p>
         </div>
 
+          {/* Section Date */}
+          <div style={{ marginBottom: '1.5rem', position: 'relative', maxWidth: '300px', margin: '0 auto 1.5rem auto' }}>
+            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: '#495057', textAlign: 'center' }}>
+              Date
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={
+                filters.date
+                  ? new Date(filters.date).toLocaleDateString('fr-FR')
+                  : filters.startDate && filters.endDate
+                  ? `${new Date(filters.startDate).toLocaleDateString('fr-FR')} - ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
+                  : ''
+              }
+              onClick={() => setShowCalendar(!showCalendar)}
+              placeholder="Sélectionner"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                backgroundColor: 'white',
+                textAlign: 'center'
+              }}
+            />
+            {showCalendar && (
+              <div style={{ marginTop: '0.75rem', position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+                <DateRangePicker
+                  onDateChange={(start, end) => {
+                    handleDateChange(start, end);
+                    if (start) setShowCalendar(false);
+                  }}
+                  initialStartDate={filters.startDate || filters.date}
+                  initialEndDate={filters.endDate}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Nombre de participants */}
+          <div style={{ maxWidth: '300px', margin: '0 auto 1.5rem auto' }}>
+            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: '#495057', textAlign: 'center' }}>
+              {t('NbrParticipants')} *
+            </label>
+            <input
+              type="number"
+              min="1"
+              placeholder="Ex: 4"
+              value={filters.participants}
+              onChange={(e) => handleParticipantsChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                textAlign: 'center'
+              }}
+            />
+          </div>
+
+        {/* Bouton de recherche */}
+        <div style={{ maxWidth: '300px', margin: '0 auto' }}>
+          <button
+            onClick={handleSearch}
+            className={styles.searchButton}
+            disabled={!canSearch || loading}
+            style={{ width: '100%' }}
+          >
+            {loading ? t('RechercheLoading') || 'Recherche en cours...' : t('Rechercher')}
+          </button>
+        </div>
+
         {/* Bouton Bon Cadeau */}
-        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={() => navigate('/client/gift-voucher')}
             style={{
@@ -265,77 +436,6 @@ const CanyonSearch = () => {
             🎁 {t('achatGift') || 'Acheter un bon cadeau'}
           </button>
         </div>
-
-          {/* Section Date */}
-          <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
-            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: '#495057' }}>
-              Date
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={
-                filters.date
-                  ? new Date(filters.date).toLocaleDateString('fr-FR')
-                  : filters.startDate && filters.endDate
-                  ? `${new Date(filters.startDate).toLocaleDateString('fr-FR')} - ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
-                  : ''
-              }
-              onClick={() => setShowCalendar(!showCalendar)}
-              placeholder="Sélectionner"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #dee2e6',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                cursor: 'pointer',
-                backgroundColor: 'white'
-              }}
-            />
-            {showCalendar && (
-              <div style={{ marginTop: '0.75rem' }}>
-                <DateRangePicker
-                  onDateChange={(start, end) => {
-                    handleDateChange(start, end);
-                    if (start) setShowCalendar(false);
-                  }}
-                  initialStartDate={filters.startDate || filters.date}
-                  initialEndDate={filters.endDate}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Nombre de participants */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: '#495057' }}>
-              {t('NbrParticipants')} *
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="Ex: 4"
-              value={filters.participants}
-              onChange={(e) => handleParticipantsChange(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #dee2e6',
-                borderRadius: '6px',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-        {/* Bouton de recherche */}
-        <button
-          onClick={handleSearch}
-          className={styles.searchButton}
-          disabled={!canSearch || loading}
-        >
-          {loading ? t('RechercheLoading') || 'Recherche en cours...' : t('Rechercher')}
-        </button>
       </div>
 
       {/* Résultats en dessous */}
@@ -343,10 +443,83 @@ const CanyonSearch = () => {
         <div id="results" style={{ marginTop: '2rem', width: '100%', maxWidth: '1200px', background: 'white', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           {products.length > 0 ? (
             <>
-              <div className={styles.resultsHeader}>
-                <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500' }}>
-                  {products.length} canyon{products.length > 1 ? 's' : ''} trouvé{products.length > 1 ? 's' : ''}
-                </h2>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
+                    {products.length} canyon{products.length > 1 ? 's' : ''} trouvé{products.length > 1 ? 's' : ''}
+                    {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
+                      <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: '#3498db' }}>
+                        (sur {allProducts.length})
+                      </span>
+                    )}
+                  </h2>
+
+                  {/* Filtres supplémentaires */}
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {/* Catégorie - masqué sur mobile */}
+                    {!isMobile && getUniqueCategories().length > 0 && (
+                      <select
+                        value={resultFilters.category}
+                        onChange={(e) => setResultFilters({ ...resultFilters, category: e.target.value })}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          border: '1px solid #dee2e6',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <option value="">Toutes les catégories</option>
+                        {getUniqueCategories().map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Massif - masqué sur mobile */}
+                    {!isMobile && getUniqueMassifs().length > 0 && (
+                      <select
+                        value={resultFilters.massif}
+                        onChange={(e) => setResultFilters({ ...resultFilters, massif: e.target.value })}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          border: '1px solid #dee2e6',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <option value="">Tous les massifs</option>
+                        {getUniqueMassifs().map(massif => (
+                          <option key={massif} value={massif}>{massif}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Difficulté - toujours visible */}
+                    {getUniqueDifficulties().length > 0 && (
+                      <select
+                        value={resultFilters.difficulty}
+                        onChange={(e) => setResultFilters({ ...resultFilters, difficulty: e.target.value })}
+                        style={{
+                          padding: isMobile ? '0.4rem 0.6rem' : '0.5rem 1rem',
+                          border: '1px solid #dee2e6',
+                          borderRadius: '6px',
+                          fontSize: isMobile ? '0.8rem' : '0.9rem',
+                          cursor: 'pointer',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <option value="">{isMobile ? 'Difficulté' : 'Toutes les difficultés'}</option>
+                        {getUniqueDifficulties().map(diff => (
+                          <option key={diff} value={diff}>{diff}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -453,10 +626,14 @@ const CanyonSearch = () => {
                               {product.name.toUpperCase()}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                              <div style={{ fontSize: '0.7rem', color: '#6c757d' }}>À partir de</div>
                               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2c3e50', lineHeight: 1 }}>
-                                {product.priceIndividual},00 €
+                                {product.priceIndividual}€
                               </div>
+                              {product.priceGroup && product.priceGroup.min && (
+                                <div style={{ fontSize: '0.7rem', color: '#6c757d', marginTop: '0.25rem' }}>
+                                  Tarif groupe dès {product.priceGroup.min} pers.
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#495057', fontSize: '0.9rem' }}>
@@ -511,23 +688,61 @@ const CanyonSearch = () => {
 
                                   {/* Créneaux horaires pour cette date */}
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                    {sessions.map((session) => (
-                                      <button
-                                        key={session.sessionId || session.id}
-                                        className={styles.timeSlotButton}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          const sessionId = session.sessionId || session.id;
-                                          navigate(`/client/book/${sessionId}?productId=${product.id}`);
-                                        }}
-                                      >
-                                        <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
-                                        <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
-                                          {session.availablePlaces} places
-                                        </span>
-                                      </button>
-                                    ))}
+                                    {sessions.map((session) => {
+                                      const isAutoClosed = session.isAutoClosed;
+
+                                      if (isAutoClosed) {
+                                        // Affichage pour session fermée automatiquement
+                                        return (
+                                          <div
+                                            key={session.sessionId || session.id}
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              alignItems: 'center',
+                                              padding: '0.75rem 1rem',
+                                              borderRadius: '6px',
+                                              border: '2px solid #ffc107',
+                                              background: '#fff3cd',
+                                              cursor: 'default',
+                                              minWidth: '140px'
+                                            }}
+                                          >
+                                            <span style={{ fontSize: '1.1rem', color: '#856404', fontWeight: '600' }}>
+                                              🕐 {session.startTime}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.3' }}>
+                                              Fermé en ligne
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.2' }}>
+                                              📞 Appelez avant 9h30 ou vers 12h
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', marginTop: '2px', color: '#856404' }}>
+                                              ({session.availablePlaces} {session.availablePlaces > 1 ? 'places' : 'place'})
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+
+                                      // Affichage normal pour session réservable
+                                      return (
+                                        <button
+                                          key={session.sessionId || session.id}
+                                          className={styles.timeSlotButton}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const sessionId = session.sessionId || session.id;
+                                            navigate(`/client/book/${sessionId}?productId=${product.id}`);
+                                          }}
+                                        >
+                                          <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
+                                          <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
+                                            {session.availablePlaces} places
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               ))}
@@ -551,6 +766,28 @@ const CanyonSearch = () => {
                 })}
               </div>
             </>
+          ) : allProducts.length > 0 ? (
+            // Cas où des filtres sont actifs et ne retournent aucun résultat
+            <div className={styles.noResults}>
+              <h2>Aucun canyon ne correspond aux filtres sélectionnés</h2>
+              <p>Essayez de modifier ou réinitialiser les filtres ci-dessus.</p>
+              <button
+                onClick={() => setResultFilters({ category: '', massif: '', difficulty: '' })}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginTop: '1rem'
+                }}
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
           ) : (
             <div className={styles.noResults}>
               <h2>{t('Désolé')} !</h2>

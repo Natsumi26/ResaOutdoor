@@ -1233,13 +1233,41 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Nationalité (code pays, ex: FR)</label>
-                    <input
-                      type="text"
-                      value={editedClientData.clientNationality}
-                      onChange={(e) => setEditedClientData({...editedClientData, clientNationality: e.target.value})}
-                      maxLength={2}
-                    />
+                    <label>Langue parlée</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {['FR', 'EN'].map((code) => {
+                        // Mapper le code langue vers le code pays pour les drapeaux
+                        const flagCode = code === 'EN' ? 'gb' : 'fr';
+                        return (
+                          <div
+                            key={code}
+                            onClick={() => setEditedClientData({...editedClientData, clientNationality: code})}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              border: editedClientData.clientNationality === code ? '2px solid #3498db' : '2px solid #dee2e6',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              backgroundColor: editedClientData.clientNationality === code ? '#e3f2fd' : 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <img
+                              src={`https://flagcdn.com/24x18/${flagCode}.png`}
+                              alt={code}
+                              style={{ width: '20px', height: '15px' }}
+                            />
+                            <span style={{ fontSize: '0.9rem', fontWeight: editedClientData.clientNationality === code ? '600' : '400' }}>
+                              {code === 'FR' ? 'Français' : 'English'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className={styles.formGroup}>
                     <label>Nombre de personnes</label>

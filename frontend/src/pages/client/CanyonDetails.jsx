@@ -250,6 +250,40 @@ const CanyonDetails = () => {
 
   return (
     <div className={styles.clientContainer}>
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          background: 'white',
+          border: 'none',
+          fontSize: '2rem',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        }}
+        title="Retour"
+      >
+        ←
+      </button>
+
       {/* Container 2 colonnes: Infos à gauche, Photos à droite */}
       <div className={styles.topDetailsContainer}>
         {/* Informations du canyon - Colonne gauche */}
@@ -262,7 +296,6 @@ const CanyonDetails = () => {
             )}
           </div>
           <div className={styles.priceBox}>
-            <span className={styles.priceLabel}>{t('aPartir')}</span>
             <span className={styles.priceAmount}>{product.priceIndividual}€</span>
             <span className={styles.priceUnit}>/pers</span>
             {product.priceGroup && (
@@ -497,14 +530,25 @@ const CanyonDetails = () => {
           ) : (
             visibleSessions.map((session) => {
               const availableSpots = getAvailableSpots(session);
-              const isAvailable = session.status === 'open' && availableSpots > 0;
+
+              // Vérifier si le produit actuel est fermé automatiquement
+              const currentProductInSession = session.products.find(p => p.product.id === product.id);
+              const isAutoClosed = currentProductInSession?.product?.isAutoClosed || false;
+
+              const isAvailable = session.status === 'open' && availableSpots > 0 && !isAutoClosed;
+
               if (isSessionReservedByOtherProduct(session)) {
                 return null; // Ne pas afficher cette session
               }
+
               return (
                 <div
                   key={session.id}
-                  className={`${styles.sessionCard} ${!isAvailable ? styles.disabled : ''}`}
+                  className={`${styles.sessionCard} ${(!isAvailable || isAutoClosed) ? styles.disabled : ''}`}
+                  style={isAutoClosed ? {
+                    border: '2px solid #ffc107',
+                    background: 'linear-gradient(135deg, #fff3cd 0%, #ffffff 100%)'
+                  } : {}}
                 >
                   <div className={styles.sessionInfo}>
                     <div className={styles.sessionTime}>
@@ -521,10 +565,35 @@ const CanyonDetails = () => {
                           {t('LocShoes')}: {session.shoeRentalPrice}€
                         </p>
                       )}
+                      {isAutoClosed && (
+                        <p style={{
+                          color: '#856404',
+                          fontWeight: '600',
+                          marginTop: '0.5rem',
+                          fontSize: '0.9rem'
+                        }}>
+                          ⚠️ Fermé en ligne
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className={styles.sessionActions}>
-                    {isAvailable ? (
+                    {isAutoClosed ? (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '0.5rem',
+                        background: '#fff3cd',
+                        borderRadius: '6px',
+                        border: '1px solid #ffc107'
+                      }}>
+                        <p style={{ margin: '0 0 0.5rem 0', color: '#856404', fontWeight: '600', fontSize: '0.9rem' }}>
+                          Réservation fermée en ligne
+                        </p>
+                        <p style={{ margin: 0, color: '#856404', fontSize: '0.8rem', lineHeight: '1.3' }}>
+                          📞 Appelez le guide avant 9h30 ou vers 12h pour réserver
+                        </p>
+                      </div>
+                    ) : isAvailable ? (
                       <button
                         onClick={() => handleBookSession(session.id)}
                         className={styles.btnPrimary}
