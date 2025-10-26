@@ -158,8 +158,7 @@ const MyBooking = () => {
           top: '20px',
           left: '20px',
           background: 'white',
-          border: 'none',
-          fontSize: '2rem',
+          border: '2px solid #2c3e50',
           cursor: 'pointer',
           borderRadius: '50%',
           width: '50px',
@@ -169,19 +168,24 @@ const MyBooking = () => {
           justifyContent: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           zIndex: 1000,
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          padding: 0
         }}
         onMouseEnter={(e) => {
           e.target.style.transform = 'scale(1.1)';
           e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.target.style.background = '#f8f9fa';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'scale(1)';
           e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.target.style.background = 'white';
         }}
         title="Retour"
       >
-        ←
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </button>
 
       <div className={styles.myBookingContainer}>

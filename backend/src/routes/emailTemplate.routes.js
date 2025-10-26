@@ -5,7 +5,8 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
-  getAvailableVariables
+  getAvailableVariables,
+  initializeDefaultTemplates
 } from '../controllers/emailTemplate.controller.js';
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const router = express.Router();
 router.get('/variables', getAvailableVariables);
 
 // Routes protégées (authentification requise)
+router.post('/initialize', initializeDefaultTemplates);
 router.get('/', getAllTemplates);
 router.get('/:type', getTemplateByType);
 router.post('/', createTemplate);

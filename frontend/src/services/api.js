@@ -130,7 +130,8 @@ export const emailTemplatesAPI = {
   create: (data) => api.post('/email-templates', data),
   update: (id, data) => api.put(`/email-templates/${id}`, data),
   delete: (id) => api.delete(`/email-templates/${id}`),
-  getAvailableVariables: () => api.get('/email-templates/variables')
+  getAvailableVariables: () => api.get('/email-templates/variables'),
+  initialize: () => api.post('/email-templates/initialize')
 };
 
 // Stripe
@@ -161,6 +162,28 @@ export const resellersAPI = {
   create: (data) => api.post('/resellers', data),
   update: (id, data) => api.put(`/resellers/${id}`, data),
   delete: (id) => api.delete(`/resellers/${id}`)
+};
+
+// Settings
+export const settingsAPI = {
+  get: () => api.get('/settings'),
+  update: (data) => api.put('/settings', data),
+  updateLogo: (data) => api.patch('/settings/logo', data)
+};
+
+// Upload
+export const uploadAPI = {
+  images: (formData) => {
+    return api.post('/upload/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  logo: (formData) => {
+    return api.post('/upload/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  deleteImage: (url) => api.delete('/upload/images', { data: { url } })
 };
 
 export default api;

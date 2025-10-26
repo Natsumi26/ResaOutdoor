@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { emailTemplatesAPI } from '../services/api';
+import { emailTemplatesAPI, settingsAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const Emails = () => {
   const [templates, setTemplates] = useState([]);
   const [availableVariables, setAvailableVariables] = useState({});
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
+  const [previewText, setPreviewText] = useState('');
+  const [previewTab, setPreviewTab] = useState('html'); // 'html' or 'text'
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [formData, setFormData] = useState({
     type: '',
     name: '',
@@ -31,6 +35,7 @@ const Emails = () => {
   useEffect(() => {
     loadTemplates();
     loadVariables();
+    loadSettings();
   }, []);
 
   useEffect(() => {
@@ -40,15 +45,37 @@ const Emails = () => {
       }
     };
 
+    const handleClickOutside = (e) => {
+      // Si on clique en dehors du dropdown, le fermer
+      if (openDropdownId && !e.target.closest('[data-dropdown]')) {
+        setOpenDropdownId(null);
+      }
+    };
+
     document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
 
   const loadTemplates = async () => {
     try {
       setLoading(true);
       const response = await emailTemplatesAPI.getAll();
-      setTemplates(response.data.templates || []);
+      const templates = response.data.templates || [];
+
+      // Si aucun template n'existe, initialiser les templates par défaut
+      if (templates.length === 0) {
+        console.log('Aucun template trouvé, initialisation des templates par défaut...');
+        await emailTemplatesAPI.initialize();
+        // Recharger les templates après initialisation
+        const newResponse = await emailTemplatesAPI.getAll();
+        setTemplates(newResponse.data.templates || []);
+      } else {
+        setTemplates(templates);
+      }
     } catch (error) {
       console.error('Erreur chargement templates:', error);
       alert('Erreur lors du chargement des templates');
@@ -63,6 +90,15 @@ const Emails = () => {
       setAvailableVariables(response.data.variables || {});
     } catch (error) {
       console.error('Erreur chargement variables:', error);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const response = await settingsAPI.get();
+      setSettings(response.data.settings || null);
+    } catch (error) {
+      console.error('Erreur chargement settings:', error);
     }
   };
 
@@ -104,8 +140,29 @@ const Emails = () => {
     });
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Si on change le type de template et qu'on est en mode création
+    if (name === 'type' && value && !editingTemplate) {
+      try {
+        // Charger le template actif pour ce type
+        const response = await emailTemplatesAPI.getByType(value);
+        if (response.data.template) {
+          const activeTemplate = response.data.template;
+          setFormData(prev => ({
+            ...prev,
+            type: value,
+            htmlContent: activeTemplate.htmlContent || '',
+            textContent: activeTemplate.textContent || ''
+          }));
+          return;
+        }
+      } catch (error) {
+        console.log('Aucun template actif trouvé pour ce type, champs vides');
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -174,8 +231,17 @@ const Emails = () => {
   };
 
   const getSampleData = (type) => {
+    // Variables de settings (valeurs réelles si disponibles, sinon valeurs par défaut)
+    const settingsVariables = {
+      '{{companyName}}': settings?.companyName || 'Canyon Life',
+      '{{companyEmail}}': settings?.companyEmail || 'contact@canyonlife.fr',
+      '{{companyPhone}}': settings?.companyPhone || '+33 6 12 34 56 78',
+      '{{logo}}': settings?.logo ? `http://localhost:5000${settings.logo}` : ''
+    };
+
     const sampleData = {
       booking_confirmation: {
+        ...settingsVariables,
         '{{clientFirstName}}': 'Jean',
         '{{clientLastName}}': 'Dupont',
         '{{clientEmail}}': 'jean.dupont@email.com',
@@ -195,6 +261,7 @@ const Emails = () => {
         '{{googleMapsLink}}': 'https://maps.google.com/?q=45.1234,5.6789'
       },
       booking_reminder: {
+        ...settingsVariables,
         '{{clientFirstName}}': 'Jean',
         '{{clientLastName}}': 'Dupont',
         '{{productName}}': 'Canyon du Furon - Intégral',
@@ -203,6 +270,7 @@ const Emails = () => {
         '{{guideName}}': 'Pierre Martin'
       },
       payment_confirmation: {
+        ...settingsVariables,
         '{{clientFirstName}}': 'Jean',
         '{{clientLastName}}': 'Dupont',
         '{{productName}}': 'Canyon du Furon - Intégral',
@@ -216,19 +284,23 @@ const Emails = () => {
       }
     };
 
-    return sampleData[type] || {};
+    return sampleData[type] || settingsVariables;
   };
 
   const handlePreview = () => {
     let html = formData.htmlContent;
+    let text = formData.textContent || '';
     const samples = getSampleData(formData.type);
 
     // Remplacer toutes les variables par les données d'exemple
     Object.keys(samples).forEach(variable => {
       html = html.replaceAll(variable, samples[variable]);
+      text = text.replaceAll(variable, samples[variable]);
     });
 
     setPreviewHtml(html);
+    setPreviewText(text);
+    setPreviewTab('html');
     setIsPreviewOpen(true);
   };
 
@@ -245,17 +317,11 @@ const Emails = () => {
             Configuration des templates d'emails et des notifications
           </p>
         </div>
-        <button className={styles.btnPrimary} onClick={() => handleOpenModal()}>
-          + Nouveau template
-        </button>
       </div>
 
       {templates.length === 0 ? (
         <div className={styles.emptyState}>
-          <p style={{ fontSize: '16px', marginBottom: '16px' }}>Aucun template d'email configuré</p>
-          <button className={styles.btnPrimary} onClick={() => handleOpenModal()}>
-            Créer votre premier template
-          </button>
+          <p style={{ fontSize: '16px', marginBottom: '16px' }}>Chargement des templates...</p>
         </div>
       ) : (
         <div className={styles.tableContainer}>
@@ -281,42 +347,62 @@ const Emails = () => {
                     )}
                   </td>
                   <td style={{ textAlign: 'center', position: 'relative' }}>
-                    <button
-                      onClick={() => setOpenDropdownId(openDropdownId === template.id ? null : template.id)}
-                      style={{
-                        background: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        margin: '0 auto'
-                      }}
-                    >
-                      ⋮ Actions
-                    </button>
-                    {openDropdownId === template.id && (
-                      <>
+                    <div data-dropdown style={{ position: 'relative' }}>
+                      <button
+                        onClick={(e) => {
+                          if (openDropdownId === template.id) {
+                            setOpenDropdownId(null);
+                          } else {
+                            const rect = e.target.getBoundingClientRect();
+                            setDropdownPosition({
+                              top: rect.bottom + 4,
+                              left: rect.left - 80 // Décaler vers la gauche pour centrer
+                            });
+                            setOpenDropdownId(template.id);
+                          }
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto',
+                          padding: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          const svg = e.currentTarget.querySelector('svg');
+                          if (svg) svg.style.stroke = '#111827';
+                        }}
+                        onMouseLeave={(e) => {
+                          const svg = e.currentTarget.querySelector('svg');
+                          if (svg) svg.style.stroke = '#6b7280';
+                        }}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ stroke: '#6b7280', transition: 'stroke 0.2s' }}
+                        >
+                          <path
+                            d="M6 9L12 15L18 9"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      {openDropdownId === template.id && (
                         <div
                           style={{
                             position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 999
-                          }}
-                          onClick={() => setOpenDropdownId(null)}
-                        />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            right: '10px',
-                            top: '100%',
-                            marginTop: '4px',
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`,
                             background: 'white',
                             border: '1px solid #e5e7eb',
                             borderRadius: '8px',
@@ -328,15 +414,21 @@ const Emails = () => {
                         >
                           <button
                             onClick={() => {
-                              setFormData({
-                                type: template.type,
-                                name: template.name,
-                                subject: template.subject,
-                                htmlContent: template.htmlContent,
-                                textContent: template.textContent || '',
-                                isActive: template.isActive
+                              // Afficher l'aperçu avec remplacement des variables
+                              let html = template.htmlContent;
+                              let text = template.textContent || '';
+                              const samples = getSampleData(template.type);
+
+                              // Remplacer toutes les variables par les données d'exemple
+                              Object.keys(samples).forEach(variable => {
+                                html = html.replaceAll(variable, samples[variable]);
+                                text = text.replaceAll(variable, samples[variable]);
                               });
-                              handlePreview();
+
+                              setPreviewHtml(html);
+                              setPreviewText(text);
+                              setPreviewTab('html');
+                              setIsPreviewOpen(true);
                               setOpenDropdownId(null);
                             }}
                             style={{
@@ -381,34 +473,9 @@ const Emails = () => {
                           >
                             ✏️ Modifier
                           </button>
-                          <button
-                            onClick={() => {
-                              handleDelete(template.id);
-                              setOpenDropdownId(null);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '10px 16px',
-                              border: 'none',
-                              background: 'white',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              color: '#ef4444',
-                              transition: 'background 0.2s',
-                              borderTop: '1px solid #f3f4f6'
-                            }}
-                            onMouseEnter={(e) => e.target.style.background = '#fef2f2'}
-                            onMouseLeave={(e) => e.target.style.background = 'white'}
-                          >
-                            🗑️ Supprimer
-                          </button>
                         </div>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -604,6 +671,42 @@ const Emails = () => {
               </button>
             </div>
 
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
+              <button
+                onClick={() => setPreviewTab('html')}
+                style={{
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: previewTab === 'html' ? '2px solid #3b82f6' : '2px solid transparent',
+                  color: previewTab === 'html' ? '#3b82f6' : '#6b7280',
+                  fontWeight: previewTab === 'html' ? '600' : '400',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontSize: '14px'
+                }}
+              >
+                Version HTML
+              </button>
+              <button
+                onClick={() => setPreviewTab('text')}
+                style={{
+                  padding: '12px 24px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: previewTab === 'text' ? '2px solid #3b82f6' : '2px solid transparent',
+                  color: previewTab === 'text' ? '#3b82f6' : '#6b7280',
+                  fontWeight: previewTab === 'text' ? '600' : '400',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontSize: '14px'
+                }}
+              >
+                Version Texte
+              </button>
+            </div>
+
             <div style={{
               flex: 1,
               overflow: 'auto',
@@ -611,16 +714,32 @@ const Emails = () => {
               borderRadius: '8px',
               background: 'white'
             }}>
-              <iframe
-                srcDoc={previewHtml}
-                style={{
-                  width: '100%',
-                  height: '600px',
-                  border: 'none',
-                  display: 'block'
-                }}
-                title="Aperçu de l'email"
-              />
+              {previewTab === 'html' ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  style={{
+                    width: '100%',
+                    height: '600px',
+                    border: 'none',
+                    display: 'block'
+                  }}
+                  title="Aperçu de l'email"
+                />
+              ) : (
+                <pre style={{
+                  margin: 0,
+                  padding: '20px',
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.6',
+                  color: '#1f2937',
+                  minHeight: '600px'
+                }}>
+                  {previewText || 'Aucun contenu texte disponible'}
+                </pre>
+              )}
             </div>
 
             <div style={{ marginTop: '20px', textAlign: 'right' }}>

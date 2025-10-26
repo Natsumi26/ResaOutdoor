@@ -1035,6 +1035,11 @@
   border: 1px solid rgba(52, 152, 219, 0.1);
 }
 
+/* Cacher la version mobile par défaut (mode desktop) */
+.priceBreakdown[data-mobile-price="true"] {
+  display: none;
+}
+
 .priceBreakdown h3 {
   color: #2c3e50;
   margin: 0 0 1.5rem 0;
@@ -3027,7 +3032,7 @@ input[type="number"] {
 /* Responsive */
 @media (max-width: 768px) {
   .clientContainer {
-    padding: 1rem;
+    padding: 0;
   }
 
   .mainImage {
@@ -3127,10 +3132,80 @@ input[type="number"] {
 
   .bookingFormContainer {
     grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .bookingSummary {
     position: static;
+    margin: 0;
+    padding: 0;
+  }
+
+  .summaryCard {
+    padding: 1rem;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .summaryCard h3 {
+    text-align: center;
+  }
+
+  .bookingFormSection {
+    padding: 2rem;
+  }
+
+  .priceBreakdown {
+    padding: 1rem;
+  }
+
+  .summaryCard h3,
+  .priceBreakdown h3,
+  .bookingFormSection h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .summaryDetails p {
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  .summaryImage {
+    margin-top: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .priceItem {
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+  }
+
+  .bookingForm .formGroup {
+    margin-bottom: 1rem;
+  }
+
+  .participantCard {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .voucherSection,
+  .paymentMethodSection {
+    margin: 1rem 0;
+  }
+
+  /* Cacher le bloc prix de la sidebar en mobile */
+  .priceBreakdown[data-desktop-price="true"] {
+    display: none !important;
+  }
+
+  /* Afficher le bloc prix dans le formulaire en mobile */
+  .priceBreakdown[data-mobile-price="true"] {
+    display: block !important;
+    margin: 1rem 0;
   }
 
   .clientFieldsGrid,

@@ -50,19 +50,13 @@ const BookingConfirmation = () => {
         <div className={styles.confirmationHeader}>
           <div className={styles.successIcon}>✓</div>
           <h1>{t('resaConfirm')}</h1>
-          <p className={styles.confirmationSubtitle}>
-            {t(isPaid
-              ? 'paySaveSuccess'
-              : 'bookingSave'
-            )}
-          </p>
         </div>
 
         {/* Détails de la réservation */}
         <div className={styles.confirmationCard}>
           {/* Prochaines étapes - EN PREMIER */}
           <div className={styles.confirmationSection}>
-            <h3 style={{ fontSize: '1.5rem', color: '#3498db', marginBottom: '1.5rem' }}>{t('nextstep')}</h3>
+            <h3 style={{ fontSize: '1.5rem', color: '#3498db', marginBottom: '1.5rem', textAlign: 'center' }}>{t('nextstep')}</h3>
             <div className={styles.nextSteps}>
               <div className={styles.step}>
                 <span className={styles.stepIcon}>📧</span>
@@ -111,7 +105,7 @@ const BookingConfirmation = () => {
           </div>
 
           <div className={styles.confirmationSection}>
-            <h2>{t('detailResa')}</h2>
+            <h2 style={{ textAlign: 'center' }}>{t('detailResa')}</h2>
             <div style={{
               background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
               borderRadius: '12px',

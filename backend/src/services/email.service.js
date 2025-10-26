@@ -2,10 +2,62 @@ import { transporter, defaultFrom } from '../config/email.js';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import nodemailer from 'nodemailer';
-
+import prisma from '../config/database.js';
 
 /**
- * Template HTML pour email de confirmation de réservation
+ * Récupérer un template depuis la BDD et remplacer les variables
+ */
+const getTemplateWithVariables = async (type, variables) => {
+  try {
+    // Récupérer le template actif pour ce type
+    const template = await prisma.emailTemplate.findUnique({
+      where: { type, isActive: true }
+    });
+
+    if (!template) {
+      console.log(`Aucun template actif trouvé pour le type: ${type}`);
+      return null;
+    }
+
+    // Récupérer les settings pour les variables de l'entreprise
+    const settings = await prisma.settings.findFirst();
+
+    // Ajouter les variables de l'entreprise (logo, etc.)
+    const allVariables = {
+      ...variables,
+      companyName: settings?.companyName || 'Canyon Life',
+      companyEmail: settings?.companyEmail || '',
+      companyPhone: settings?.companyPhone || '',
+      logo: settings?.logo ? `${process.env.FRONTEND_URL || 'http://localhost:5000'}${settings.logo}` : ''
+    };
+
+    // Remplacer toutes les variables dans le contenu HTML
+    let htmlContent = template.htmlContent;
+    let textContent = template.textContent || '';
+    let subject = template.subject;
+
+    // Remplacer chaque variable
+    Object.keys(allVariables).forEach(key => {
+      const placeholder = `{{${key}}}`;
+      const value = allVariables[key] !== undefined && allVariables[key] !== null ? allVariables[key] : '';
+      htmlContent = htmlContent.replaceAll(placeholder, value);
+      textContent = textContent.replaceAll(placeholder, value);
+      subject = subject.replaceAll(placeholder, value);
+    });
+
+    return {
+      subject,
+      htmlContent,
+      textContent
+    };
+  } catch (error) {
+    console.error('Erreur récupération template:', error);
+    return null;
+  }
+};
+
+/**
+ * Template HTML pour email de confirmation de réservation (FALLBACK si pas de template en BDD)
  */
 const bookingConfirmationTemplate = (booking) => {
   const { session, product } = booking;
@@ -228,12 +280,55 @@ L'équipe Canyon Life
  */
 export const sendBookingConfirmation = async (booking) => {
   try {
+    const { session, product } = booking;
+    const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+    // Préparer les variables pour le template
+    const variables = {
+      clientFirstName: booking.clientFirstName,
+      clientLastName: booking.clientLastName,
+      clientEmail: booking.clientEmail,
+      productName: product.name,
+      sessionDate: sessionDate,
+      sessionTimeSlot: session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1),
+      sessionStartTime: session.startTime,
+      guideName: session.guide.login,
+      numberOfPeople: booking.numberOfPeople,
+      totalPrice: booking.totalPrice,
+      amountPaid: booking.amountPaid,
+      amountDue: booking.totalPrice - booking.amountPaid,
+      bookingId: booking.id,
+      bookingLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}`,
+      postBookingMessage: product.postBookingMessage || '',
+      wazeLink: product.wazeLink || '',
+      googleMapsLink: product.googleMapsLink || ''
+    };
+
+    // Essayer de récupérer le template depuis la BDD
+    const templateData = await getTemplateWithVariables('booking_confirmation', variables);
+
+    let subject, html, text;
+
+    if (templateData) {
+      // Utiliser le template de la BDD
+      subject = templateData.subject;
+      html = templateData.htmlContent;
+      text = templateData.textContent;
+      console.log('✅ Template de confirmation chargé depuis la BDD');
+    } else {
+      // Fallback sur le template hardcodé
+      subject = `Confirmation de réservation - ${product.name}`;
+      html = bookingConfirmationTemplate(booking);
+      text = bookingConfirmationText(booking);
+      console.log('⚠️ Utilisation du template de confirmation par défaut (hardcodé)');
+    }
+
     const mailOptions = {
       from: defaultFrom,
       to: booking.clientEmail,
-      subject: `Confirmation de réservation - ${booking.product.name}`,
-      text: bookingConfirmationText(booking),
-      html: bookingConfirmationTemplate(booking)
+      subject,
+      text,
+      html
     };
 
     const info = await transporter.sendMail(mailOptions);

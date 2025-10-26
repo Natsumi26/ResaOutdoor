@@ -11,6 +11,7 @@ const BookingForm = () => {
   const { sessionId } = useParams();
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('productId');
+  const participantsFromUrl = searchParams.get('participants');
   const navigate = useNavigate();
 
   const [session, setSession] = useState(null);
@@ -22,7 +23,7 @@ const BookingForm = () => {
   const initialLanguage = i18n.language?.startsWith('en') ? 'EN' : 'FR';
 
   const [formData, setFormData] = useState({
-    numberOfPeople: 1,
+    numberOfPeople: participantsFromUrl ? parseInt(participantsFromUrl) : 1,
     clientFirstName: '',
     clientLastName: '',
     clientEmail: '',
@@ -333,8 +334,7 @@ const BookingForm = () => {
           top: '20px',
           left: '20px',
           background: 'white',
-          border: 'none',
-          fontSize: '2rem',
+          border: '2px solid #2c3e50',
           cursor: 'pointer',
           borderRadius: '50%',
           width: '50px',
@@ -344,26 +344,29 @@ const BookingForm = () => {
           justifyContent: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           zIndex: 1000,
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          padding: 0
         }}
         onMouseEnter={(e) => {
           e.target.style.transform = 'scale(1.1)';
           e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.target.style.background = '#f8f9fa';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'scale(1)';
           e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.target.style.background = 'white';
         }}
         title="Retour"
       >
-        ←
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </button>
 
       <div className={styles.bookingFormContainer}>
         {/* Résumé de la session */}
         <div className={styles.bookingSummary}>
-          <h2>{t('detailResa')}</h2>
-
           <div className={styles.summaryCard}>
             <h3>{product.name}</h3>
             <div className={styles.summaryDetails}>
@@ -385,7 +388,7 @@ const BookingForm = () => {
           </div>
 
           {/* Calcul du prix */}
-          <div className={styles.priceBreakdown}>
+          <div className={styles.priceBreakdown} data-desktop-price="true">
             <h3>{t('priceDetail')}</h3>
             <div className={styles.priceItem}>
               <span>{formData.numberOfPeople} personne(s) × {
@@ -429,7 +432,7 @@ const BookingForm = () => {
 
         {/* Formulaire */}
         <div className={styles.bookingFormSection}>
-          <h2>{t('yoursInfos')}</h2>
+          <h2 style={{ textAlign: 'center' }}>{t('yoursInfos')}</h2>
 
           <form onSubmit={handleSubmit} className={styles.bookingForm}>
             <div className={styles.formGroup}>
@@ -678,6 +681,48 @@ const BookingForm = () => {
                     <span> ({voucherInfo.maxUsages - voucherInfo.usageCount} utilisations restantes)</span>
                   )}
                 </p>
+              )}
+            </div>
+
+            {/* Calcul du prix - Version mobile uniquement */}
+            <div className={styles.priceBreakdown} data-mobile-price="true">
+              <h3>{t('priceDetail')}</h3>
+              <div className={styles.priceItem}>
+                <span>{formData.numberOfPeople} personne(s) × {
+                  product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
+                    ? product.priceGroup.price
+                    : product.priceIndividual
+                }€</span>
+                <span>{(product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
+                  ? product.priceGroup.price
+                  : product.priceIndividual) * formData.numberOfPeople}€</span>
+              </div>
+
+              {session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
+                <div className={styles.priceItem}>
+                  <span>{participants.filter(p => p.shoeRental).length} {t('locaShoes')} × {session.shoeRentalPrice}€</span>
+                  <span>{session.shoeRentalPrice * participants.filter(p => p.shoeRental).length}€</span>
+                </div>
+              )}
+
+              {voucherInfo && (
+                <>
+                  <div className={`${styles.priceItem} ${styles.discount}`}>
+                    <span>{t('BonApply')} ({voucherInfo.code})</span>
+                    <span>-{discount.toFixed(2)}€</span>
+                  </div>
+                  <div className={`${styles.priceItem} ${styles.total}`}>
+                    <strong>{t('Total')}</strong>
+                    <strong>{finalPrice.toFixed(2)}€</strong>
+                  </div>
+                </>
+              )}
+
+              {!voucherInfo && (
+                <div className={`${styles.priceItem} ${styles.total}`}>
+                  <strong>{t('Total')}</strong>
+                  <strong>{total.toFixed(2)}€</strong>
+                </div>
               )}
             </div>
 

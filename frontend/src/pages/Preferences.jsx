@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { settingsAPI, uploadAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const Preferences = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Préférences personnelles
+  const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [logo, setLogo] = useState('');
   const [language, setLanguage] = useState('fr');
 
   // Préférences de thème
@@ -33,17 +37,35 @@ const Preferences = () => {
   const loadPreferences = async () => {
     try {
       setLoading(true);
-      // TODO: Appeler l'API pour charger les préférences
-      // const response = await preferencesAPI.get();
-      // setPhone(response.data.phone || '');
-      // setEmail(response.data.email || '');
-      // etc.
 
-      // Pour le moment, utiliser les données du user
-      setEmail(user?.email || '');
-      setPhone(user?.phone || '');
+      // Charger les settings depuis l'API
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+
+      if (settings) {
+        setCompanyName(settings.companyName || '');
+        setPhone(settings.companyPhone || '');
+        setEmail(settings.companyEmail || '');
+        setLogo(settings.logo || '');
+        setLanguage(settings.language || 'fr');
+
+        if (settings.primaryColor) {
+          setThemeColors(prev => ({
+            ...prev,
+            primary: settings.primaryColor,
+            secondary: settings.secondaryColor || prev.secondary
+          }));
+        }
+      }
+
+      // Fallback sur les données du user si settings vides
+      if (!settings?.companyEmail && user?.email) {
+        setEmail(user.email);
+      }
     } catch (error) {
       console.error('Erreur chargement préférences:', error);
+      // Fallback sur les données du user en cas d'erreur
+      setEmail(user?.email || '');
     } finally {
       setLoading(false);
     }
@@ -54,19 +76,16 @@ const Preferences = () => {
       setLoading(true);
       setSaveMessage('');
 
-      // TODO: Appeler l'API pour sauvegarder les préférences
-      // await preferencesAPI.update({
-      //   phone,
-      //   email,
-      //   language,
-      //   themeColors,
-      //   emailNotifications,
-      //   smsNotifications,
-      //   bookingReminders
-      // });
-
-      // Simuler la sauvegarde pour le moment
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Sauvegarder les settings via l'API
+      await settingsAPI.update({
+        companyName,
+        companyPhone: phone,
+        companyEmail: email,
+        logo,
+        primaryColor: themeColors.primary,
+        secondaryColor: themeColors.secondary,
+        language
+      });
 
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -75,6 +94,45 @@ const Preferences = () => {
       setSaveMessage('❌ Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
+    // Vérifier la taille (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('L\'image ne doit pas dépasser 2MB');
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await uploadAPI.logo(formData);
+      const logoUrl = response.data.url;
+
+      setLogo(logoUrl);
+
+      // Sauvegarder automatiquement le logo dans les settings
+      await settingsAPI.updateLogo({ logo: logoUrl });
+
+      alert('Logo uploadé avec succès !');
+    } catch (error) {
+      console.error('Erreur upload logo:', error);
+      alert('Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -116,6 +174,25 @@ const Preferences = () => {
             Mettez à jour vos coordonnées pour être contacté par vos clients
           </p>
 
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+              🏢 Nom de l'entreprise
+            </label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Canyon Life"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                fontSize: '1rem'
+              }}
+            />
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
@@ -156,26 +233,75 @@ const Preferences = () => {
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-              🌍 Langue par défaut
-            </label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              style={{
-                width: '300px',
-                padding: '12px',
-                border: '1px solid #dee2e6',
-                borderRadius: '6px',
-                fontSize: '1rem'
-              }}
-            >
-              <option value="fr">🇫🇷 Français</option>
-              <option value="en">🇬🇧 English</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="de">🇩🇪 Deutsch</option>
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                🌍 Langue par défaut
+              </label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="de">🇩🇪 Deutsch</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                🖼️ Logo
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                {logo && (
+                  <img
+                    src={`http://localhost:5000${logo}`}
+                    alt="Logo"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      objectFit: 'contain',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '6px',
+                      padding: '5px',
+                      background: 'white'
+                    }}
+                  />
+                )}
+                <label style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '2px dashed #dee2e6',
+                  borderRadius: '6px',
+                  textAlign: 'center',
+                  cursor: uploadingLogo ? 'not-allowed' : 'pointer',
+                  background: uploadingLogo ? '#f8f9fa' : 'white',
+                  transition: 'all 0.2s',
+                  fontSize: '0.9rem',
+                  color: '#6c757d'
+                }}>
+                  {uploadingLogo ? '⏳ Upload en cours...' : '📤 Cliquez pour uploader'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+              <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Image PNG, JPG ou WEBP (max 2MB). Sera utilisé dans les emails.
+              </small>
+            </div>
           </div>
         </div>
 

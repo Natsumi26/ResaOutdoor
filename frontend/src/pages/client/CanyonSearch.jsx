@@ -557,7 +557,7 @@ const CanyonSearch = () => {
                             }}
                           >
                             <button
-                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}`)}
+                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}`)}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -595,7 +595,7 @@ const CanyonSearch = () => {
                             justifyContent: 'center'
                           }}>
                             <button
-                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}`)}
+                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}`)}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -658,96 +658,157 @@ const CanyonSearch = () => {
                           </div>
                         </div>
 
-                        {/* Créneaux disponibles groupés par date */}
+                        {/* Créneaux disponibles - Affichage conditionnel selon le nombre de jours */}
                         {hasSessions ? (
-                          <div style={{ marginBottom: '1rem', flex: 1 }}>
-                            <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
-                              Créneaux disponibles :
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                              {Object.entries(sessionsByDate).map(([date, sessions]) => (
-                                <div key={date} style={{
-                                  background: '#f8f9fa',
-                                  padding: '1rem',
-                                  borderRadius: '8px',
-                                  border: '1px solid #e9ecef'
-                                }}>
-                                  {/* Date */}
-                                  <div style={{
-                                    fontWeight: '600',
-                                    color: '#2c3e50',
-                                    marginBottom: '0.75rem',
-                                    fontSize: '0.95rem'
-                                  }}>
-                                    📅 {new Date(date).toLocaleDateString('fr-FR', {
-                                      weekday: 'long',
-                                      day: 'numeric',
-                                      month: 'long'
-                                    })}
-                                  </div>
-
-                                  {/* Créneaux horaires pour cette date */}
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                    {sessions.map((session) => {
-                                      const isAutoClosed = session.isAutoClosed;
-
-                                      if (isAutoClosed) {
-                                        // Affichage pour session fermée automatiquement
-                                        return (
-                                          <div
-                                            key={session.sessionId || session.id}
-                                            style={{
-                                              display: 'flex',
-                                              flexDirection: 'column',
-                                              alignItems: 'center',
-                                              padding: '0.75rem 1rem',
-                                              borderRadius: '6px',
-                                              border: '2px solid #ffc107',
-                                              background: '#fff3cd',
-                                              cursor: 'default',
-                                              minWidth: '140px'
-                                            }}
-                                          >
-                                            <span style={{ fontSize: '1.1rem', color: '#856404', fontWeight: '600' }}>
-                                              🕐 {session.startTime}
-                                            </span>
-                                            <span style={{ fontSize: '0.75rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.3' }}>
-                                              Fermé en ligne
-                                            </span>
-                                            <span style={{ fontSize: '0.7rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.2' }}>
-                                              📞 Appelez avant 9h30 ou vers 12h
-                                            </span>
-                                            <span style={{ fontSize: '0.75rem', marginTop: '2px', color: '#856404' }}>
-                                              ({session.availablePlaces} {session.availablePlaces > 1 ? 'places' : 'place'})
-                                            </span>
-                                          </div>
-                                        );
-                                      }
-
-                                      // Affichage normal pour session réservable
-                                      return (
-                                        <button
-                                          key={session.sessionId || session.id}
-                                          className={styles.timeSlotButton}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            const sessionId = session.sessionId || session.id;
-                                            navigate(`/client/book/${sessionId}?productId=${product.id}`);
-                                          }}
-                                        >
-                                          <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
-                                          <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
-                                            {session.availablePlaces} places
-                                          </span>
-                                        </button>
-                                      );
-                                    })}
+                          Object.keys(sessionsByDate).length > 2 ? (
+                            // Période longue (> 2 jours) : Affichage résumé
+                            <div style={{ marginBottom: '1rem' }}>
+                              <div style={{
+                                background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                                padding: '0.75rem 1rem',
+                                borderRadius: '8px',
+                                border: '2px solid #2196F3',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '1rem',
+                                flexWrap: 'wrap'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ fontSize: '1.5rem' }}>📅</span>
+                                  <div>
+                                    <div style={{ fontWeight: '700', color: '#1976d2', fontSize: '1.1rem' }}>
+                                      {Object.values(sessionsByDate).flat().length} créneau{Object.values(sessionsByDate).flat().length > 1 ? 'x' : ''} disponible{Object.values(sessionsByDate).flat().length > 1 ? 's' : ''}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#1565c0', marginTop: '2px' }}>
+                                      Du {new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au {new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                    </div>
                                   </div>
                                 </div>
-                              ))}
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}`);
+                                  }}
+                                  style={{
+                                    background: '#2196F3',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.6rem 1.2rem',
+                                    borderRadius: '6px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.background = '#1976d2';
+                                    e.target.style.transform = 'translateY(-1px)';
+                                    e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.background = '#2196F3';
+                                    e.target.style.transform = 'translateY(0)';
+                                    e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+                                  }}
+                                >
+                                  Voir les créneaux
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            // Période courte (1-2 jours) : Affichage détaillé
+                            <div style={{ marginBottom: '1rem', flex: 1 }}>
+                              <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
+                                Créneaux disponibles :
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {Object.entries(sessionsByDate).map(([date, sessions]) => (
+                                  <div key={date} style={{
+                                    background: '#f8f9fa',
+                                    padding: '1rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e9ecef'
+                                  }}>
+                                    {/* Date */}
+                                    <div style={{
+                                      fontWeight: '600',
+                                      color: '#2c3e50',
+                                      marginBottom: '0.75rem',
+                                      fontSize: '0.95rem'
+                                    }}>
+                                      📅 {new Date(date).toLocaleDateString('fr-FR', {
+                                        weekday: 'long',
+                                        day: 'numeric',
+                                        month: 'long'
+                                      })}
+                                    </div>
+
+                                    {/* Créneaux horaires pour cette date */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                      {sessions.map((session) => {
+                                        const isAutoClosed = session.isAutoClosed;
+
+                                        if (isAutoClosed) {
+                                          // Affichage pour session fermée automatiquement
+                                          return (
+                                            <div
+                                              key={session.sessionId || session.id}
+                                              style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                padding: '0.75rem 1rem',
+                                                borderRadius: '6px',
+                                                border: '2px solid #ffc107',
+                                                background: '#fff3cd',
+                                                cursor: 'default',
+                                                minWidth: '140px'
+                                              }}
+                                            >
+                                              <span style={{ fontSize: '1.1rem', color: '#856404', fontWeight: '600' }}>
+                                                🕐 {session.startTime}
+                                              </span>
+                                              <span style={{ fontSize: '0.75rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.3' }}>
+                                                Fermé en ligne
+                                              </span>
+                                              <span style={{ fontSize: '0.7rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.2' }}>
+                                                📞 Appelez avant 9h30 ou vers 12h
+                                              </span>
+                                              <span style={{ fontSize: '0.75rem', marginTop: '2px', color: '#856404' }}>
+                                                ({session.availablePlaces} {session.availablePlaces > 1 ? 'places' : 'place'})
+                                              </span>
+                                            </div>
+                                          );
+                                        }
+
+                                        // Affichage normal pour session réservable
+                                        return (
+                                          <button
+                                            key={session.sessionId || session.id}
+                                            className={styles.timeSlotButton}
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              const sessionId = session.sessionId || session.id;
+                                              navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}`);
+                                            }}
+                                          >
+                                            <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
+                                            <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
+                                              {session.availablePlaces} places
+                                            </span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
                         ) : (
                           <div style={{
                             padding: '1rem',

@@ -317,3 +317,20 @@ model EmailTemplate {
 
   @@map("email_templates")
 }
+
+// Paramètres globaux de l'application
+model Settings {
+  id              String   @id @default(uuid())
+  companyName     String?  // Nom de l'entreprise
+  companyPhone    String?  // Téléphone de l'entreprise
+  companyEmail    String?  // Email de l'entreprise
+  logo            String?  // URL du logo
+  primaryColor    String?  // Couleur principale
+  secondaryColor  String?  // Couleur secondaire
+  language        String   @default("fr") // Langue par défaut
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("settings")
+}

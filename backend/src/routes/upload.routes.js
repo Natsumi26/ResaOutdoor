@@ -17,7 +17,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configuration de multer pour le stockage
+// Configuration de multer pour le stockage des produits
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -26,6 +26,17 @@ const storage = multer.diskStorage({
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, 'product-' + uniqueSuffix + ext);
+  }
+});
+
+// Configuration de multer pour le logo (nom fixe pour toujours remplacer l'ancien)
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, 'logo' + ext);
   }
 });
 
@@ -47,6 +58,14 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB max
+  }
+});
+
+const logoUpload = multer({
+  storage: logoStorage,
+  fileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB max pour le logo
   }
 });
 
@@ -95,6 +114,39 @@ router.delete('/images', authMiddleware, (req, res) => {
   } catch (error) {
     console.error('Erreur suppression:', error);
     res.status(500).json({ error: 'Erreur lors de la suppression de l\'image' });
+  }
+});
+
+// Route pour upload du logo
+router.post('/logo', authMiddleware, logoUpload.single('logo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun logo fourni' });
+    }
+
+    // Supprimer l'ancien logo s'il existe (avec une extension différente)
+    const extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const currentExt = path.extname(req.file.filename).toLowerCase().replace('.', '');
+
+    extensions.forEach(ext => {
+      if (ext !== currentExt) {
+        const oldLogoPath = path.join(uploadsDir, `logo.${ext}`);
+        if (fs.existsSync(oldLogoPath)) {
+          fs.unlinkSync(oldLogoPath);
+        }
+      }
+    });
+
+    // Générer l'URL du logo
+    const url = `/uploads/${req.file.filename}`;
+
+    res.status(200).json({
+      message: 'Logo uploadé avec succès',
+      url
+    });
+  } catch (error) {
+    console.error('Erreur upload logo:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'upload du logo' });
   }
 });
 
