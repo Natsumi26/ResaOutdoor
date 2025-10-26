@@ -1,13 +1,50 @@
 import prisma from '../config/database.js';
 
 /**
- * Récupérer tous les templates d'emails
+ * Récupérer tous les templates d'emails visibles par l'utilisateur
+ * Logique : templates personnalisés de l'utilisateur + templates globaux non personnalisés
  */
 export const getAllTemplates = async (req, res) => {
   try {
-    const templates = await prisma.emailTemplate.findMany({
+    const userId = req.user.userId || req.user.id; // Supporter les deux formats
+    const userLogin = req.user.login || 'inconnu';
+
+    console.log(`\n📋 getAllTemplates appelé par: ${userLogin} (${userId})`);
+
+    // Récupérer les templates personnalisés de l'utilisateur
+    const personalTemplates = await prisma.emailTemplate.findMany({
+      where: { userId },
       orderBy: { createdAt: 'asc' }
     });
+
+    console.log(`   👤 Templates personnalisés: ${personalTemplates.length}`);
+    personalTemplates.forEach(t => console.log(`      - ${t.type}: ${t.name}`));
+
+    // Récupérer les templates globaux
+    const globalTemplates = await prisma.emailTemplate.findMany({
+      where: { userId: null },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    console.log(`   🌍 Templates globaux: ${globalTemplates.length}`);
+
+    // Identifier les types déjà personnalisés
+    const personalizedTypes = new Set(personalTemplates.map(t => t.type));
+
+    console.log(`   🔒 Types personnalisés (exclure du global): ${Array.from(personalizedTypes).join(', ') || 'aucun'}`);
+
+    // Combiner : templates personnalisés + templates globaux non personnalisés
+    const templates = [
+      ...personalTemplates,
+      ...globalTemplates.filter(t => !personalizedTypes.has(t.type))
+    ];
+
+    console.log(`   ✅ Total retourné: ${templates.length} templates`);
+    templates.forEach(t => {
+      const source = personalizedTypes.has(t.type) ? '📋 Personnalisé' : '🌍 Global';
+      console.log(`      ${source} - ${t.type}: ${t.name}`);
+    });
+    console.log('');
 
     res.json({ templates });
   } catch (error) {
@@ -18,14 +55,30 @@ export const getAllTemplates = async (req, res) => {
 
 /**
  * Récupérer un template par son type
+ * Logique : chercher d'abord le template personnalisé, sinon le template global
  */
 export const getTemplateByType = async (req, res) => {
   try {
     const { type } = req.params;
+    const userId = req.user.id;
 
-    const template = await prisma.emailTemplate.findUnique({
-      where: { type }
+    // Chercher d'abord le template personnalisé de l'utilisateur
+    let template = await prisma.emailTemplate.findFirst({
+      where: {
+        userId,
+        type
+      }
     });
+
+    // Si pas trouvé, chercher le template global
+    if (!template) {
+      template = await prisma.emailTemplate.findFirst({
+        where: {
+          userId: null,
+          type
+        }
+      });
+    }
 
     if (!template) {
       return res.status(404).json({ error: 'Template non trouvé' });
@@ -39,23 +92,26 @@ export const getTemplateByType = async (req, res) => {
 };
 
 /**
- * Créer un nouveau template (ou remplacer l'existant)
+ * Créer ou mettre à jour un template (utilisé uniquement par les admins pour les templates globaux)
  */
 export const createTemplate = async (req, res) => {
   try {
     const { type, name, subject, htmlContent, textContent, variables, isActive } = req.body;
 
-    // Vérifier si le type existe déjà
-    const existing = await prisma.emailTemplate.findUnique({
-      where: { type }
+    // Vérifier si un template global existe déjà pour ce type
+    const existing = await prisma.emailTemplate.findFirst({
+      where: {
+        userId: null,
+        type
+      }
     });
 
     let template;
 
     if (existing) {
-      // Si un template existe déjà, le remplacer (UPDATE)
+      // Mettre à jour le template global
       template = await prisma.emailTemplate.update({
-        where: { type },
+        where: { id: existing.id },
         data: {
           name,
           subject,
@@ -66,9 +122,10 @@ export const createTemplate = async (req, res) => {
         }
       });
     } else {
-      // Sinon, créer un nouveau template
+      // Créer un nouveau template global
       template = await prisma.emailTemplate.create({
         data: {
+          userId: null, // Template global
           type,
           name,
           subject,
@@ -89,23 +146,120 @@ export const createTemplate = async (req, res) => {
 
 /**
  * Mettre à jour un template
+ * Logique différente selon le rôle :
+ * - ADMIN : Peut modifier les templates globaux directement (affecte tous les utilisateurs)
+ * - GUIDE : Copy-on-write - crée une copie personnalisée sans affecter les autres
  */
 export const updateTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, subject, htmlContent, textContent, variables, isActive } = req.body;
+    const userId = req.user.userId || req.user.id; // Supporter les deux formats
+    const userRole = req.user.role; // "admin" ou "guide"
 
-    const template = await prisma.emailTemplate.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(subject && { subject }),
-        ...(htmlContent && { htmlContent }),
-        ...(textContent !== undefined && { textContent }),
-        ...(variables && { variables: JSON.stringify(variables) }),
-        ...(isActive !== undefined && { isActive })
-      }
+    // LOGS DE DÉBOGAGE
+    console.log('\n🔍 ===== MISE À JOUR TEMPLATE - DEBUG =====');
+    console.log('req.user complet:', JSON.stringify(req.user, null, 2));
+    console.log('userId récupéré:', userId);
+    console.log('userRole récupéré:', userRole);
+    console.log('Template ID à modifier:', id);
+    console.log('==========================================\n');
+
+    // Récupérer le template à modifier
+    const originalTemplate = await prisma.emailTemplate.findUnique({
+      where: { id }
     });
+
+    if (!originalTemplate) {
+      return res.status(404).json({ error: 'Template non trouvé' });
+    }
+
+    console.log(`📋 Template actuel - userId: ${originalTemplate.userId === null ? 'NULL (global)' : originalTemplate.userId}`);
+
+    let template;
+
+    // ===== CAS 1 : Template global (userId = null) =====
+    if (originalTemplate.userId === null) {
+
+      // Si l'utilisateur est ADMIN, il peut modifier le template global directement
+      if (userRole === 'admin') {
+        console.log(`👑 ADMIN: Modification du template global ${originalTemplate.type}`);
+        template = await prisma.emailTemplate.update({
+          where: { id },
+          data: {
+            ...(name && { name }),
+            ...(subject && { subject }),
+            ...(htmlContent && { htmlContent }),
+            ...(textContent !== undefined && { textContent }),
+            ...(variables && { variables: JSON.stringify(variables) }),
+            ...(isActive !== undefined && { isActive })
+          }
+        });
+      }
+      // Si l'utilisateur est GUIDE, on fait du copy-on-write
+      else {
+        console.log(`📋 GUIDE: Copy-on-write du template ${originalTemplate.type} pour l'utilisateur ${userId}`);
+
+        // Vérifier si une copie personnalisée existe déjà
+        const existingPersonal = await prisma.emailTemplate.findFirst({
+          where: {
+            userId,
+            type: originalTemplate.type
+          }
+        });
+
+        if (existingPersonal) {
+          // Mettre à jour la copie existante
+          console.log(`   ✏️  Mise à jour de la copie personnalisée existante`);
+          template = await prisma.emailTemplate.update({
+            where: { id: existingPersonal.id },
+            data: {
+              ...(name && { name }),
+              ...(subject && { subject }),
+              ...(htmlContent && { htmlContent }),
+              ...(textContent !== undefined && { textContent }),
+              ...(variables && { variables: JSON.stringify(variables) }),
+              ...(isActive !== undefined && { isActive })
+            }
+          });
+        } else {
+          // Créer une nouvelle copie personnalisée
+          console.log(`   ✨ Création d'une nouvelle copie personnalisée`);
+          template = await prisma.emailTemplate.create({
+            data: {
+              userId,
+              type: originalTemplate.type,
+              name: name || originalTemplate.name,
+              subject: subject || originalTemplate.subject,
+              htmlContent: htmlContent || originalTemplate.htmlContent,
+              textContent: textContent !== undefined ? textContent : originalTemplate.textContent,
+              variables: variables ? JSON.stringify(variables) : originalTemplate.variables,
+              isActive: isActive !== undefined ? isActive : originalTemplate.isActive
+            }
+          });
+        }
+      }
+    }
+    // ===== CAS 2 : Template personnalisé =====
+    else if (originalTemplate.userId === userId) {
+      // Le template est déjà personnalisé pour cet utilisateur, le mettre à jour
+      console.log(`📝 Mise à jour du template personnalisé ${originalTemplate.type}`);
+      template = await prisma.emailTemplate.update({
+        where: { id },
+        data: {
+          ...(name && { name }),
+          ...(subject && { subject }),
+          ...(htmlContent && { htmlContent }),
+          ...(textContent !== undefined && { textContent }),
+          ...(variables && { variables: JSON.stringify(variables) }),
+          ...(isActive !== undefined && { isActive })
+        }
+      });
+    }
+    // ===== CAS 3 : Template d'un autre utilisateur =====
+    else {
+      return res.status(403).json({ error: 'Vous n\'avez pas la permission de modifier ce template' });
+    }
 
     res.json({ template });
   } catch (error) {
@@ -115,17 +269,39 @@ export const updateTemplate = async (req, res) => {
 };
 
 /**
- * Supprimer un template
+ * Supprimer un template personnalisé
+ * Si c'est un template global, on ne peut pas le supprimer (seulement les admins peuvent)
+ * Si c'est un template personnalisé, on le supprime et l'utilisateur revient au template global
  */
 export const deleteTemplate = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
 
+    // Récupérer le template
+    const template = await prisma.emailTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template non trouvé' });
+    }
+
+    // Vérifier que le template appartient à l'utilisateur
+    if (template.userId === null) {
+      return res.status(403).json({ error: 'Vous ne pouvez pas supprimer un template global' });
+    }
+
+    if (template.userId !== userId) {
+      return res.status(403).json({ error: 'Vous n\'avez pas la permission de supprimer ce template' });
+    }
+
+    // Supprimer le template personnalisé
     await prisma.emailTemplate.delete({
       where: { id }
     });
 
-    res.json({ message: 'Template supprimé avec succès' });
+    res.json({ message: 'Template personnalisé supprimé avec succès. Vous utilisez maintenant le template global.' });
   } catch (error) {
     console.error('Erreur suppression template:', error);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -134,6 +310,7 @@ export const deleteTemplate = async (req, res) => {
 
 /**
  * Initialiser les templates par défaut s'ils n'existent pas
+ * Créer les templates globaux (userId = null)
  */
 export const initializeDefaultTemplates = async (req, res) => {
   try {
@@ -387,20 +564,27 @@ Merci et à bientôt !`
 
     const created = [];
     for (const template of defaultTemplates) {
-      const existing = await prisma.emailTemplate.findUnique({
-        where: { type: template.type }
+      // Vérifier si un template global existe déjà pour ce type
+      const existing = await prisma.emailTemplate.findFirst({
+        where: {
+          userId: null,
+          type: template.type
+        }
       });
 
       if (!existing) {
         const newTemplate = await prisma.emailTemplate.create({
-          data: template
+          data: {
+            ...template,
+            userId: null // Template global
+          }
         });
         created.push(newTemplate);
       }
     }
 
     res.json({
-      message: `${created.length} template(s) créé(s)`,
+      message: `${created.length} template(s) global(aux) créé(s)`,
       created
     });
   } catch (error) {

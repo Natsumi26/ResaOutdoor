@@ -24,7 +24,9 @@
       "Bash(npx prisma db push --accept-data-loss)",
       "Bash(curl http://localhost:5000/api/email-templates/variables)",
       "Bash(curl -s http://localhost:5000/api/email-templates)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git checkout:*)",
+      "Bash(timeout /t 5)"
     ],
     "deny": [],
     "ask": []

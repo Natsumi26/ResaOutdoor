@@ -13,8 +13,8 @@ const Preferences = () => {
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [website, setWebsite] = useState('');
   const [logo, setLogo] = useState('');
-  const [language, setLanguage] = useState('fr');
 
   // Préférences de thème
   const [themeColors, setThemeColors] = useState({
@@ -46,8 +46,8 @@ const Preferences = () => {
         setCompanyName(settings.companyName || '');
         setPhone(settings.companyPhone || '');
         setEmail(settings.companyEmail || '');
+        setWebsite(settings.website || '');
         setLogo(settings.logo || '');
-        setLanguage(settings.language || 'fr');
 
         if (settings.primaryColor) {
           setThemeColors(prev => ({
@@ -81,10 +81,10 @@ const Preferences = () => {
         companyName,
         companyPhone: phone,
         companyEmail: email,
+        website,
         logo,
         primaryColor: themeColors.primary,
-        secondaryColor: themeColors.secondary,
-        language
+        secondaryColor: themeColors.secondary
       });
 
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
@@ -167,8 +167,8 @@ const Preferences = () => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           marginBottom: '30px'
         }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            👤 Informations personnelles
+          <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
+            Informations personnelles
           </h2>
           <p style={{ color: '#6c757d', marginBottom: '30px' }}>
             Mettez à jour vos coordonnées pour être contacté par vos clients
@@ -176,7 +176,7 @@ const Preferences = () => {
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-              🏢 Nom de l'entreprise
+              Nom de l'entreprise
             </label>
             <input
               type="text"
@@ -196,7 +196,7 @@ const Preferences = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                📧 Email
+                Email
               </label>
               <input
                 type="email"
@@ -215,7 +215,7 @@ const Preferences = () => {
 
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                📱 Téléphone
+                Téléphone
               </label>
               <input
                 type="tel"
@@ -236,11 +236,13 @@ const Preferences = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                🌍 Langue par défaut
+                Site internet
               </label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://www.canyon-life.com"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -248,17 +250,12 @@ const Preferences = () => {
                   borderRadius: '6px',
                   fontSize: '1rem'
                 }}
-              >
-                <option value="fr">🇫🇷 Français</option>
-                <option value="en">🇬🇧 English</option>
-                <option value="es">🇪🇸 Español</option>
-                <option value="de">🇩🇪 Deutsch</option>
-              </select>
+              />
             </div>
 
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                🖼️ Logo
+                Logo
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 {logo && (
@@ -288,7 +285,7 @@ const Preferences = () => {
                   fontSize: '0.9rem',
                   color: '#6c757d'
                 }}>
-                  {uploadingLogo ? '⏳ Upload en cours...' : '📤 Cliquez pour uploader'}
+                  {uploadingLogo ? 'Upload en cours...' : 'Cliquez pour uploader'}
                   <input
                     type="file"
                     accept="image/*"
@@ -302,6 +299,46 @@ const Preferences = () => {
                 Image PNG, JPG ou WEBP (max 2MB). Sera utilisé dans les emails.
               </small>
             </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '15px', marginTop: '20px' }}>
+            {saveMessage && (
+              <div style={{
+                padding: '10px 16px',
+                background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
+                color: saveMessage.includes('✅') ? '#155724' : '#721c24',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+              }}>
+                {saveMessage}
+              </div>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              style={{
+                padding: '12px 28px',
+                background: loading ? '#dee2e6' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                boxShadow: loading ? 'none' : '0 2px 6px rgba(40, 167, 69, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.target.style.background = '#218838';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.target.style.background = '#28a745';
+              }}
+            >
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
           </div>
         </div>
 

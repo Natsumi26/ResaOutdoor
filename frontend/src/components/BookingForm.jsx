@@ -76,12 +76,35 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
 
       setAvailableProducts(products);
 
-      // Ne pas présélectionner automatiquement - laisser l'utilisateur choisir
-      // const firstAvailable = products.find(p => p.isAvailable);
-      // if (firstAvailable) {
-      //   setFormData(prev => ({ ...prev, productId: firstAvailable.id }));
-      //   setSelectedProduct(firstAvailable);
-      // }
+      // Pré-sélection du canyon :
+      // 1. Si la session a déjà des réservations → pré-sélectionner le canyon de la première réservation
+      // 2. Sinon, si un seul produit est disponible → pré-sélectionner ce produit
+      // 3. Sinon, si la session n'a qu'un seul produit configuré → pré-sélectionner ce produit
+      let productToSelect = null;
+
+      if (session.bookings && session.bookings.length > 0) {
+        // Cas 1 : Il y a déjà des réservations, prendre le canyon de la première
+        const firstBookingProductId = session.bookings[0].productId;
+        productToSelect = products.find(p => p.id === firstBookingProductId && p.isAvailable);
+      }
+
+      if (!productToSelect) {
+        // Cas 2 : Un seul produit est disponible
+        const availableProducts = products.filter(p => p.isAvailable);
+        if (availableProducts.length === 1) {
+          productToSelect = availableProducts[0];
+        }
+      }
+
+      if (!productToSelect && products.length === 1 && products[0].isAvailable) {
+        // Cas 3 : Un seul produit configuré
+        productToSelect = products[0];
+      }
+
+      if (productToSelect) {
+        setFormData(prev => ({ ...prev, productId: productToSelect.id }));
+        setSelectedProduct(productToSelect);
+      }
     }
   }, [session]);
 
@@ -177,25 +200,11 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     return <div className={styles.error}>Session non trouvée</div>;
   }
 
-  // gestion de la nationalité
-  const countries = [
-  { code: 'FR', name: 'France' },
-  { code: 'IT', name: 'Italie' },
-  { code: 'ES', name: 'Espagne' },
-  { code: 'DE', name: 'Allemagne' },
-  { code: 'DK', name: 'Danemark' },
-  { code: 'IE', name: 'Irlande' },
-  { code: 'EL', name: 'Grèce' },
-  { code: 'LU', name: 'Luxembourg' },
-  { code: 'NL', name: 'Pays-Bas' },
-  { code: 'BG', name: 'Bulgarie' },
-  { code: 'US', name: 'États-Unis' },
-  { code: 'GB', name: 'Royaume-Uni' },
-  { code: 'PT', name: 'Portugal' },
-  { code: 'MA', name: 'Maroc' },
-  { code: 'BE', name: 'Belgique' },
-  { code: 'CH', name: 'Suisse' },
-];
+  // Langues disponibles
+  const languages = [
+    { code: 'FR', name: 'Français', flagCode: 'fr' },
+    { code: 'EN', name: 'English', flagCode: 'gb' }
+  ];
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -376,27 +385,36 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
           </div>
 
           <div className={styles.formGroup}>
-            <label>Nationalité</label>
-             <div className={styles.nationalityWrapper}>
-              <span className={styles.flag}>
-              <img
-                src={`https://flagcdn.com/16x12/${formData.clientNationality.toLowerCase()}.png`}
-                alt={formData.clientNationality}
-                className={styles.flagIcon}
-              />
-              </span>
-              <select
-                name="clientNationality"
-                value={formData.clientNationality}
-                onChange={handleChange}
-              >
-                <option value="">-- Sélectionner --</option>
-                {countries.map(({ code, name }) => (
-                  <option key={code} value={code}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+            <label>Langue parlée</label>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '8px' }}>
+              {languages.map((lang) => (
+                <div
+                  key={lang.code}
+                  onClick={() => handleChange({ target: { name: 'clientNationality', value: lang.code } })}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: formData.clientNationality === lang.code ? '2px solid #3498db' : '2px solid #dee2e6',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    backgroundColor: formData.clientNationality === lang.code ? '#e3f2fd' : 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <img
+                    src={`https://flagcdn.com/24x18/${lang.flagCode}.png`}
+                    alt={lang.code}
+                    style={{ width: '24px', height: '18px' }}
+                  />
+                  <span style={{ fontWeight: formData.clientNationality === lang.code ? '600' : '400' }}>
+                    {lang.name}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

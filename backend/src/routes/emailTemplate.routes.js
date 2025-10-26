@@ -8,6 +8,7 @@ import {
   getAvailableVariables,
   initializeDefaultTemplates
 } from '../controllers/emailTemplate.controller.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -15,6 +16,8 @@ const router = express.Router();
 router.get('/variables', getAvailableVariables);
 
 // Routes protégées (authentification requise)
+router.use(authMiddleware);
+
 router.post('/initialize', initializeDefaultTemplates);
 router.get('/', getAllTemplates);
 router.get('/:type', getTemplateByType);

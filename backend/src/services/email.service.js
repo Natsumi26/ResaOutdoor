@@ -6,18 +6,37 @@ import prisma from '../config/database.js';
 
 /**
  * Récupérer un template depuis la BDD et remplacer les variables
+ * Logique : chercher d'abord le template personnalisé de l'utilisateur, sinon le template global
  */
-const getTemplateWithVariables = async (type, variables) => {
+const getTemplateWithVariables = async (type, variables, userId) => {
   try {
-    // Récupérer le template actif pour ce type
-    const template = await prisma.emailTemplate.findUnique({
-      where: { type, isActive: true }
+    // Chercher d'abord le template personnalisé de l'utilisateur
+    let template = await prisma.emailTemplate.findFirst({
+      where: {
+        userId,
+        type,
+        isActive: true
+      }
     });
+
+    // Si pas trouvé, chercher le template global
+    if (!template) {
+      template = await prisma.emailTemplate.findFirst({
+        where: {
+          userId: null,
+          type,
+          isActive: true
+        }
+      });
+    }
 
     if (!template) {
       console.log(`Aucun template actif trouvé pour le type: ${type}`);
       return null;
     }
+
+    console.log(`✅ Template "${type}" chargé (${template.userId ? 'personnalisé' : 'global'})`);
+
 
     // Récupérer les settings pour les variables de l'entreprise
     const settings = await prisma.settings.findFirst();
@@ -28,6 +47,7 @@ const getTemplateWithVariables = async (type, variables) => {
       companyName: settings?.companyName || 'Canyon Life',
       companyEmail: settings?.companyEmail || '',
       companyPhone: settings?.companyPhone || '',
+      companyWebsite: settings?.website || '',
       logo: settings?.logo ? `${process.env.FRONTEND_URL || 'http://localhost:5000'}${settings.logo}` : ''
     };
 
@@ -304,8 +324,9 @@ export const sendBookingConfirmation = async (booking) => {
       googleMapsLink: product.googleMapsLink || ''
     };
 
-    // Essayer de récupérer le template depuis la BDD
-    const templateData = await getTemplateWithVariables('booking_confirmation', variables);
+    // Essayer de récupérer le template depuis la BDD pour ce guide
+    const userId = session.guide.id || session.guideId;
+    const templateData = await getTemplateWithVariables('booking_confirmation', variables, userId);
 
     let subject, html, text;
 
@@ -1310,11 +1331,61 @@ export const sendGuideNewBookingNotification = async (booking) => {
       return { success: false, reason: 'no_guide_email' };
     }
 
+    const { session, product } = booking;
+    const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+    // Calculer les places restantes dans la session
+    const totalCapacity = product.maxCapacity || 10;
+    const currentOccupancy = session.bookings
+      ?.filter(b => b.status !== 'cancelled')
+      ?.reduce((sum, b) => sum + (b.numberOfPeople || 0), 0) || 0;
+    const remainingSpots = totalCapacity - currentOccupancy;
+
+    // Préparer les variables pour le template
+    const variables = {
+      clientFirstName: booking.clientFirstName,
+      clientLastName: booking.clientLastName,
+      clientEmail: booking.clientEmail,
+      clientPhone: booking.clientPhone || 'Non renseigné',
+      productName: product.name,
+      sessionDate: sessionDate,
+      sessionTimeSlot: session.timeSlot.charAt(0).toUpperCase() + session.timeSlot.slice(1),
+      sessionStartTime: session.startTime,
+      guideName: session.guide.login,
+      numberOfPeople: booking.numberOfPeople,
+      totalPrice: booking.totalPrice,
+      amountPaid: booking.amountPaid,
+      amountDue: booking.totalPrice - booking.amountPaid,
+      bookingId: booking.id,
+      bookingLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}`,
+      bookingAdminLink: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reservations`,
+      remainingSpots: remainingSpots,
+      postBookingMessage: product.postBookingMessage || '',
+      wazeLink: product.wazeLink || '',
+      googleMapsLink: product.googleMapsLink || ''
+    };
+
+    // Essayer de récupérer le template depuis la BDD pour ce guide
+    const userId = session.guide.id || session.guideId;
+    const templateData = await getTemplateWithVariables('guide_notification', variables, userId);
+
+    let subject, html;
+
+    if (templateData) {
+      // Utiliser le template de la BDD
+      subject = templateData.subject;
+      html = templateData.htmlContent;
+    } else {
+      // Fallback sur le template hardcodé
+      subject = `🎉 Nouvelle réservation - ${booking.product.name}`;
+      html = guideNewBookingTemplate(booking);
+    }
+
     const mailOptions = {
       from: defaultFrom,
       to: booking.session.guide.email,
-      subject: `🎉 Nouvelle réservation - ${booking.product.name}`,
-      html: guideNewBookingTemplate(booking)
+      subject,
+      html
     };
 
     const info = await transporter.sendMail(mailOptions);

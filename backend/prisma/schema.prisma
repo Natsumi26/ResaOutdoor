@@ -22,6 +22,7 @@ model User {
 
   products      Product[]
   sessions      Session[]
+  emailTemplates EmailTemplate[]
 
   @@map("users")
 }
@@ -302,9 +303,14 @@ model BookingNote {
 }
 
 // Templates d'emails
+// Système de templates avec copy-on-write :
+// - userId = null : template global partagé par tous les utilisateurs
+// - userId = <id> : template personnalisé pour un utilisateur spécifique
+// Lors de la récupération : chercher d'abord le template personnalisé, sinon utiliser le global
+// Lors de la modification : si le template est global, créer une copie personnalisée
 model EmailTemplate {
   id          String   @id @default(uuid())
-  type        String   @unique // "booking_confirmation", "booking_reminder", "payment_confirmation", etc.
+  type        String   // "booking_confirmation", "booking_reminder", "payment_confirmation", etc.
   name        String   // Nom du template (ex: "Confirmation de réservation")
   subject     String   // Sujet de l'email
   htmlContent String   @db.Text // Contenu HTML du template
@@ -312,9 +318,14 @@ model EmailTemplate {
   variables   String?  @db.Text // Liste des variables disponibles (JSON)
   isActive    Boolean  @default(true)
 
+  userId      String?  // NULL = template global, sinon = template personnalisé pour cet utilisateur
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([type])           // Index pour recherche rapide des templates globaux
+  @@index([userId, type])   // Index pour recherche rapide des templates personnalisés
   @@map("email_templates")
 }
 
@@ -324,10 +335,10 @@ model Settings {
   companyName     String?  // Nom de l'entreprise
   companyPhone    String?  // Téléphone de l'entreprise
   companyEmail    String?  // Email de l'entreprise
+  website         String?  // Site internet de l'entreprise
   logo            String?  // URL du logo
   primaryColor    String?  // Couleur principale
   secondaryColor  String?  // Couleur secondaire
-  language        String   @default("fr") // Langue par défaut
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -9,9 +9,7 @@ export const getSettings = async (req, res) => {
     // Si aucun settings n'existe, créer un enregistrement par défaut
     if (!settings) {
       settings = await prisma.settings.create({
-        data: {
-          language: 'fr'
-        }
+        data: {}
       });
     }
 
@@ -29,10 +27,10 @@ export const updateSettings = async (req, res) => {
       companyName,
       companyPhone,
       companyEmail,
+      website,
       logo,
       primaryColor,
-      secondaryColor,
-      language
+      secondaryColor
     } = req.body;
 
     // Récupérer ou créer le settings
@@ -45,10 +43,10 @@ export const updateSettings = async (req, res) => {
           companyName,
           companyPhone,
           companyEmail,
+          website,
           logo,
           primaryColor,
-          secondaryColor,
-          language: language || 'fr'
+          secondaryColor
         }
       });
     } else {
@@ -59,10 +57,10 @@ export const updateSettings = async (req, res) => {
           ...(companyName !== undefined && { companyName }),
           ...(companyPhone !== undefined && { companyPhone }),
           ...(companyEmail !== undefined && { companyEmail }),
+          ...(website !== undefined && { website }),
           ...(logo !== undefined && { logo }),
           ...(primaryColor !== undefined && { primaryColor }),
-          ...(secondaryColor !== undefined && { secondaryColor }),
-          ...(language !== undefined && { language })
+          ...(secondaryColor !== undefined && { secondaryColor })
         }
       });
     }
@@ -91,7 +89,7 @@ export const updateLogo = async (req, res) => {
 
     if (!settings) {
       settings = await prisma.settings.create({
-        data: { logo, language: 'fr' }
+        data: { logo }
       });
     } else {
       settings = await prisma.settings.update({

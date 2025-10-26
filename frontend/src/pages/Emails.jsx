@@ -15,6 +15,11 @@ const Emails = () => {
   const [previewTab, setPreviewTab] = useState('html'); // 'html' or 'text'
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPage, setEmojiPage] = useState(0);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('https://');
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: '',
     name: '',
@@ -29,7 +34,90 @@ const Emails = () => {
     { value: 'booking_reminder', label: 'Rappel de réservation' },
     { value: 'payment_confirmation', label: 'Confirmation de paiement' },
     { value: 'gift_voucher', label: 'Bon cadeau' },
+    { value: 'guide_notification', label: 'Notification de réservation (guide)' },
     { value: 'custom', label: 'Email personnalisé' }
+  ];
+
+  // Liste complète d'emoji organisés par pages (7 colonnes x 8 lignes = 56 emoji par page)
+  const emojiList = [
+    // Page 1 - Visages souriants
+    ['😀', '😃', '😄', '😁', '😆', '😅', '🤣',
+     '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰',
+     '😍', '🤩', '😘', '😗', '😚', '😙', '😋',
+     '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭',
+     '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶',
+     '😏', '😒', '🙄', '😬', '🤥', '😌', '😔',
+     '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+     '🤮', '🤧', '🥵', '🥶', '😵', '🤯', '🤠'],
+
+    // Page 2 - Émotions
+    ['🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁',
+     '☹️', '😮', '😯', '😲', '😳', '🥺', '😦',
+     '😧', '😨', '😰', '😥', '😢', '😭', '😱',
+     '😖', '😣', '😞', '😓', '😩', '😫', '🥱',
+     '😤', '😡', '😠', '🤬', '😈', '👿', '💀',
+     '☠️', '💩', '🤡', '👹', '👺', '👻', '👽',
+     '👾', '🤖', '💪', '🦾', '🦿', '🦵', '🦶',
+     '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀'],
+
+    // Page 3 - Mains et gestes
+    ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏',
+     '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
+     '👆', '🖕', '👇', '☝️', '👍', '👎', '✊',
+     '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲',
+     '🤝', '🙏', '✍️', '👁️', '👅', '👄', '💋',
+     '🩸', '❤️', '💤', '💢', '💬', '🗨️', '🗯️',
+     '💭', '👓', '🕶️', '👔', '👕', '👖', '🧣',
+     '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚'],
+
+    // Page 4 - Flèches
+    ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖',
+     '↕', '↔', '↩', '↪', '⤴', '⤵', '⬆', '⬇',
+     '⬅', '➡', '🔄', '🔃', '⏪', '⏩', '⏫', '⏬',
+     '▶', '◀', '🔼', '🔽', '⏸', '⏹', '⏺', '⏏',
+     '🎵', '🎶', '🎤', '🎧', '📻', '🎷', '🎸', '🎹',
+     '🎺', '🎻', '🥁', '🎬', '🏆', '🥇', '🥈', '🥉',
+     '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱'],
+
+    // Page 5 - Symboles
+    ['✅', '☑️', '✔️', '✖️', '❌', '❎', '➕',
+     '➖', '➗', '✳️', '✴️', '❇️', '‼️', '⁉️',
+     '❓', '❔', '❗', '❕', '〰️', '⚠️', '🚸',
+     '🔱', '⚜️', '🔰', '♻️', '💹', '🌐', '💠',
+     'Ⓜ️', '🌀', '💯', '🔞', '📵', '🚫', '⛔',
+     '📛', '🚷', '🚯', '🚳', '🚱', '🔕', '📴',
+     '🆎', '🅰️', '🅱️', '🆑', '🆒', '🆓', 'ℹ️',
+     '🆔', '🆕', '🆖', '🅾️', '🆗', '🅿️', '🆙'],
+
+    // Page 6 - Nature et météo
+    ['🌱', '🌿', '🍀', '🍁', '🍂', '🍃', '🌾',
+     '🌺', '🌻', '🌼', '🌷', '🌸', '💐', '🥀',
+     '🌹', '🏵️', '🌴', '🌳', '🌲', '🌵', '🎋',
+     '🎍', '🍄', '🌏', '🌎', '🌍', '🌐', '🌑',
+     '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘',
+     '🌙', '🌚', '🌛', '🌜', '☀️', '🌝', '🌞',
+     '⭐', '🌟', '✨', '⚡', '☄️', '💥', '🔥',
+     '🌈', '☁️', '⛅', '🌤️', '⛈️', '🌧️', '⛱️'],
+
+    // Page 7 - Objets
+    ['📱', '📲', '☎️', '📞', '📟', '📠', '🔋',
+     '🔌', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🖲️',
+     '💽', '💾', '💿', '📀', '🧮', '🎥', '🎞️',
+     '📹', '📷', '📸', '📺', '🎙️', '🎚️', '🎛️',
+     '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳',
+     '📡', '🔭', '🔬', '🕯️', '💡', '🔦', '🏮',
+     '🪔', '📔', '📕', '📖', '📗', '📘', '📙',
+     '📚', '📓', '📒', '📃', '📜', '📄', '📑'],
+
+    // Page 8 - Icônes pratiques
+    ['📧', '📨', '📩', '📤', '📥', '📦', '📫',
+     '📪', '📬', '📭', '📮', '🗳️', '✏️', '✒️',
+     '🖋️', '🖊️', '🖌️', '🖍️', '📝', '💼', '📁',
+     '📂', '🗂️', '📅', '📆', '🗒️', '🗓️', '📇',
+     '📈', '📉', '📊', '📋', '📌', '📍', '📎',
+     '🖇️', '📏', '📐', '✂️', '🗃️', '🗄️', '🗑️',
+     '🔒', '🔓', '🔏', '🔐', '🔑', '🗝️', '🔨',
+     '🪓', '⛏️', '⚒️', '🛠️', '🗡️', '⚔️', '💵']
   ];
 
   useEffect(() => {
@@ -37,6 +125,17 @@ const Emails = () => {
     loadVariables();
     loadSettings();
   }, []);
+
+  // Fermer l'emoji picker si on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showEmojiPicker && !e.target.closest('[data-emoji-picker]')) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showEmojiPicker]);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -208,6 +307,35 @@ const Emails = () => {
     }
   };
 
+  const handleResetTemplate = () => {
+    if (!formData.type) {
+      alert('Veuillez sélectionner un type de template');
+      return;
+    }
+    setIsResetConfirmOpen(true);
+  };
+
+  const confirmResetTemplate = async () => {
+    try {
+      const response = await emailTemplatesAPI.getByType(formData.type);
+      if (response.data.template) {
+        const defaultTemplate = response.data.template;
+        setFormData(prev => ({
+          ...prev,
+          htmlContent: defaultTemplate.htmlContent || '',
+          textContent: defaultTemplate.textContent || ''
+        }));
+        setIsResetConfirmOpen(false);
+        alert('Template réinitialisé avec succès');
+      } else {
+        alert('Aucun template par défaut trouvé pour ce type');
+      }
+    } catch (error) {
+      console.error('Erreur réinitialisation template:', error);
+      alert('Erreur lors de la réinitialisation du template');
+    }
+  };
+
   const insertVariable = (variable) => {
     const textarea = document.querySelector('textarea[name="htmlContent"]');
     if (!textarea) return;
@@ -217,16 +345,70 @@ const Emails = () => {
     const text = formData.htmlContent;
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
+    const scrollTop = textarea.scrollTop;
 
     setFormData(prev => ({
       ...prev,
       htmlContent: before + variable + after
     }));
 
-    // Reposition le curseur
+    // Reposition le curseur sans scroller
     setTimeout(() => {
       textarea.focus();
       textarea.selectionStart = textarea.selectionEnd = start + variable.length;
+      textarea.scrollTop = scrollTop;
+    }, 0);
+  };
+
+  const insertFormatting = (tag, closingTag = null) => {
+    const textarea = document.querySelector('textarea[name="htmlContent"]');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.htmlContent;
+    const selectedText = text.substring(start, end);
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const scrollTop = textarea.scrollTop;
+
+    const closeTag = closingTag || tag.replace('<', '</');
+    const newText = before + tag + selectedText + closeTag + after;
+
+    setFormData(prev => ({
+      ...prev,
+      htmlContent: newText
+    }));
+
+    // Reposition le curseur sans scroller
+    setTimeout(() => {
+      textarea.focus();
+      const newPosition = start + tag.length + selectedText.length + closeTag.length;
+      textarea.selectionStart = textarea.selectionEnd = newPosition;
+      textarea.scrollTop = scrollTop;
+    }, 0);
+  };
+
+  const insertEmoji = (emoji) => {
+    const textarea = document.querySelector('textarea[name="htmlContent"]');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.htmlContent;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const scrollTop = textarea.scrollTop;
+
+    setFormData(prev => ({
+      ...prev,
+      htmlContent: before + emoji + after
+    }));
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+      textarea.scrollTop = scrollTop;
     }, 0);
   };
 
@@ -485,7 +667,7 @@ const Emails = () => {
       )}
 
       {isModalOpen && (
-        <div className={styles.modal} onClick={handleCloseModal}>
+        <div className={styles.modal}>
           <div
             className={styles.modalContent}
             onClick={(e) => e.stopPropagation()}
@@ -494,93 +676,518 @@ const Emails = () => {
             <h2>{editingTemplate ? 'Modifier le template' : 'Nouveau template'}</h2>
 
             <form onSubmit={handleSubmit}>
-              <div className={styles.formGroup}>
-                <label>Type de template *</label>
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  required
-                  disabled={editingTemplate !== null}
-                >
-                  <option value="">Sélectionner un type</option>
-                  {templateTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Nom du template *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Email de confirmation standard"
-                  required
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Sujet de l'email *</label>
-                <input
-                  type="text"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Confirmation de votre réservation"
-                  required
-                />
-              </div>
-
-              {formData.type && availableVariables[formData.type] && (
+              {!editingTemplate && (
                 <div className={styles.formGroup}>
-                  <label>Variables disponibles</label>
-                  <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                    padding: '12px',
-                    background: '#f3f4f6',
-                    borderRadius: '8px'
-                  }}>
-                    {availableVariables[formData.type].map((variable) => (
-                      <button
-                        key={variable.key}
-                        type="button"
-                        onClick={() => insertVariable(variable.key)}
-                        style={{
-                          padding: '6px 12px',
-                          background: 'white',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = '#e5e7eb';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'white';
-                        }}
-                        title={variable.description}
-                      >
-                        {variable.key}
-                      </button>
+                  <label>Type de template *</label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Sélectionner un type</option>
+                    {templateTypes.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
                     ))}
-                  </div>
-                  <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                    Cliquez sur une variable pour l'insérer dans le contenu HTML
-                  </small>
+                  </select>
                 </div>
               )}
 
+              {editingTemplate && (
+                <input type="hidden" name="type" value={formData.type} />
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                  <label>Nom du template *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Email de confirmation standard"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                  <label>Sujet de l'email *</label>
+                  <input
+                    type="text"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Confirmation de votre réservation"
+                    required
+                  />
+                </div>
+              </div>
+
+              {formData.type && availableVariables[formData.type] && (() => {
+                // Grouper les variables par catégorie
+                const groupedVariables = {
+                  'Infos entreprise': [],
+                  'Infos client': [],
+                  'Infos session': [],
+                  'Infos réservation': [],
+                  'Infos paiement': [],
+                  'Liens et messages': []
+                };
+
+                availableVariables[formData.type].forEach((variable) => {
+                  if (variable.key.includes('company') || variable.key.includes('logo')) {
+                    groupedVariables['Infos entreprise'].push(variable);
+                  } else if (variable.key.includes('client')) {
+                    groupedVariables['Infos client'].push(variable);
+                  } else if (variable.key.includes('session') || variable.key.includes('product') || variable.key.includes('guide')) {
+                    groupedVariables['Infos session'].push(variable);
+                  } else if (variable.key.includes('booking') || variable.key.includes('numberOfPeople')) {
+                    groupedVariables['Infos réservation'].push(variable);
+                  } else if (variable.key.includes('Price') || variable.key.includes('Paid') || variable.key.includes('Due') || variable.key.includes('amount')) {
+                    groupedVariables['Infos paiement'].push(variable);
+                  } else {
+                    groupedVariables['Liens et messages'].push(variable);
+                  }
+                });
+
+                return (
+                  <div className={styles.formGroup}>
+                    <label>Intégrer une variable</label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          insertVariable(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">Sélectionner une variable...</option>
+                      {Object.entries(groupedVariables).map(([category, variables]) =>
+                        variables.length > 0 && (
+                          <optgroup key={category} label={category}>
+                            {variables.map((variable) => (
+                              <option key={variable.key} value={variable.key}>
+                                {variable.description}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      )}
+                    </select>
+                  </div>
+                );
+              })()}
+
               <div className={styles.formGroup}>
                 <label>Contenu HTML *</label>
+
+                {/* Barre d'outils de formatage améliorée */}
+                <div style={{
+                  display: 'flex',
+                  gap: '2px',
+                  padding: '3px',
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '4px 4px 0 0',
+                  borderBottom: 'none',
+                  alignItems: 'center',
+                  flexWrap: 'nowrap',
+                  position: 'relative',
+                  overflowX: 'auto'
+                }}>
+                  {/* Police */}
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        insertFormatting(`<span style="font-family: ${e.target.value};">`, '</span>');
+                        e.target.value = '';
+                      }
+                    }}
+                    style={{
+                      padding: '2px 4px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      height: '24px',
+                      minWidth: '55px'
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="">Police</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Times New Roman', serif">Times</option>
+                    <option value="'Courier New', monospace">Courier</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                  </select>
+
+                  {/* Taille */}
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        insertFormatting(`<span style="font-size: ${e.target.value};">`, '</span>');
+                        e.target.value = '';
+                      }
+                    }}
+                    style={{
+                      padding: '2px 4px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      height: '24px',
+                      minWidth: '50px'
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="">Taille</option>
+                    <option value="12px">12px</option>
+                    <option value="14px">14px</option>
+                    <option value="16px">16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                    <option value="24px">24px</option>
+                    <option value="28px">28px</option>
+                    <option value="32px">32px</option>
+                  </select>
+
+                  {/* Séparateur */}
+                  <div style={{ width: '1px', height: '18px', background: '#d1d5db', margin: '0 1px' }}></div>
+
+                  {/* Gras, Italique, Souligné */}
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<strong>', '</strong>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Gras"
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<em>', '</em>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontStyle: 'italic',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Italique"
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<u>', '</u>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Souligné"
+                  >
+                    U
+                  </button>
+
+                  {/* Séparateur */}
+                  <div style={{ width: '1px', height: '18px', background: '#d1d5db', margin: '0 1px' }}></div>
+
+                  {/* Alignements */}
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<p style="text-align: left;">', '</p>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Aligner à gauche"
+                  >
+                    ≡
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<p style="text-align: center;">', '</p>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Centrer"
+                  >
+                    ≣
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<p style="text-align: right;">', '</p>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Aligner à droite"
+                  >
+                    ≡
+                  </button>
+
+                  {/* Séparateur */}
+                  <div style={{ width: '1px', height: '18px', background: '#d1d5db', margin: '0 1px' }}></div>
+
+                  {/* Couleur */}
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        insertFormatting(`<span style="color: ${e.target.value};">`, '</span>');
+                        e.target.value = '';
+                      }
+                    }}
+                    style={{
+                      padding: '2px 4px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '10px',
+                      height: '24px',
+                      minWidth: '60px'
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="">Couleur</option>
+                    <option value="#000000">⚫ Noir</option>
+                    <option value="#ef4444">🔴 Rouge</option>
+                    <option value="#10b981">🟢 Vert</option>
+                    <option value="#3b82f6">🔵 Bleu</option>
+                    <option value="#f59e0b">🟠 Orange</option>
+                    <option value="#8b5cf6">🟣 Violet</option>
+                    <option value="#fbbf24">🟡 Jaune</option>
+                    <option value="#ec4899">💗 Rose</option>
+                  </select>
+
+                  {/* Séparateur */}
+                  <div style={{ width: '1px', height: '18px', background: '#d1d5db', margin: '0 1px' }}></div>
+
+                  {/* Liste et lien */}
+                  <button
+                    type="button"
+                    onClick={() => insertFormatting('<ul>\n  <li>', '</li>\n</ul>')}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Liste à puces"
+                  >
+                    ☰
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkUrl('https://');
+                      setIsLinkModalOpen(true);
+                    }}
+                    style={{
+                      padding: '3px 6px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Lien"
+                  >
+                    🔗
+                  </button>
+
+                  {/* Séparateur */}
+                  <div style={{ width: '1px', height: '18px', background: '#d1d5db', margin: '0 1px' }}></div>
+
+                  {/* Emoji Picker Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    data-emoji-picker
+                    style={{
+                      padding: '3px 6px',
+                      background: showEmojiPicker ? '#e5e7eb' : 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      minWidth: '24px',
+                      height: '24px'
+                    }}
+                    title="Emoji"
+                  >
+                    😊
+                  </button>
+
+                  {/* Emoji Picker Popup */}
+                  {showEmojiPicker && (
+                    <>
+                      <div
+                        onClick={() => setShowEmojiPicker(false)}
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'rgba(0, 0, 0, 0.3)',
+                          zIndex: 9999
+                        }}
+                      />
+                      <div data-emoji-picker style={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 10000,
+                        background: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                        padding: '12px'
+                      }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(7, 1fr)',
+                        gap: '4px',
+                        marginBottom: '8px'
+                      }}>
+                        {emojiList[emojiPage].map((emoji, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              insertEmoji(emoji);
+                              setShowEmojiPicker(false);
+                            }}
+                            style={{
+                              padding: '6px',
+                              background: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '18px',
+                              width: '36px',
+                              height: '36px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                            onMouseLeave={(e) => e.target.style.background = 'white'}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '8px',
+                        borderTop: '1px solid #e5e7eb'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setEmojiPage(Math.max(0, emojiPage - 1))}
+                          disabled={emojiPage === 0}
+                          style={{
+                            padding: '4px 12px',
+                            background: emojiPage === 0 ? '#f3f4f6' : 'white',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            cursor: emojiPage === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          ← Précédent
+                        </button>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                          {emojiPage + 1} / {emojiList.length}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEmojiPage(Math.min(emojiList.length - 1, emojiPage + 1))}
+                          disabled={emojiPage === emojiList.length - 1}
+                          style={{
+                            padding: '4px 12px',
+                            background: emojiPage === emojiList.length - 1 ? '#f3f4f6' : 'white',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            cursor: emojiPage === emojiList.length - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Suivant →
+                        </button>
+                      </div>
+                    </div>
+                    </>
+                  )}
+                </div>
+
                 <textarea
                   name="htmlContent"
                   value={formData.htmlContent}
@@ -588,7 +1195,11 @@ const Emails = () => {
                   rows="15"
                   placeholder="Contenu HTML de l'email..."
                   required
-                  style={{ fontFamily: 'monospace', fontSize: '13px' }}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                    borderRadius: '0 0 6px 6px'
+                  }}
                 />
               </div>
 
@@ -603,39 +1214,41 @@ const Emails = () => {
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                  Template actif
-                </label>
-              </div>
-
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={handleCloseModal}
-                >
-                  Annuler
-                </button>
-                {formData.htmlContent && formData.type && (
+              <div className={styles.modalActions} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  {formData.type && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={handleResetTemplate}
+                      style={{ background: '#f59e0b', color: 'white', borderColor: '#f59e0b' }}
+                    >
+                      🔄 Réinitialiser
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
                   <button
                     type="button"
                     className={styles.btnSecondary}
-                    onClick={handlePreview}
-                    style={{ background: '#8b5cf6', color: 'white', borderColor: '#8b5cf6' }}
+                    onClick={handleCloseModal}
                   >
-                    👁️ Aperçu
+                    Annuler
                   </button>
-                )}
-                <button type="submit" className={styles.btnPrimary}>
-                  {editingTemplate ? 'Mettre à jour' : 'Créer'}
-                </button>
+                  {formData.htmlContent && formData.type && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={handlePreview}
+                      style={{ background: '#8b5cf6', color: 'white', borderColor: '#8b5cf6' }}
+                    >
+                      👁️ Aperçu
+                    </button>
+                  )}
+                  <button type="submit" className={styles.btnPrimary}>
+                    {editingTemplate ? 'Mettre à jour' : 'Créer'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -748,6 +1361,95 @@ const Emails = () => {
                 onClick={() => setIsPreviewOpen(false)}
               >
                 Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLinkModalOpen && (
+        <div className={styles.modal} onClick={() => setIsLinkModalOpen(false)}>
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '500px' }}
+          >
+            <h2>🔗 Insérer un lien</h2>
+
+            <div className={styles.formGroup}>
+              <label>URL du lien *</label>
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://example.com"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setIsLinkModalOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={() => {
+                  if (linkUrl && linkUrl.trim()) {
+                    insertFormatting(`<a href="${linkUrl}">`, '</a>');
+                    setIsLinkModalOpen(false);
+                  }
+                }}
+              >
+                Insérer le lien
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isResetConfirmOpen && (
+        <div className={styles.modal} onClick={() => setIsResetConfirmOpen(false)}>
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '500px' }}
+          >
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+              <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>Réinitialiser le template</h2>
+              <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0' }}>
+                Êtes-vous sûr de vouloir réinitialiser le template ?<br />
+                <strong style={{ color: '#ef4444' }}>Toutes les modifications seront perdues.</strong>
+              </p>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setIsResetConfirmOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={confirmResetTemplate}
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
+              >
+                Oui, réinitialiser
               </button>
             </div>
           </div>
