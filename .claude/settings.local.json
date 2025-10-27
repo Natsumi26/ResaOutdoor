@@ -26,7 +26,8 @@
       "Bash(curl -s http://localhost:5000/api/email-templates)",
       "Bash(curl:*)",
       "Bash(git checkout:*)",
-      "Bash(timeout /t 5)"
+      "Bash(timeout /t 5)",
+      "Bash(npm run prisma:seed:*)"
     ],
     "deny": [],
     "ask": []
