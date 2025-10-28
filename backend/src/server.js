@@ -19,6 +19,7 @@ import stripeRoutes from './routes/stripe.routes.js';
 import resellerRoutes from './routes/reseller.routes.js';
 import emailTemplateRoutes from './routes/emailTemplate.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
+import teamRoutes from './routes/team.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initNotificationService } from './services/notification.service.js';
 
@@ -60,6 +61,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/email-templates', emailTemplateRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/resellers', resellerRoutes);
+app.use('/api/team', teamRoutes);
 // On remonte les autres routes Stripe (sauf webhook)
 app.use('/api/stripe', stripeRoutes);
 
@@ -95,9 +97,10 @@ io.on('connection', (socket) => {
   socket.on('join-room', (data) => {
     const { role, userId } = data;
 
-    if (role === 'admin') {
+    // Super admins, leaders, et employees rejoignent la room admins
+    if (role === 'super_admin' || role === 'leader' || role === 'employee' || role === 'admin') {
       socket.join('admins');
-      console.log(`👨‍💼 Admin ${userId} a rejoint la room admins`);
+      console.log(`👨‍💼 ${role} ${userId} a rejoint la room admins`);
     } else if (role === 'client' && userId) {
       socket.join(`client-${userId}`);
       console.log(`👤 Client ${userId} a rejoint sa room personnelle`);

@@ -171,6 +171,15 @@ export const settingsAPI = {
   updateLogo: (data) => api.patch('/settings/logo', data)
 };
 
+// Team
+export const teamAPI = {
+  getMembers: () => api.get('/team/members'),
+  addMember: (data) => api.post('/team/members', data),
+  updateMember: (memberId, data) => api.put(`/team/members/${memberId}`, data),
+  deleteMember: (memberId) => api.delete(`/team/members/${memberId}`),
+  getMyLeader: () => api.get('/team/my-leader')
+};
+
 // Upload
 export const uploadAPI = {
   images: (formData) => {

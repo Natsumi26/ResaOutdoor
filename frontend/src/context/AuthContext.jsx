@@ -64,7 +64,15 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin'
+    // Helpers pour vérifier les rôles
+    isSuperAdmin: user?.role === 'super_admin',
+    isLeader: user?.role === 'leader',
+    isEmployee: user?.role === 'employee',
+    isTrainee: user?.role === 'trainee',
+    // isAdmin = super_admin ou leader (ancienne logique)
+    isAdmin: user?.role === 'super_admin' || user?.role === 'leader' || user?.role === 'admin',
+    // Peut créer des sessions (pas trainee)
+    canCreateSessions: user?.role !== 'trainee'
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

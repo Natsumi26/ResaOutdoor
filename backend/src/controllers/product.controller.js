@@ -11,15 +11,41 @@ const __dirname = path.dirname(__filename);
 export const getAllProducts = async (req, res, next) => {
   try {
     const { guideId, categoryId } = req.query;
+    const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role;
 
     const where = {};
 
-    // Si non-admin, filtrer automatiquement par guide connecté
-    if (req.user.role !== 'admin') {
-      where.guideId = req.user.userId;
-    } else if (guideId) {
-      // Si admin et guideId fourni en query, filtrer par ce guide
-      where.guideId = guideId;
+    // 🎯 Logique de filtrage selon le rôle
+    if (userRole === 'super_admin') {
+      // Super admin voit tous les produits
+      if (guideId) {
+        where.guideId = guideId; // Ou filtre par un guide spécifique si fourni
+      }
+    } else if (userRole === 'leader') {
+      // Leader voit ses propres produits
+      if (guideId) {
+        where.guideId = guideId;
+      } else {
+        where.guideId = userId;
+      }
+    } else if (userRole === 'employee' || userRole === 'trainee') {
+      // Employés et stagiaires voient leurs propres produits ET ceux de leur leader
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { teamLeaderId: true }
+      });
+
+      if (user && user.teamLeaderId) {
+        // Voir les produits de l'utilisateur ET du leader
+        where.guideId = { in: [userId, user.teamLeaderId] };
+      } else {
+        // Pas de leader, voir seulement ses propres produits
+        where.guideId = userId;
+      }
+    } else {
+      // Par défaut, voir seulement ses propres produits
+      where.guideId = userId;
     }
 
     const products = await prisma.product.findMany({
@@ -29,7 +55,8 @@ export const getAllProducts = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true
+            email: true,
+            role: true
           }
         },
         categories: {

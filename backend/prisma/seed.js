@@ -11,17 +11,19 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { login: 'canyonlife' },
-    update: {},
+    update: {
+      role: 'super_admin' // Mettre à jour le rôle si l'utilisateur existe déjà
+    },
     create: {
       login: 'canyonlife',
       password: hashedPassword,
       email: 'admin@canyonlife.com',
-      role: 'admin',
+      role: 'super_admin', // Nouveau rôle super_admin au lieu de admin
       stripeAccount: null
     }
   });
 
-  console.log('✅ Utilisateur admin créé:', admin.login);
+  console.log('✅ Utilisateur super admin créé:', admin.login);
 
   // // Créer quelques catégories d'exemple
   // const categories = await Promise.all([

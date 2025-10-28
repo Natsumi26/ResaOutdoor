@@ -5,7 +5,7 @@ import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -109,7 +109,7 @@ const Dashboard = () => {
 
             {settingsOpen && sidebarOpen && (
               <div className={styles.subMenu}>
-              {isAdmin && (
+              {isSuperAdmin && (
                   <NavLink
                     to="/users"
                     className={({ isActive }) =>
@@ -118,6 +118,18 @@ const Dashboard = () => {
                   >
                     <span className={styles.icon}>👥</span>
                     {sidebarOpen && <span>Utilisateurs</span>}
+                  </NavLink>
+                )}
+
+                {(user?.role === 'leader' || user?.role === 'super_admin') && (
+                  <NavLink
+                    to="/team"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>🌟</span>
+                    {sidebarOpen && <span>Mon Équipe</span>}
                   </NavLink>
                 )}
 
@@ -183,7 +195,15 @@ const Dashboard = () => {
               <div className={styles.userDetails}>
                 <p className={styles.userName}>{user?.login}</p>
                 <p className={styles.userRole}>
-                  {user?.role === 'admin' ? 'Administrateur' : 'Guide'}
+                  {user?.role === 'trainee'
+                    ? 'Stagiaire'
+                    : user?.role === 'employee'
+                    ? 'Employé'
+                    : user?.role === 'leader'
+                    ? 'Chef d\'équipe'
+                    : user?.role === 'super_admin'
+                    ? 'Super Admin'
+                    : 'Utilisateur'}
                 </p>
               </div>
             )}

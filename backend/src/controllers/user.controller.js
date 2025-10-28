@@ -12,6 +12,8 @@ export const getAllUsers = async (req, res, next) => {
         email: true,
         role: true,
         stripeAccount: true,
+        teamName: true,
+        teamLeaderId: true,
         createdAt: true,
         updatedAt: true
       },
@@ -30,7 +32,7 @@ export const getAllUsers = async (req, res, next) => {
 // Créer un utilisateur (admin seulement)
 export const createUser = async (req, res, next) => {
   try {
-    const { login, password, email, stripeAccount, role } = req.body;
+    const { login, password, email, stripeAccount, role, teamName, teamLeaderId } = req.body;
 
     if (!login || !password) {
       throw new AppError('Login et mot de passe requis', 400);
@@ -55,7 +57,9 @@ export const createUser = async (req, res, next) => {
         password: hashedPassword,
         email,
         stripeAccount,
-        role: role || 'guide'
+        role: role || 'employee',
+        teamName: (role === 'leader') ? teamName : null, // teamName uniquement pour les leaders
+        teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
       },
       select: {
         id: true,
@@ -63,6 +67,8 @@ export const createUser = async (req, res, next) => {
         email: true,
         role: true,
         stripeAccount: true,
+        teamName: true,
+        teamLeaderId: true,
         createdAt: true
       }
     });
@@ -80,13 +86,15 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { login, password, email, stripeAccount, role } = req.body;
+    const { login, password, email, stripeAccount, role, teamName, teamLeaderId } = req.body;
 
     const updateData = {
       ...(login && { login }),
       ...(email && { email }),
       ...(stripeAccount !== undefined && { stripeAccount }),
-      ...(role && { role })
+      ...(role && { role }),
+      ...(teamName !== undefined && { teamName }),
+      ...(teamLeaderId !== undefined && { teamLeaderId })
     };
 
     // Si un nouveau mot de passe est fourni
@@ -103,6 +111,8 @@ export const updateUser = async (req, res, next) => {
         email: true,
         role: true,
         stripeAccount: true,
+        teamName: true,
+        teamLeaderId: true,
         updatedAt: true
       }
     });

@@ -42,9 +42,26 @@ export const optionalAuth = async (req, res, next) => {
   }
 };
 
+// Middleware pour vérifier si l'utilisateur est admin (super_admin ou leader)
 export const adminOnly = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'super_admin' && req.user.role !== 'leader') {
     throw new AppError('Accès réservé aux administrateurs', 403);
+  }
+  next();
+};
+
+// Middleware pour vérifier si l'utilisateur est super_admin uniquement
+export const superAdminOnly = (req, res, next) => {
+  if (req.user.role !== 'super_admin') {
+    throw new AppError('Accès réservé aux super administrateurs', 403);
+  }
+  next();
+};
+
+// Middleware pour vérifier si l'utilisateur peut créer des sessions (pas trainee)
+export const canCreateSessions = (req, res, next) => {
+  if (req.user.role === 'trainee') {
+    throw new AppError('Les stagiaires ne peuvent pas créer de sessions', 403);
   }
   next();
 };

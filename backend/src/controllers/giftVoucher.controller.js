@@ -11,12 +11,15 @@ const generateVoucherCode = () => {
   return code;
 };
 
-// Lister tous les bons cadeaux
+// Lister tous les bons cadeaux (filtrés par utilisateur)
 export const getAllGiftVouchers = async (req, res, next) => {
   try {
+    const userId = req.user.userId || req.user.id;
     const { type } = req.query;
 
-    const where = {};
+    const where = {
+      userId // Filtrer par userId
+    };
     if (type) {
       where.type = type;
     }
@@ -71,6 +74,7 @@ export const getGiftVoucherByCode = async (req, res, next) => {
 // Créer un bon cadeau ou code promo
 export const createGiftVoucher = async (req, res, next) => {
   try {
+    const userId = req.user.userId || req.user.id;
     const { amount, expiresAt, type = 'voucher', maxUsages, code: customCode, discountType = 'fixed' } = req.body;
 
     if (!amount || amount <= 0) {
@@ -113,7 +117,8 @@ export const createGiftVoucher = async (req, res, next) => {
         discountType,
         type,
         maxUsages: maxUsages ? parseInt(maxUsages) : null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        userId // Associer au créateur
       },
       include: {
         usages: true

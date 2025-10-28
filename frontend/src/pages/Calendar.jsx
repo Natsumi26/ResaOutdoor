@@ -91,7 +91,7 @@ const Calendar = () => {
 
   const loadGuides = async () => {
     // Charger les guides uniquement si admin
-    if (currentUser?.role === 'admin') {
+    if (currentUser?.role === 'leader'|| currentUser?.role === 'super_admin' ) {
       try {
         const response = await usersAPI.getAll();
         setGuides(response.data.users || []);
@@ -350,7 +350,7 @@ const Calendar = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           {/* Filtre par guide (admin uniquement) */}
-          {currentUser?.role === 'admin' && !showSessionForm && !showBookingForm && (
+          {(currentUser?.role === 'leader'||currentUser?.role === 'super_admin') && !showSessionForm && !showBookingForm && (
             <div className={styles.guideFilter}>
               <label>Filtrer par guide :</label>
               <select
@@ -369,7 +369,7 @@ const Calendar = () => {
           )}
         </div>
 
-        {!showSessionForm && !showBookingForm && (
+        {!currentUser.role === 'trainee' && !showSessionForm && !showBookingForm && (
           <div className={styles.sessionMenuContainer}>
             <button
               className={styles.btnPrimary}
@@ -379,6 +379,7 @@ const Calendar = () => {
             </button>
             {sessionMenuOpen && (
               <div className={styles.sessionDropdown}>
+                
                 <button
                   className={styles.dropdownItem}
                   onClick={() => {
@@ -425,6 +426,7 @@ const Calendar = () => {
         <WeeklyCalendar
           sessions={sessions}
           selectedDate={currentWeek}
+          currentUser={currentUser}
           onWeekChange={handleWeekChange}
           onMoveBooking={handleMoveBooking}
           onSessionClick={handleSessionClick}

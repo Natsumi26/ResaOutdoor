@@ -185,6 +185,8 @@
     "500Caractere":"/500 caractères",
     "Warning":"Attention",
     "ActionIreversible":"Cette action est irréversible. Une fois annulée, vous ne pourrez pas réactiver cette réservation.",
+    "ConfirmCancel":"Confirmer l'annulation",
+    "CancelChargment":"Annulation en cours...",
     "payment": {
         "processing": "Traitement en cours...",
         "proceed": "Procéder au paiement"

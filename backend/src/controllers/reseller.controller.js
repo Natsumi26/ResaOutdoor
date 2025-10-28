@@ -2,10 +2,15 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Récupérer tous les revendeurs
+// Récupérer tous les revendeurs (filtrés par utilisateur)
 export const getAllResellers = async (req, res) => {
   try {
+    const userId = req.user.userId || req.user.id;
+
     const resellers = await prisma.reseller.findMany({
+      where: {
+        userId // Filtrer par userId
+      },
       orderBy: {
         name: 'asc'
       },
@@ -26,6 +31,7 @@ export const getAllResellers = async (req, res) => {
 // Créer un nouveau revendeur
 export const createReseller = async (req, res) => {
   try {
+    const userId = req.user.userId || req.user.id;
     const { name, email, phone, website, commission, notes } = req.body;
 
     if (!name || name.trim() === '') {
@@ -39,7 +45,8 @@ export const createReseller = async (req, res) => {
         phone: phone?.trim() || null,
         website: website?.trim() || null,
         commission: commission ? parseFloat(commission) : null,
-        notes: notes?.trim() || null
+        notes: notes?.trim() || null,
+        userId // Associer au créateur
       }
     });
 

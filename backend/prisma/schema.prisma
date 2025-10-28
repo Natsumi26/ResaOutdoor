@@ -16,13 +16,22 @@ model User {
   password      String
   email         String?
   stripeAccount String?   // Compte Stripe associé
-  role          String    @default("guide") // "admin" ou "guide"
+  role          String    @default("employee") // "super_admin", "leader", "employee", "trainee"
+
+  // Hiérarchie de team
+  teamName      String?   // Nom de l'équipe (uniquement pour les leaders)
+  teamLeaderId  String?   // Leader de l'équipe (null si l'utilisateur est lui-même leader ou super_admin)
+  teamLeader    User?     @relation("TeamHierarchy", fields: [teamLeaderId], references: [id], onDelete: SetNull)
+  teamMembers   User[]    @relation("TeamHierarchy") // Membres de l'équipe si l'utilisateur est leader
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  products      Product[]
-  sessions      Session[]
+  products       Product[]
+  sessions       Session[]
   emailTemplates EmailTemplate[]
+  giftVouchers   GiftVoucher[]
+  resellers      Reseller[]
 
   @@map("users")
 }
@@ -141,6 +150,10 @@ model Reseller {
   commission  Float?    // Commission en pourcentage (optionnel)
   notes       String?
 
+  // Propriétaire du revendeur
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -242,6 +255,10 @@ model GiftVoucher {
   maxUsages     Int?                // Nombre max d'utilisations (null = illimité)
   usageCount    Int                 @default(0) // Nombre d'utilisations actuelles
   notes         String?             // Notes (utilisé pour stocker le payment_intent Stripe)
+
+  // Propriétaire du bon cadeau
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime            @default(now())
   expiresAt     DateTime?

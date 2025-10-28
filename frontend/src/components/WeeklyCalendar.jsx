@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
 
-const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession, onWeekChange, selectedDate }) => {
+const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession, onWeekChange, selectedDate, currentUser }) => {
 
   // Générer les 7 jours de la semaine
   const weekStart = selectedDate
@@ -136,7 +135,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                   <span className={styles.daySectionTitle}>
                     {format(day, 'EEEE dd/MM', { locale: fr })}
                   </span>
-                  {onCreateSession && (
+                  {!currentUser.role === 'trainee' && onCreateSession && (
                     <button
                       className={styles.btnAddSession}
                       onClick={() => onCreateSession(day)}

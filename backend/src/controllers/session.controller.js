@@ -420,10 +420,15 @@ export const createSession = async (req, res, next) => {
       throw new AppError('Utilisateur non authentifié. Veuillez vous reconnecter.', 401);
     }
 
-    // Si l'utilisateur est admin et fournit un guideId, on l'utilise
+    // 🚫 Bloquer les stagiaires : ils ne peuvent pas créer de sessions
+    if (req.user.role === 'trainee') {
+      throw new AppError('Les stagiaires ne peuvent pas créer de sessions. Contactez votre leader.', 403);
+    }
+
+    // Si l'utilisateur est super_admin/leader et fournit un guideId, on l'utilise
     // Sinon, on utilise l'ID du user connecté
     let guideId;
-    if (req.user.role === 'admin' && bodyGuideId) {
+    if ((req.user.role === 'super_admin' || req.user.role === 'leader') && bodyGuideId) {
       guideId = bodyGuideId;
     } else {
       guideId = req.user.userId;

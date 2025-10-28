@@ -13,6 +13,7 @@ import Emails from './pages/Emails';
 import OnlineSales from './pages/OnlineSales';
 import Resellers from './pages/Resellers';
 import Preferences from './pages/Preferences';
+import Team from './pages/Team';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
@@ -71,6 +72,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Calendar />} />
         <Route path="users" element={<Users />} />
+        <Route path="team" element={<Team />} />
         <Route path="products" element={<Products />} />
         <Route path="reservations" element={<Reservations />} />
         <Route path="gift-vouchers" element={<GiftVouchers />} />

@@ -33,8 +33,9 @@ const Products = () => {
       setProducts(productsRes.data.products);
       setCategories(categoriesRes.data.categories);
 
-      // Charger les utilisateurs uniquement si admin
-      if (currentUserRes.data.user.role === 'admin') {
+      // Charger les utilisateurs uniquement si super_admin ou leader
+      const userRole = currentUserRes.data.user.role;
+      if (userRole === 'super_admin' || userRole === 'leader' || userRole === 'admin') {
         try {
           const usersRes = await usersAPI.getAll();
           setUsers(usersRes.data.users);

@@ -239,8 +239,8 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         : null
     };
 
-    // Ne pas envoyer guideId si l'utilisateur n'est pas admin (sera auto-assigné côté serveur)
-    if (currentUser?.role !== 'admin') {
+    // Ne pas envoyer guideId si l'utilisateur n'est pas super_admin ou leader (sera auto-assigné côté serveur)
+    if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
       delete submitData.guideId;
     }
 
