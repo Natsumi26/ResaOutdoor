@@ -135,7 +135,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
                   <span className={styles.daySectionTitle}>
                     {format(day, 'EEEE dd/MM', { locale: fr })}
                   </span>
-                  {!currentUser.role === 'trainee' && onCreateSession && (
+                  {currentUser.role !== 'trainee' && onCreateSession && (
                     <button
                       className={styles.btnAddSession}
                       onClick={() => onCreateSession(day)}

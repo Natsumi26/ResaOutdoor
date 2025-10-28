@@ -32,7 +32,8 @@ export const getAllBookings = async (req, res, next) => {
             guide: {
               select: {
                 id: true,
-                login: true
+                login: true,
+                teamName: true
               }
             }
           }

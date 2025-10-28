@@ -4,6 +4,7 @@ import { fr } from 'date-fns/locale';
 import { bookingsAPI } from '../services/api';
 import BookingModal from '../components/BookingModal';
 import styles from './Reservations.module.css';
+import { useAuth } from '../context/AuthContext';
 
 const Reservations = () => {
   const [bookings, setBookings] = useState([]);
@@ -14,6 +15,7 @@ const Reservations = () => {
   const [searchDate, setSearchDate] = useState('');
   const [searchClient, setSearchClient] = useState('');
   const [searchYear, setSearchYear] = useState('');
+  const { user, isSuperAdmin, isLeader } = useAuth();
 
 
   useEffect(() => {
@@ -23,12 +25,22 @@ const Reservations = () => {
   useEffect(() => {
     filterBookings();
   }, [searchDate, searchClient,searchYear, bookings]);
-
+console.log(user) 
   const loadBookings = async () => {
     try {
       setLoading(true);
       const response = await bookingsAPI.getAll();
-      setBookings(response.data.bookings || []);
+      let allBookings = response.data.bookings;
+
+      let visibleBookings = [];
+      if (isSuperAdmin||isLeader) {
+        visibleBookings = allBookings.filter(b => b.session.guide.teamName === user.teamName);
+      } else {
+        visibleBookings = allBookings.filter(b => b.session.guideId === user.id)
+      }
+
+      setBookings(visibleBookings);  
+      console.log(visibleBookings)    
       setError(null);
     } catch (err) {
       console.error('Erreur chargement réservations:', err);

@@ -9,7 +9,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
     startTime: '09:00',
     isMagicRotation: false,
     productIds: [],  // Array de produits sélectionnés
-    guideId: '',  // Guide assigné (pour admin)
+    guideId: '',  // Guide assigné (pour leader)
     status: 'open',
     shoeRentalAvailable: false,  // Location de chaussures disponible
     shoeRentalPrice: ''  // Prix de location
@@ -146,7 +146,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       shoeRentalAvailable: formData.shoeRentalAvailable,
       shoeRentalPrice: formData.shoeRentalAvailable ? parseFloat(formData.shoeRentalPrice) : null
     };
-
+    console.log(submitData)
     onSubmit(submitData);
   };
 
@@ -214,7 +214,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         </div>
 
         {/* Sélection du guide (pour admin) */}
-        {currentUser?.role === 'admin' && guides && guides.length > 0 && (
+        {(currentUser?.role === 'super_admin'|| currentUser?.role === 'leader' ) && guides && guides.length > 0 && (
           <div className={styles.formGroup}>
             <label>Guide assigné *</label>
             <select

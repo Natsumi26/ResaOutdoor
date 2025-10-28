@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import BookingModal from '../components/BookingModal';
 import SessionDetailModal from '../components/SessionDetailModal';
@@ -11,7 +11,6 @@ import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
 import NotificationBell from '../components/NotificationBell';
 import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
 import styles from './Calendar.module.css';
-import { addDays } from 'date-fns';
 
 
 const Calendar = () => {
@@ -94,7 +93,9 @@ const Calendar = () => {
     if (currentUser?.role === 'leader'|| currentUser?.role === 'super_admin' ) {
       try {
         const response = await usersAPI.getAll();
-        setGuides(response.data.users || []);
+        let allGuides = response.data.users;
+        let guideTeam = allGuides.filter(g => g.teamName === currentUser.teamName);
+        setGuides(guideTeam);
       } catch (err) {
         console.error('Erreur chargement guides:', err);
       }
@@ -369,7 +370,7 @@ const Calendar = () => {
           )}
         </div>
 
-        {!currentUser.role === 'trainee' && !showSessionForm && !showBookingForm && (
+        {currentUser.role !== 'trainee' && !showSessionForm && !showBookingForm && (
           <div className={styles.sessionMenuContainer}>
             <button
               className={styles.btnPrimary}

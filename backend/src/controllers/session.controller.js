@@ -265,15 +265,24 @@ export const getAllSessions = async (req, res, next) => {
       };
     }
 
-    // Si un guideId est fourni dans la query, l'utiliser
-    if (guideId) {
+    if (guideId && guideId !== '') {
       where.guideId = guideId;
-    }
-    // Sinon, si l'utilisateur n'est pas admin, ne montrer que ses sessions
-    else if (req.user && req.user.role !== 'admin') {
+    } else if (req.user?.role === 'super_admin' || req.user?.role === 'leader') {
+      // Récupérer tous les guides de l'équipe du leader ou du super admin
+      const teamGuides = await prisma.user.findMany({
+        where: {
+          teamName: req.user.teamName,
+          role: { in: ['leader', 'employee', 'trainee'] }
+        },
+        select: { id: true }
+      });
+
+      where.guideId = { in: teamGuides.map(g => g.id) };
+    } else {
+      // Employé ou stagiaire → uniquement ses propres sessions
       where.guideId = req.user.userId;
     }
-    // Si admin et pas de guideId, montrer toutes les sessions
+
 
     const sessions = await prisma.session.findMany({
       where,

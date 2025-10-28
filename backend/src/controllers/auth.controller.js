@@ -68,6 +68,7 @@ export const getCurrentUser = async (req, res, next) => {
         login: true,
         email: true,
         role: true,
+        teamName: true,
         stripeAccount: true,
         createdAt: true
       }

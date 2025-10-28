@@ -112,6 +112,7 @@
 
 .table {
   width: 100%;
+  overflow-x: auto;
 }
 
 .tableHeader {
@@ -346,7 +347,9 @@
   }
 
   .table {
-    overflow: visible;
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
   }
 
   .tableHeader {
