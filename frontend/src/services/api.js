@@ -137,7 +137,9 @@ export const emailTemplatesAPI = {
 // Stripe
 export const stripeAPI = {
   createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),
+  createBookingCheckout: (data) => axios.post(`${API_URL}/stripe/create-booking-checkout`, data),
   verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`),
+  verifyBookingPayment: (sessionId) => axios.get(`${API_URL}/stripe/verify-booking-payment/${sessionId}`),
   // Gift Voucher Payment
   createGiftVoucherCheckout: (data) => api.post('/stripe/create-gift-voucher-checkout', data),
   verifyGiftVoucherPayment: (sessionId) => api.get(`/stripe/verify-gift-voucher-payment/${sessionId}`),

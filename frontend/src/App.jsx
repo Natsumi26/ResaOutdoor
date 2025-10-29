@@ -23,7 +23,6 @@ import CanyonDetails from './pages/client/CanyonDetails';
 import BookingForm from './pages/client/BookingForm';
 import BookingConfirmation from './pages/client/BookingConfirmation';
 import MyBooking from './pages/client/MyBooking';
-import CancelBooking from './pages/client/CancelBooking';
 import GiftVoucherPurchase from './pages/client/GiftVoucherPurchase';
 import GiftVoucherSuccess from './pages/client/GiftVoucherSuccess';
 
@@ -57,7 +56,6 @@ const AppRoutes = () => {
       <Route path="/client/book/:sessionId" element={<BookingForm />} />
       <Route path="/client/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
       <Route path="/client/my-booking/:bookingId" element={<MyBooking />} />
-      <Route path="/client/cancel-booking/:bookingId" element={<CancelBooking />} />
       <Route path="/client/gift-voucher" element={<GiftVoucherPurchase />} />
       <Route path="/gift-voucher/payment/success" element={<GiftVoucherSuccess />} />
 

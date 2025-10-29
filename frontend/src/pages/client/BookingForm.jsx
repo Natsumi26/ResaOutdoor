@@ -254,49 +254,58 @@ const BookingForm = () => {
 
       const totalPrice = calculateTotal(); // Prix AVANT réduction
       const finalPrice = calculateFinalPrice(); // Prix APRÈS réduction
+      const discount = calculateDiscount();
 
       // Calculer le nombre de locations de chaussures
       let shoeRentalCount = 0;
       if (session.shoeRentalPrice) {
         shoeRentalCount = participants.filter(p => p.shoeRental).length;
       }
-      console.log(totalPrice)
+
       const bookingData = {
-        sessionId: session.id,
-        productId: productId,
         numberOfPeople: formData.numberOfPeople,
         clientFirstName: formData.clientFirstName,
         clientLastName: formData.clientLastName,
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         clientNationality: formData.clientNationality,
-        totalPrice: totalPrice, // Prix total AVANT réduction
-        amountPaid: formData.paymentMethod === 'online' ? finalPrice : 0, // Montant à payer APRÈS réduction
-        status: formData.paymentMethod === 'online' ? 'confirmed' : 'pending',
+        totalPrice: finalPrice, // Prix final APRÈS réduction
         shoeRentalCount: shoeRentalCount || null,
-        voucherCode: formData.voucherCode || null
+        voucherCode: formData.voucherCode || null,
+        discountAmount: discount > 0 ? discount : null
       };
 
-      // Créer la réservation
-      const bookingResponse = await bookingsAPI.create(bookingData);
-      const booking = bookingResponse.data.booking;
-
-      // Enregistrer tous les participants (même vides) pour correspondre au nombre de personnes
-      // Les participants peuvent être complétés plus tard via le lien dans l'email
-      if (participants.length > 0) {
-        await participantsAPI.upsert(booking.id, { participants: participants });
-      }
-
-      // Rediriger selon le mode de paiement
+      // SI PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
       if (formData.paymentMethod === 'online') {
-        // Créer une session de paiement Stripe avec le prix APRÈS réduction
-        const stripeResponse = await stripeAPI.createCheckoutSession({
-          bookingId: booking.id,
-          amount: finalPrice
+        // Créer une session Stripe avec les données de réservation en metadata
+        const stripeResponse = await stripeAPI.createBookingCheckout({
+          sessionId: session.id,
+          productId: productId,
+          bookingData: bookingData,
+          participants: participants.length > 0 ? participants : null
         });
+
+        // Rediriger vers Stripe
         window.location.href = stripeResponse.data.url;
       } else {
-        // Paiement sur place - rediriger vers la confirmation
+        // SI PAIEMENT SUR PLACE : créer la réservation normalement
+        const bookingDataForCreate = {
+          sessionId: session.id,
+          productId: productId,
+          ...bookingData,
+          amountPaid: 0,
+          status: 'pending'
+        };
+
+        const bookingResponse = await bookingsAPI.create(bookingDataForCreate);
+        const booking = bookingResponse.data.booking;
+
+        // Enregistrer les participants
+        if (participants.length > 0) {
+          await participantsAPI.upsert(booking.id, { participants: participants });
+        }
+
+        // Rediriger vers la confirmation
         navigate(`/client/booking-confirmation/${booking.id}`);
       }
     } catch (error) {

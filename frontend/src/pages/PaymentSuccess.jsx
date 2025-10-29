@@ -9,6 +9,9 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 10;
+
 
   useEffect(() => {
     verifyPayment();
@@ -24,17 +27,31 @@ const PaymentSuccess = () => {
     }
 
     try {
-      const response = await stripeAPI.verifyPayment(sessionId);
+      // Utiliser la nouvelle route pour les paiements de réservation
+      const response = await stripeAPI.verifyBookingPayment(sessionId);
 
       if (response.data.paid) {
+        if (response.data.pending) {
+          if (retryCount < MAX_RETRIES) {
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              verifyPayment();
+            }, 2000);
+          } else {
+            setError("La réservation est toujours en attente. Veuillez contacter le guide.");
+          }
+          return;
+        }
+
+         // Réservation créée
         setPaymentInfo(response.data);
 
-        // // Rediriger automatiquement vers la page de réservation client après 2 secondes
-        // if (response.data.bookingId) {
-        //   setTimeout(() => {
-        //     navigate(`/client/my-booking/${response.data.bookingId}`);
-        //   }, 2000);
-        // }
+        // Rediriger automatiquement vers la confirmation après 2 secondes
+        if (response.data.bookingId) {
+          setTimeout(() => {
+            navigate(`/client/booking-confirmation/${response.data.bookingId}`);
+          }, 2000);
+        }
       } else {
         setError('Paiement non confirmé');
       }

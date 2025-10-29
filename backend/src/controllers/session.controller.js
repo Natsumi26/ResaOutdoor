@@ -241,6 +241,8 @@ export const searchAvailableProducts = async (req, res, next) => {
 // Lister toutes les sessions (avec filtre par date)
 export const getAllSessions = async (req, res, next) => {
   try {
+    console.log('🔍 req.user =', req.user);
+
     const { startDate, endDate, guideId, date, productId } = req.query;
 
     const where = {};
@@ -265,23 +267,25 @@ export const getAllSessions = async (req, res, next) => {
       };
     }
 
+    // Filtre par guide
     if (guideId && guideId !== '') {
       where.guideId = guideId;
-    } else if (req.user?.role === 'super_admin' || req.user?.role === 'leader') {
-      // Récupérer tous les guides de l'équipe du leader ou du super admin
-      const teamGuides = await prisma.user.findMany({
-        where: {
-          teamName: req.user.teamName,
-          role: { in: ['leader', 'employee', 'trainee'] }
-        },
-        select: { id: true }
-      });
-
-      where.guideId = { in: teamGuides.map(g => g.id) };
-    } else {
-      // Employé ou stagiaire → uniquement ses propres sessions
-      where.guideId = req.user.userId;
+    } else if (req.user) {
+      if (req.user.role === 'super_admin' || req.user.role === 'leader') {
+        const teamGuides = await prisma.user.findMany({
+          where: {
+            teamName: req.user.teamName,
+            role: { in: ['leader', 'employee', 'trainee'] }
+          },
+          select: { id: true }
+        });
+        where.guideId = { in: teamGuides.map(g => g.id) };
+      } else if (req.user.role === 'employee' || req.user.role === 'trainee') {
+        where.guideId = req.user.userId;
+      }
     }
+    // Si pas connecté → ne pas filtrer par guideId
+console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)');
 
 
     const sessions = await prisma.session.findMany({
@@ -311,7 +315,7 @@ export const getAllSessions = async (req, res, next) => {
         { startTime: 'asc' }
       ]
     });
-
+    console.log(sessions)
     // Filtrer par productId si fourni
     let filteredSessions = sessions;
     if (productId) {

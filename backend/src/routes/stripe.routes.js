@@ -12,7 +12,11 @@ import {
   createLoginLink,
   createGiftVoucherCheckoutSession
 } from '../services/stripe.service.js';
-import { sendPaymentConfirmation, sendGiftVoucherEmail } from '../services/email.service.js';
+import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification } from '../services/email.service.js';
+import stripe from '../config/stripe.js';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { notifyAdmins, createNewBookingNotification, updateCalendar } from '../services/notification.service.js';
 
 const router = express.Router();
 
@@ -59,6 +63,87 @@ router.post('/create-checkout-session', authMiddleware, async (req, res, next) =
 });
 
 /**
+ * Créer une session de paiement Stripe AVANT la création de la réservation
+ * POST /api/stripe/create-booking-checkout
+ */
+router.post('/create-booking-checkout', async (req, res, next) => {
+  try {
+    const { sessionId, productId, bookingData, participants } = req.body;
+
+    if (!sessionId || !productId || !bookingData) {
+      throw new AppError('sessionId, productId et bookingData requis', 400);
+    }
+
+    // Charger la session et le produit
+    const [session, product] = await Promise.all([
+      prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          guide: true,
+          bookings: true
+        }
+      }),
+      prisma.product.findUnique({
+        where: { id: productId }
+      })
+    ]);
+
+    if (!session) {
+      throw new AppError('Session non trouvée', 404);
+    }
+
+    if (!product) {
+      throw new AppError('Produit non trouvé', 404);
+    }
+
+    const sessionDate = format(new Date(session.date), 'dd MMMM yyyy', { locale: fr });
+
+    // Créer la session Stripe avec toutes les métadonnées nécessaires
+    const sessionConfig = {
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `${product.name} - ${sessionDate}`,
+              description: `${session.timeSlot} - ${session.startTime} | ${bookingData.numberOfPeople} personne(s)`,
+              images: product.images && product.images.length > 0
+                ? [product.images[0].startsWith('http') ? product.images[0] : `${process.env.APP_URL || 'http://localhost:5000'}${product.images[0]}`]
+                : []
+            },
+            unit_amount: Math.round(bookingData.totalPrice * 100)
+          },
+          quantity: 1
+        }
+      ],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cancel`,
+      customer_email: bookingData.clientEmail,
+      metadata: {
+        type: 'new_booking',
+        sessionId: sessionId,
+        productId: productId,
+        bookingData: JSON.stringify(bookingData),
+        participants: participants ? JSON.stringify(participants) : null
+      }
+    };
+
+    // Créer la session de checkout
+    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+
+    res.json({
+      success: true,
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * Vérifier le statut d'un paiement après redirection
  * GET /api/stripe/verify-payment/:sessionId
  */
@@ -89,6 +174,71 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
     });
 
 /**
+ * Vérifier le statut d'un paiement de nouvelle réservation après redirection
+ * GET /api/stripe/verify-booking-payment/:sessionId
+ */
+router.get('/verify-booking-payment/:sessionId', async (req, res, next) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await retrieveCheckoutSession(sessionId);
+
+    if (session.payment_status === 'paid') {
+      // Vérifier si c'est une nouvelle réservation
+      if (session.metadata && session.metadata.type === 'new_booking') {
+        // Chercher la réservation créée par le webhook
+        const bookingData = JSON.parse(session.metadata.bookingData);
+
+        // Chercher la réservation par email et session
+        const booking = await prisma.booking.findFirst({
+          where: {
+            clientEmail: bookingData.clientEmail,
+            sessionId: session.metadata.sessionId,
+            amountPaid: session.amount_total / 100
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+
+        if (booking) {
+          return res.json({
+            success: true,
+            paid: true,
+            bookingId: booking.id,
+            amount: session.amount_total / 100
+          });
+        } else {
+          // Le webhook n'a pas encore créé la réservation
+          return res.json({
+            success: true,
+            paid: true,
+            pending: true,
+            message: 'Paiement confirmé, réservation en cours de création'
+          });
+        }
+      }
+
+      // Pour les anciens paiements
+      return res.json({
+        success: true,
+        paid: true,
+        bookingId: session.client_reference_id,
+        amount: session.amount_total / 100
+      });
+    } else {
+      res.json({
+        success: true,
+        paid: false,
+        status: session.payment_status
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * Webhook Stripe pour confirmer les paiements
  * POST /api/stripe/webhook
  * IMPORTANT: Le raw body est géré dans server.js AVANT express.json()
@@ -116,14 +266,129 @@ router.post('/', async (req, res) => {
       // Gérer les différents types d'événements
       switch (event.type) {
         case 'checkout.session.completed': {
-          const session = event.data.object;
+          const stripeSession = event.data.object;
 
-          // Vérifier si c'est un achat de bon cadeau
-          if (session.metadata && session.metadata.type === 'gift_voucher') {
+          // CAS 1: Nouvelle réservation avec paiement Stripe
+          if (stripeSession.metadata && stripeSession.metadata.type === 'new_booking') {
             try {
-              const paymentIntentId = session.payment_intent;
-              const buyerEmail = session.metadata?.buyerEmail;
-              const amount = parseFloat(session.metadata?.amount);
+              console.log('🆕 Création de réservation après paiement Stripe');
+
+              const sessionId = stripeSession.metadata.sessionId;
+              const productId = stripeSession.metadata.productId;
+              const bookingData = JSON.parse(stripeSession.metadata.bookingData);
+              const participants = stripeSession.metadata.participants ? JSON.parse(stripeSession.metadata.participants) : null;
+              const amountPaid = stripeSession.amount_total / 100;
+
+              // Créer la réservation avec transaction
+              const booking = await prisma.$transaction(async (tx) => {
+                const newBooking = await tx.booking.create({
+                  data: {
+                    clientFirstName: bookingData.clientFirstName,
+                    clientLastName: bookingData.clientLastName,
+                    clientEmail: bookingData.clientEmail,
+                    clientPhone: bookingData.clientPhone,
+                    clientNationality: bookingData.clientNationality,
+                    numberOfPeople: parseInt(bookingData.numberOfPeople),
+                    totalPrice: parseFloat(bookingData.totalPrice),
+                    amountPaid: amountPaid,
+                    status: 'confirmed',
+                    sessionId: sessionId,
+                    productId: productId,
+                    voucherCode: bookingData.voucherCode || null,
+                    discountAmount: bookingData.discountAmount || null
+                  },
+                  include: {
+                    session: {
+                      include: {
+                        guide: true
+                      }
+                    },
+                    product: true
+                  }
+                });
+
+                // Créer l'entrée historique
+                await tx.bookingHistory.create({
+                  data: {
+                    action: 'created',
+                    details: `Réservation créée avec paiement Stripe de ${amountPaid}€`,
+                    bookingId: newBooking.id
+                  }
+                });
+
+                // Créer le paiement
+                await tx.payment.create({
+                  data: {
+                    amount: amountPaid,
+                    method: 'stripe',
+                    notes: `Payment Intent: ${stripeSession.payment_intent}`,
+                    voucherCode: bookingData.voucherCode,
+                    discountAmount: bookingData.discountAmount,
+                    bookingId: newBooking.id
+                  }
+                });
+
+                // Enregistrer les participants s'ils existent
+                if (participants && participants.length > 0) {
+                  for (const participant of participants) {
+                    await tx.participant.create({
+                      data: {
+                        bookingId: newBooking.id,
+                        firstName: participant.firstName || '',
+                        age: participant.age ? parseInt(participant.age) : null,
+                        weight: participant.weight ? parseFloat(participant.weight) : null,
+                        height: participant.height ? parseFloat(participant.height) : null,
+                        shoeRental: participant.shoeRental || false,
+                        shoeSize: participant.shoeSize ? parseInt(participant.shoeSize) : null
+                      }
+                    });
+                  }
+                }
+
+                return newBooking;
+              });
+
+              // Envoyer l'email de confirmation
+              sendBookingConfirmation(booking).catch(err => {
+                console.error('Erreur envoi email de confirmation:', err);
+              });
+
+              // Envoyer email de notification au guide
+              sendGuideNewBookingNotification(booking).catch(err => {
+                console.error('Erreur envoi email au guide:', err);
+              });
+
+              // Envoyer notification en temps réel aux admins
+              const notification = createNewBookingNotification({
+                id: booking.id,
+                clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
+                productName: booking.product.name,
+                sessionDate: booking.session.date,
+                totalAmount: bookingData.totalPrice
+              });
+              notifyAdmins(notification);
+
+              // Mettre à jour le calendrier
+              updateCalendar({
+                action: 'booking-created',
+                bookingId: booking.id,
+                sessionId: booking.sessionId
+              });
+
+              console.log('✅ Réservation créée avec succès:', booking.id);
+            } catch (error) {
+              console.error('❌ Erreur création réservation après paiement:', error);
+            }
+
+            break;
+          }
+
+          // CAS 2: Achat de bon cadeau
+          if (stripeSession.metadata && stripeSession.metadata.type === 'gift_voucher') {
+            try {
+              const paymentIntentId = stripeSession.payment_intent;
+              const buyerEmail = stripeSession.metadata?.buyerEmail;
+              const amount = parseFloat(stripeSession.metadata?.amount);
 
               if (!buyerEmail || !amount || !paymentIntentId) {
                 console.warn('Données manquantes pour le bon cadeau');
@@ -156,8 +421,8 @@ router.post('/', async (req, res) => {
 
               console.log('✅ Bon cadeau créé :', code, 'pour', amount, '€');
 
-              // Envoyer l’email
-              await sendGiftVoucherEmail(buyerEmail, code, amount, session.metadata);
+              // Envoyer l'email
+              await sendGiftVoucherEmail(buyerEmail, code, amount, stripeSession.metadata);
               console.log('📧 Email envoyé à', buyerEmail);
             } catch (error) {
               console.error('💥 Erreur dans handleGiftVoucher:', error);
@@ -166,8 +431,9 @@ router.post('/', async (req, res) => {
             break;
           }
 
-        // Sinon, c'est un paiement de réservation classique
-        const bookingId = session.client_reference_id || session.metadata.bookingId;
+          // CAS 3: Paiement de réservation existante (ancien flux)
+          // Sinon, c'est un paiement de réservation classique
+          const bookingId = stripeSession.client_reference_id || stripeSession.metadata.bookingId;
         if (!bookingId) {
           console.error('Aucun bookingId dans la session Stripe');
           break;
@@ -213,10 +479,6 @@ router.post('/', async (req, res) => {
           }
         });
 
-          sendPaymentConfirmation(updatedBooking, newTotalPaid).catch(err => {
-            console.error('Erreur envoi email:', err);
-          });
-          
         // Ajouter à l'historique
         await prisma.bookingHistory.create({
           data: {
