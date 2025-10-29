@@ -24,8 +24,14 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [editedPrice, setEditedPrice] = useState(0);
-  const [discountType, setDiscountType] = useState('none'); // 'none', 'percentage', 'amount'
+  const [discountType, setDiscountType] = useState('none'); // 'none', 'percentage', 'amount', 'existing_promo', 'gift_voucher'
   const [discountValue, setDiscountValue] = useState(0);
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [selectedPromoCode, setSelectedPromoCode] = useState('');
+  const [giftVoucherCode, setGiftVoucherCode] = useState('');
+  const [giftVoucherInfo, setGiftVoucherInfo] = useState(null);
+  const [voucherError, setVoucherError] = useState('');
+  const [voucherLoading, setVoucherLoading] = useState(false);
   const [notes, setNotes] = useState([]);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -44,13 +50,24 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
 
   useEffect(() => {
     loadBooking();
+    loadPromoCodes();
   }, [bookingId]);
+
+  const loadPromoCodes = async () => {
+    try {
+      const response = await giftVouchersAPI.getActivePromoCodes();
+      setPromoCodes(response.data.promoCodes || []);
+    } catch (error) {
+      console.error('Erreur chargement codes promo:', error);
+    }
+  };
 
   const loadBooking = async () => {
     try {
       setLoading(true);
       const response = await bookingsAPI.getById(bookingId);
       setBooking(response.data.booking);
+      
       // Initialiser les données d'édition
       setEditedClientData({
         clientFirstName: response.data.booking.clientFirstName || '',
@@ -213,9 +230,124 @@ console.log('Booking data:', booking);
       return basePrice * (1 - discountValue / 100);
     } else if (discountType === 'amount') {
       return basePrice - discountValue;
+    } else if (discountType === 'existing_promo' && selectedPromoCode) {
+      const promo = promoCodes.find(p => p.code === selectedPromoCode);
+      if (promo) {
+        if (promo.discountType === 'percentage') {
+          return basePrice * (1 - promo.amount / 100);
+        } else {
+          return Math.max(0, basePrice - promo.amount);
+        }
+      }
+    } else if (discountType === 'gift_voucher' && giftVoucherInfo) {
+      if (giftVoucherInfo.discountType === 'percentage') {
+        return basePrice * (1 - giftVoucherInfo.amount / 100);
+      } else {
+        return Math.max(0, basePrice - giftVoucherInfo.amount);
+      }
     }
 
     return editedPrice;
+  };
+
+  // Vérifier un bon cadeau
+  const handleVerifyGiftVoucher = async () => {
+    if (!giftVoucherCode.trim()) {
+      setVoucherError('Veuillez saisir un code');
+      return;
+    }
+
+    setVoucherLoading(true);
+    setVoucherError('');
+
+    try {
+      const response = await giftVouchersAPI.verifyCode(giftVoucherCode.toUpperCase());
+
+      if (response.data.valid) {
+        setGiftVoucherInfo(response.data.voucher);
+        setDiscountType('gift_voucher');
+      } else {
+        setVoucherError(response.data.message || 'Code invalide');
+        setGiftVoucherInfo(null);
+      }
+    } catch (error) {
+      setVoucherError('Erreur lors de la vérification du code');
+      setGiftVoucherInfo(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  // Annuler le bon cadeau
+  const handleClearGiftVoucher = () => {
+    setGiftVoucherCode('');
+    setGiftVoucherInfo(null);
+    setVoucherError('');
+    if (discountType === 'gift_voucher') {
+      setDiscountType('none');
+    }
+  };
+
+  // Appliquer un code promo existant
+  const handleApplyExistingPromo = async () => {
+    try {
+      if (!selectedPromoCode) {
+        alert('Veuillez sélectionner un code promo');
+        return;
+      }
+
+      const promo = promoCodes.find(p => p.code === selectedPromoCode);
+      if (!promo) {
+        alert('Code promo non trouvé');
+        return;
+      }
+
+      const finalPrice = calculateFinalPrice();
+      const discountAmount = booking.totalPrice - finalPrice;
+
+      // Associer le code promo au booking
+      await bookingsAPI.update(bookingId, {
+        voucherCode: promo.code,
+        discountAmount: discountAmount,
+        totalPrice: booking.totalPrice // Garder le prix original
+      });
+
+      alert(`Code promo ${promo.code} appliqué avec succès !`);
+      await loadBooking();
+      setIsEditingPrice(false);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur application code promo:', error);
+      alert('Impossible d\'appliquer le code promo: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  // Appliquer un bon cadeau
+  const handleApplyGiftVoucher = async () => {
+    try {
+      if (!giftVoucherInfo) {
+        alert('Veuillez vérifier un bon cadeau valide');
+        return;
+      }
+
+      const finalPrice = calculateFinalPrice();
+      const discountAmount = booking.totalPrice - finalPrice;
+
+      // Associer le bon cadeau au booking
+      await bookingsAPI.update(bookingId, {
+        voucherCode: giftVoucherInfo.code,
+        discountAmount: discountAmount,
+        totalPrice: booking.totalPrice // Garder le prix original
+      });
+
+      alert(`Bon cadeau ${giftVoucherInfo.code} appliqué avec succès !`);
+      await loadBooking();
+      setIsEditingPrice(false);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur application bon cadeau:', error);
+      alert('Impossible d\'appliquer le bon cadeau: ' + (error.response?.data?.error || error.message));
+    }
   };
 
   const handleApplyDiscount = async () => {
@@ -503,7 +635,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
     return phone; // Retourner le numéro original si le format n'est pas reconnu
   };
-
+  console.log(booking.totalPrice)
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -757,21 +889,20 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   <tr>
                     <td>Par personne</td>
                     <td>{(() => {
-                      const discount = booking.discountAmount ?? 0;
-                      // Calculer le coût total des chaussures
                       const shoeCount = participants.filter(p => p.shoeRental).length;
                       const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
-                      // Prix de l'activité sans chaussures
-                      const activityPrice = booking.totalPrice - shoesTotalCost - discount ;
-                      const pricePerPerson = activityPrice / booking.numberOfPeople;
-                      return pricePerPerson.toFixed(2);
+                      shoesTotalCost.toFixed(2);
+                      const TotalWhitoutShoes = booking.totalPrice - shoesTotalCost;
+                      const PerPersonneWhioutShoes = TotalWhitoutShoes / booking.numberOfPeople;
+                      return PerPersonneWhioutShoes.toFixed(2);
                     })()} €</td>
                     <td>{booking.numberOfPeople}</td>
                     <td>{(() => {
                       const shoeCount = participants.filter(p => p.shoeRental).length;
                       const shoesTotalCost = shoeCount * (booking.session?.shoeRentalPrice || 0);
-                      const activityPrice = booking.totalPrice - shoesTotalCost;
-                      return activityPrice.toFixed(2);
+                      shoesTotalCost.toFixed(2);
+                      const TotalWhitoutShoes = booking.totalPrice - shoesTotalCost;
+                      return TotalWhitoutShoes.toFixed(2);
                     })()} €</td>
                   </tr>
                   {participants && participants.length > 0 && participants.some(p => p.shoeRental) && (
@@ -801,7 +932,25 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                       </td>
                     </tr>
                   )}
-
+                  {(booking.discountAmount > 0 || (participants && participants.length > 0 && participants.some(p => p.shoeRental)) ) && (
+                  <tr>
+                    <td>Par personne</td>
+                    <td>{(() => {
+                      const discount = booking.discountAmount ?? 0;
+                      const activityPrice = booking.totalPrice - discount ;
+                      console.log(booking.totalPrice)
+                      console.log(activityPrice)
+                      const pricePerPerson = activityPrice / booking.numberOfPeople;
+                      return pricePerPerson.toFixed(2);
+                    })()} €</td>
+                    <td>{booking.numberOfPeople}</td>
+                    <td>{(() => {
+                      const discount = booking.discountAmount ?? 0;
+                      const activityPrice = booking.totalPrice - discount;
+                      return activityPrice.toFixed(2);
+                    })()} €</td>
+                  </tr>
+                  )}
                 </tbody>
               </table>
 
@@ -817,15 +966,82 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                     <div className={styles.discountControls}>
                       <select
                         value={discountType}
-                        onChange={(e) => setDiscountType(e.target.value)}
+                        onChange={(e) => {
+                          setDiscountType(e.target.value);
+                          if (e.target.value === 'none') {
+                            setDiscountValue(0);
+                            setSelectedPromoCode('');
+                            handleClearGiftVoucher();
+                          }
+                        }}
                         className={styles.discountTypeSelect}
                       >
                         <option value="none">Pas de réduction</option>
-                        <option value="percentage">Réduction en %</option>
-                        <option value="amount">Réduction en €</option>
+                        <option value="existing_promo">Code promo existant</option>
+                        <option value="gift_voucher">Bon cadeau</option>
+                        <option value="percentage">Créer réduction %</option>
+                        <option value="amount">Créer réduction €</option>
                       </select>
 
-                      {discountType !== 'none' && (
+                      {/* Code promo existant */}
+                      {discountType === 'existing_promo' && (
+                        <>
+                          <select
+                            value={selectedPromoCode}
+                            onChange={(e) => setSelectedPromoCode(e.target.value)}
+                            className={styles.discountInput}
+                          >
+                            <option value="">-- Sélectionner --</option>
+                            {promoCodes.map(promo => (
+                              <option key={promo.id} value={promo.code}>
+                                {promo.code} ({promo.discountType === 'percentage' ? `${promo.amount}%` : `${promo.amount}€`})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className={styles.btnApplyDiscount}
+                            onClick={handleApplyExistingPromo}
+                            type="button"
+                            disabled={!selectedPromoCode}
+                          >
+                            Appliquer
+                          </button>
+                        </>
+                      )}
+
+                      {/* Bon cadeau */}
+                      {discountType === 'gift_voucher' && (
+                        <>
+                          <input
+                            type="text"
+                            value={giftVoucherCode}
+                            onChange={(e) => setGiftVoucherCode(e.target.value.toUpperCase())}
+                            placeholder="Code du bon cadeau"
+                            disabled={voucherLoading}
+                            className={styles.discountInput}
+                          />
+                          <button
+                            className={styles.btnApplyDiscount}
+                            onClick={handleVerifyGiftVoucher}
+                            type="button"
+                            disabled={voucherLoading || !giftVoucherCode.trim()}
+                          >
+                            {voucherLoading ? '...' : 'Vérifier'}
+                          </button>
+                          {giftVoucherInfo && (
+                            <button
+                              className={styles.btnApplyDiscount}
+                              onClick={handleApplyGiftVoucher}
+                              type="button"
+                            >
+                              Appliquer
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {/* Réduction custom (pourcentage ou montant) */}
+                      {(discountType === 'percentage' || discountType === 'amount') && (
                         <>
                           <input
                             type="number"
@@ -848,14 +1064,32 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                       )}
                     </div>
 
-                    {discountType !== 'none' && discountValue > 0 && (
+                    {/* Messages d'erreur/succès pour bon cadeau */}
+                    {discountType === 'gift_voucher' && voucherError && (
+                      <small style={{ color: 'red', display: 'block', marginTop: '0.5rem' }}>{voucherError}</small>
+                    )}
+                    {discountType === 'gift_voucher' && giftVoucherInfo && (
+                      <small style={{ color: 'green', display: 'block', marginTop: '0.5rem' }}>
+                        ✓ Bon cadeau valide : {giftVoucherInfo.discountType === 'percentage'
+                          ? `${giftVoucherInfo.amount}%`
+                          : `${giftVoucherInfo.amount}€`}
+                      </small>
+                    )}
+
+                    {/* Aperçu du prix avec réduction */}
+                    {discountType !== 'none' && (
                       <div className={styles.discountPreview}>
                         <span>Nouveau prix : </span>
                         <strong>{calculateFinalPrice().toFixed(2)} €</strong>
                         <span className={styles.discountAmount}>
-                          (-{discountType === 'percentage'
-                            ? `${discountValue}%`
-                            : `${discountValue.toFixed(2)}€`})
+                          {discountType === 'percentage' && discountValue > 0 && `(-${discountValue}%)`}
+                          {discountType === 'amount' && discountValue > 0 && `(-${discountValue.toFixed(2)}€)`}
+                          {discountType === 'existing_promo' && selectedPromoCode && (() => {
+                            const promo = promoCodes.find(p => p.code === selectedPromoCode);
+                            return promo ? `(-${promo.discountType === 'percentage' ? promo.amount + '%' : promo.amount + '€'})` : '';
+                          })()}
+                          {discountType === 'gift_voucher' && giftVoucherInfo &&
+                            `(-${giftVoucherInfo.discountType === 'percentage' ? giftVoucherInfo.amount + '%' : giftVoucherInfo.amount + '€'})`}
                         </span>
                       </div>
                     )}

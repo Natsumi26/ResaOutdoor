@@ -20,6 +20,7 @@ export const login = async (req, res, next) => {
         password: true,
         email: true,
         role: true,
+        teamName: true,
         stripeAccount: true
       }
     });
@@ -40,7 +41,8 @@ export const login = async (req, res, next) => {
       {
         userId: user.id,
         login: user.login,
-        role: user.role
+        role: user.role,
+        teamName: user.teamName
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }

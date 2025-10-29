@@ -5,7 +5,8 @@ import {
   createGiftVoucher,
   useGiftVoucher,
   verifyPromoCode,
-  deleteGiftVoucher
+  deleteGiftVoucher,
+  getActivePromoCodes
 } from '../controllers/giftVoucher.controller.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -15,6 +16,7 @@ router.get('/:code/verify', verifyPromoCode);
 router.use(authMiddleware);
 
 router.get('/', getAllGiftVouchers);
+router.get('/promo/active', getActivePromoCodes);
 router.get('/:code', getGiftVoucherByCode);
 router.post('/', createGiftVoucher);
 router.post('/:code/use', useGiftVoucher);

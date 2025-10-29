@@ -176,8 +176,11 @@ const BookingForm = () => {
 
     let pricePerPerson = product.priceIndividual;
 
-    // Appliquer le prix de groupe si applicable
-    if (product.priceGroup && numberOfPeople >= product.priceGroup.min) {
+    // RÈGLE : Si un code promo/bon cadeau est appliqué, on ignore le prix de groupe
+    const hasVoucher = voucherInfo !== null;
+
+    // Appliquer le prix de groupe UNIQUEMENT si aucun code promo/bon cadeau n'est appliqué
+    if (!hasVoucher && product.priceGroup && numberOfPeople >= product.priceGroup.min) {
       pricePerPerson = product.priceGroup.price;
     }
 
@@ -269,7 +272,7 @@ const BookingForm = () => {
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         clientNationality: formData.clientNationality,
-        totalPrice: finalPrice, // Prix final APRÈS réduction
+        totalPrice: totalPrice,
         shoeRentalCount: shoeRentalCount || null,
         voucherCode: formData.voucherCode || null,
         discountAmount: discount > 0 ? discount : null
@@ -281,6 +284,7 @@ const BookingForm = () => {
         const stripeResponse = await stripeAPI.createBookingCheckout({
           sessionId: session.id,
           productId: productId,
+          amountDue: finalPrice,
           bookingData: bookingData,
           participants: participants.length > 0 ? participants : null
         });
@@ -401,13 +405,18 @@ const BookingForm = () => {
             <h3>{t('priceDetail')}</h3>
             <div className={styles.priceItem}>
               <span>{formData.numberOfPeople} personne(s) × {
+                // Afficher le prix individuel si voucher actif, sinon le prix de groupe si applicable
+                voucherInfo ? product.priceIndividual : (
+                  product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
+                    ? product.priceGroup.price
+                    : product.priceIndividual
+                )
+              }€</span>
+              <span>{(voucherInfo ? product.priceIndividual : (
                 product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
                   ? product.priceGroup.price
                   : product.priceIndividual
-              }€</span>
-              <span>{(product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
-                ? product.priceGroup.price
-                : product.priceIndividual) * formData.numberOfPeople}€</span>
+              )) * formData.numberOfPeople}€</span>
             </div>
 
             {session.shoeRentalPrice && participants.filter(p => p.shoeRental).length > 0 && (
@@ -418,24 +427,16 @@ const BookingForm = () => {
             )}
 
             {voucherInfo && (
-              <>
-                <div className={`${styles.priceItem} ${styles.discount}`}>
-                  <span>{t('BonApply')} ({voucherInfo.code})</span>
-                  <span>-{discount.toFixed(2)}€</span>
-                </div>
-                <div className={`${styles.priceItem} ${styles.total}`}>
-                  <strong>{t('Total')}</strong>
-                  <strong>{finalPrice.toFixed(2)}€</strong>
-                </div>
-              </>
-            )}
-
-            {!voucherInfo && (
-              <div className={`${styles.priceItem} ${styles.total}`}>
-                <strong>{t('Total')}</strong>
-                <strong>{total.toFixed(2)}€</strong>
+              <div className={`${styles.priceItem} ${styles.discount}`}>
+                <span>{t('BonApply')} ({voucherInfo.code})</span>
+                <span>-{discount.toFixed(2)}€</span>
               </div>
             )}
+
+            <div className={`${styles.priceItem} ${styles.total}`}>
+              <strong>{t('Total')}</strong>
+              <strong>{voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)}€</strong>
+            </div>
           </div>
         </div>
 

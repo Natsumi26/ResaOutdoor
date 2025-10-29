@@ -275,7 +275,6 @@ export const getAllSessions = async (req, res, next) => {
         const teamGuides = await prisma.user.findMany({
           where: {
             teamName: req.user.teamName,
-            role: { in: ['leader', 'employee', 'trainee'] }
           },
           select: { id: true }
         });

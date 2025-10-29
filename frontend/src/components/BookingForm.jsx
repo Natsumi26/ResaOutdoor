@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { resellersAPI } from '../services/api';
+import { resellersAPI, giftVouchersAPI } from '../services/api';
 import styles from './BookingForm.module.css';
 
 const BookingForm = ({ session, onSubmit, onCancel }) => {
@@ -14,7 +14,9 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     totalPrice: 0,
     amountPaid: 0,
     status: 'pending',
-    resellerId: null
+    resellerId: null,
+    voucherCode: null,
+    discountAmount: 0
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -22,6 +24,14 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   const [resellers, setResellers] = useState([]);
   const [isResellerBooking, setIsResellerBooking] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // États pour les réductions
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [selectedPromoCode, setSelectedPromoCode] = useState('');
+  const [giftVoucherCode, setGiftVoucherCode] = useState('');
+  const [giftVoucherInfo, setGiftVoucherInfo] = useState(null);
+  const [voucherError, setVoucherError] = useState('');
+  const [voucherLoading, setVoucherLoading] = useState(false);
 
   useEffect(() => {
     // Charger les revendeurs
@@ -33,7 +43,19 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
         console.error('Erreur chargement revendeurs:', error);
       }
     };
+
+    // Charger les codes promo actifs
+    const loadPromoCodes = async () => {
+      try {
+        const response = await giftVouchersAPI.getActivePromoCodes();
+        setPromoCodes(response.data.promoCodes || []);
+      } catch (error) {
+        console.error('Erreur chargement codes promo:', error);
+      }
+    };
+
     loadResellers();
+    loadPromoCodes();
   }, []);
 
   useEffect(() => {
@@ -109,23 +131,45 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   }, [session]);
 
   useEffect(() => {
-    // Recalculer le prix quand le produit ou le nombre de personnes change
+    // Recalculer le prix quand le produit, le nombre de personnes ou le voucher change
     if (selectedProduct && formData.numberOfPeople) {
-      const price = calculatePrice(selectedProduct, formData.numberOfPeople);
-      setFormData(prev => ({ ...prev, totalPrice: price }));
+      const voucherData = giftVoucherInfo || (selectedPromoCode ? promoCodes.find(p => p.code === selectedPromoCode) : null);
+      const price = calculatePrice(selectedProduct, formData.numberOfPeople, voucherData);
+      setFormData(prev => ({
+        ...prev,
+        totalPrice: price,
+        voucherCode: voucherData?.code || null,
+        discountAmount: voucherData ? (selectedProduct.priceIndividual * formData.numberOfPeople) - price : 0
+      }));
     }
-  }, [selectedProduct, formData.numberOfPeople]);
+  }, [selectedProduct, formData.numberOfPeople, giftVoucherInfo, selectedPromoCode]);
 
-  const calculatePrice = (product, numberOfPeople) => {
+  const calculatePrice = (product, numberOfPeople, voucherData = null) => {
     if (!product) return 0;
 
-    // Vérifier si un prix groupe s'applique
-    if (product.priceGroup && numberOfPeople >= product.priceGroup.min) {
-      return numberOfPeople * product.priceGroup.price;
+    // RÈGLE : Si un code promo/bon cadeau est appliqué, on ignore le prix de groupe
+    const hasVoucher = voucherData !== null;
+
+    let basePrice;
+    // Appliquer le prix de groupe UNIQUEMENT si aucun code promo/bon cadeau n'est appliqué
+    if (!hasVoucher && product.priceGroup && numberOfPeople >= product.priceGroup.min) {
+      basePrice = numberOfPeople * product.priceGroup.price;
+    } else {
+      // Sinon, prix individuel
+      basePrice = numberOfPeople * product.priceIndividual;
     }
 
-    // Sinon, prix individuel
-    return numberOfPeople * product.priceIndividual;
+    // Appliquer la réduction si présente
+    if (voucherData) {
+      if (voucherData.discountType === 'percentage') {
+        return basePrice * (1 - voucherData.amount / 100);
+      } else {
+        // fixed
+        return Math.max(0, basePrice - voucherData.amount);
+      }
+    }
+
+    return basePrice;
   };
 
   const handleChange = (e) => {
@@ -147,6 +191,55 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Gérer la sélection d'un code promo
+  const handlePromoCodeSelect = (e) => {
+    const code = e.target.value;
+    setSelectedPromoCode(code);
+
+    // Si on sélectionne un code promo, on annule le bon cadeau
+    if (code) {
+      setGiftVoucherCode('');
+      setGiftVoucherInfo(null);
+      setVoucherError('');
+    }
+  };
+
+  // Vérifier un bon cadeau
+  const handleVerifyGiftVoucher = async () => {
+    if (!giftVoucherCode.trim()) {
+      setVoucherError('Veuillez saisir un code');
+      return;
+    }
+
+    setVoucherLoading(true);
+    setVoucherError('');
+
+    try {
+      const response = await giftVouchersAPI.verifyCode(giftVoucherCode.toUpperCase());
+
+      if (response.data.valid) {
+        setGiftVoucherInfo(response.data.voucher);
+        // Si on applique un bon cadeau, on annule le code promo
+        setSelectedPromoCode('');
+      } else {
+        setVoucherError(response.data.message || 'Code invalide');
+        setGiftVoucherInfo(null);
+      }
+    } catch (error) {
+      setVoucherError('Erreur lors de la vérification du code');
+      setGiftVoucherInfo(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  // Annuler le bon cadeau
+  const handleClearGiftVoucher = () => {
+    setGiftVoucherCode('');
+    setGiftVoucherInfo(null);
+    setVoucherError('');
   };
 
   const validate = () => {
@@ -290,6 +383,80 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
           )}
         </div>
 
+        {/* Réductions */}
+        <div className={styles.section}>
+          <h3>🎁 Réductions</h3>
+
+          <div className={styles.formRow}>
+            {/* Code promo */}
+            <div className={styles.formGroup}>
+              <label>Code promo</label>
+              <select
+                value={selectedPromoCode}
+                onChange={handlePromoCodeSelect}
+                disabled={giftVoucherInfo !== null}
+              >
+                <option value="">Aucun</option>
+                {promoCodes.map(promo => (
+                  <option key={promo.id} value={promo.code}>
+                    {promo.code} ({promo.discountType === 'percentage' ? `${promo.amount}%` : `${promo.amount}€`})
+                  </option>
+                ))}
+              </select>
+              {selectedPromoCode && (
+                <small style={{ color: 'green' }}>✓ Code promo appliqué</small>
+              )}
+            </div>
+
+            {/* Bon cadeau */}
+            <div className={styles.formGroup}>
+              <label>Bon cadeau</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={giftVoucherCode}
+                  onChange={(e) => setGiftVoucherCode(e.target.value.toUpperCase())}
+                  placeholder="Code du bon cadeau"
+                  disabled={selectedPromoCode !== '' || voucherLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyGiftVoucher}
+                  disabled={voucherLoading || selectedPromoCode !== ''}
+                  className={styles.btnVerify}
+                >
+                  {voucherLoading ? '...' : 'Vérifier'}
+                </button>
+                {giftVoucherInfo && (
+                  <button
+                    type="button"
+                    onClick={handleClearGiftVoucher}
+                    className={styles.btnClear}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {voucherError && <small style={{ color: 'red' }}>{voucherError}</small>}
+              {giftVoucherInfo && (
+                <small style={{ color: 'green' }}>
+                  ✓ Bon cadeau valide : {giftVoucherInfo.discountType === 'percentage'
+                    ? `${giftVoucherInfo.amount}%`
+                    : `${giftVoucherInfo.amount}€`}
+                </small>
+              )}
+            </div>
+          </div>
+
+          {(selectedPromoCode || giftVoucherInfo) && (
+            <div style={{ padding: '0.75rem', backgroundColor: '#e8f5e9', borderRadius: '4px', marginTop: '0.5rem' }}>
+              <small>
+                ℹ️ Une réduction est appliquée. Le prix de groupe est désactivé.
+              </small>
+            </div>
+          )}
+        </div>
+
         {/* Revendeur - version compacte */}
         <div className={styles.resellerSection}>
           <label className={styles.checkboxLabel}>
@@ -424,11 +591,37 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
           <h3>💳 Paiement</h3>
 
           <div className={styles.priceDisplay}>
+            {/* Prix de base */}
             <div className={styles.priceRow}>
-              <span>Prix total :</span>
+              <span>Prix de base ({formData.numberOfPeople} pers) :</span>
+              <span>{selectedProduct ? (
+                (giftVoucherInfo || selectedPromoCode) ?
+                  (selectedProduct.priceIndividual * formData.numberOfPeople).toFixed(2) :
+                  (selectedProduct.priceGroup && formData.numberOfPeople >= selectedProduct.priceGroup.min ?
+                    (selectedProduct.priceGroup.price * formData.numberOfPeople).toFixed(2) :
+                    (selectedProduct.priceIndividual * formData.numberOfPeople).toFixed(2)
+                  )
+              ) : 0}€</span>
+            </div>
+
+            {/* Réduction si applicable */}
+            {(giftVoucherInfo || selectedPromoCode) && formData.discountAmount > 0 && (
+              <div className={styles.priceRow} style={{ color: '#28a745' }}>
+                <span>
+                  Réduction ({giftVoucherInfo ? giftVoucherInfo.code : selectedPromoCode}) :
+                </span>
+                <span>-{formData.discountAmount.toFixed(2)}€</span>
+              </div>
+            )}
+
+            {/* Prix total */}
+            <div className={styles.priceRow} style={{ borderTop: '1px solid #dee2e6', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+              <strong>Prix total :</strong>
               <strong>{formData.totalPrice.toFixed(2)}€</strong>
             </div>
-            {selectedProduct?.priceGroup && formData.numberOfPeople >= selectedProduct.priceGroup.min && (
+
+            {/* Indication prix de groupe */}
+            {selectedProduct?.priceGroup && formData.numberOfPeople >= selectedProduct.priceGroup.min && !giftVoucherInfo && !selectedPromoCode && (
               <small className={styles.priceNote}>
                 ✅ Prix groupe appliqué
               </small>

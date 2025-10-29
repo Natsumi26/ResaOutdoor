@@ -68,9 +68,9 @@ router.post('/create-checkout-session', authMiddleware, async (req, res, next) =
  */
 router.post('/create-booking-checkout', async (req, res, next) => {
   try {
-    const { sessionId, productId, bookingData, participants } = req.body;
+    const { sessionId, productId, bookingData, amountDue, participants } = req.body;
 
-    if (!sessionId || !productId || !bookingData) {
+    if (!sessionId || !productId || !bookingData|| !amountDue) {
       throw new AppError('sessionId, productId et bookingData requis', 400);
     }
 
@@ -112,7 +112,7 @@ router.post('/create-booking-checkout', async (req, res, next) => {
                 ? [product.images[0].startsWith('http') ? product.images[0] : `${process.env.APP_URL || 'http://localhost:5000'}${product.images[0]}`]
                 : []
             },
-            unit_amount: Math.round(bookingData.totalPrice * 100)
+            unit_amount: Math.round(amountDue * 100)
           },
           quantity: 1
         }
@@ -364,7 +364,7 @@ router.post('/', async (req, res) => {
                 clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
                 productName: booking.product.name,
                 sessionDate: booking.session.date,
-                totalAmount: bookingData.totalPrice
+                totalAmount: bookingData.amountPaid
               });
               notifyAdmins(notification);
 
@@ -467,7 +467,7 @@ router.post('/', async (req, res) => {
           where: { id: booking.id },
           data: {
             amountPaid: newTotalPaid,
-            status: newTotalPaid >= booking.totalPrice ? 'confirmed' : booking.status
+            status: newTotalPaid >= (booking.totalPrice - booking.discountAmount) ? 'confirmed' : booking.status
           },
           include: {
             session: {

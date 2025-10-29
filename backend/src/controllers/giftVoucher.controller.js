@@ -44,6 +44,54 @@ export const getAllGiftVouchers = async (req, res, next) => {
   }
 };
 
+// Récupérer les codes promo actifs disponibles (pour liste déroulante)
+export const getActivePromoCodes = async (req, res, next) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+
+    // Récupérer tous les codes promo de l'utilisateur
+    const allPromoCodes = await prisma.giftVoucher.findMany({
+      where: {
+        userId,
+        type: 'promo'
+      },
+      select: {
+        id: true,
+        code: true,
+        amount: true,
+        discountType: true,
+        maxUsages: true,
+        usageCount: true,
+        expiresAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Filtrer les codes actifs en JS
+    const now = new Date();
+    const promoCodes = allPromoCodes.filter(promo => {
+      // Vérifier expiration
+      if (promo.expiresAt && now > promo.expiresAt) {
+        return false;
+      }
+
+      // Vérifier utilisations restantes
+      if (promo.maxUsages !== null && promo.usageCount >= promo.maxUsages) {
+        return false;
+      }
+
+      return true;
+    });
+
+    res.json({
+      success: true,
+      promoCodes
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Obtenir un bon cadeau par code avec historique d'utilisation
 export const getGiftVoucherByCode = async (req, res, next) => {
   try {
