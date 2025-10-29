@@ -14,6 +14,7 @@ import OnlineSales from './pages/OnlineSales';
 import Resellers from './pages/Resellers';
 import Preferences from './pages/Preferences';
 import Team from './pages/Team';
+import Newsletter from './pages/Newsletter';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
@@ -77,6 +78,7 @@ const AppRoutes = () => {
         <Route path="settings/emails" element={<Emails />} />
         <Route path="settings/online-sales" element={<OnlineSales />} />
         <Route path="settings/resellers" element={<Resellers />} />
+        <Route path="settings/newsletter" element={<Newsletter />} />
         <Route path="settings/preferences" element={<Preferences />} />
       </Route>
     </Routes>

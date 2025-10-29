@@ -172,6 +172,18 @@ const Dashboard = () => {
                   <span>Revendeurs</span>
                 </NavLink>
 
+                {user?.role !== 'trainee' && (
+                <NavLink
+                  to="/settings/newsletter"
+                  className={({ isActive }) =>
+                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.icon}>📧</span>
+                  <span>Newsletter</span>
+                </NavLink>
+                )}
+
                 <NavLink
                   to="/settings/preferences"
                   className={({ isActive }) =>

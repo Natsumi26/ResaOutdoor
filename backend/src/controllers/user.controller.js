@@ -11,6 +11,7 @@ export const getAllUsers = async (req, res, next) => {
         login: true,
         email: true,
         role: true,
+        confidentialityPolicy: true,
         stripeAccount: true,
         teamName: true,
         teamLeaderId: true,
@@ -32,7 +33,7 @@ export const getAllUsers = async (req, res, next) => {
 // Créer un utilisateur (admin seulement)
 export const createUser = async (req, res, next) => {
   try {
-    const { login, password, email, stripeAccount, role, teamName, teamLeaderId } = req.body;
+    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId } = req.body;
 
     if (!login || !password) {
       throw new AppError('Login et mot de passe requis', 400);
@@ -58,6 +59,7 @@ export const createUser = async (req, res, next) => {
         email,
         stripeAccount,
         role: role || 'employee',
+        confidentialityPolicy,
         teamName: (role === 'leader') ? teamName : null, // teamName uniquement pour les leaders
         teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
       },
@@ -66,6 +68,7 @@ export const createUser = async (req, res, next) => {
         login: true,
         email: true,
         role: true,
+        confidentialityPolicy: true,
         stripeAccount: true,
         teamName: true,
         teamLeaderId: true,
@@ -86,13 +89,14 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { login, password, email, stripeAccount, role, teamName, teamLeaderId } = req.body;
+    const { login, password, email, stripeAccount, role,confidentialityPolicy, teamName, teamLeaderId } = req.body;
 
     const updateData = {
       ...(login && { login }),
       ...(email && { email }),
       ...(stripeAccount !== undefined && { stripeAccount }),
       ...(role && { role }),
+      ...(confidentialityPolicy && {confidentialityPolicy}),
       ...(teamName !== undefined && { teamName }),
       ...(teamLeaderId !== undefined && { teamLeaderId })
     };
@@ -110,6 +114,7 @@ export const updateUser = async (req, res, next) => {
         login: true,
         email: true,
         role: true,
+        confidentialityPolicy: true,
         stripeAccount: true,
         teamName: true,
         teamLeaderId: true,

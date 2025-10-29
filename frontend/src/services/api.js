@@ -183,6 +183,16 @@ export const teamAPI = {
   getMyLeader: () => api.get('/team/my-leader')
 };
 
+// Newsletter
+export const newsletterAPI = {
+  subscribe: (data) => api.post('/newsletter/subscribe', data),
+  unsubscribe: (email) => api.post('/newsletter/unsubscribe', { email }),
+  getAll: (params) => api.get('/newsletter', { params }),
+  delete: (id) => api.delete(`/newsletter/${id}`),
+  sendEmail: (data) => api.post('/newsletter/send', data),
+  sendTestEmail: (data) => api.post('/newsletter/test-send', data)
+};
+
 // Upload
 export const uploadAPI = {
   images: (formData) => {

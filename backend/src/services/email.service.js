@@ -1478,3 +1478,32 @@ export const sendGuideModificationNotification = async (booking) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Fonction générique pour envoyer un email
+ * Utilisée notamment pour la newsletter
+ */
+export const sendEmail = async ({ to, subject, html, text }) => {
+  try {
+    const mailOptions = {
+      from: defaultFrom,
+      to,
+      subject,
+      html,
+      text: text || subject
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email générique envoyé:', info.messageId, 'to:', to);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email générique:', error);
+    throw error;
+  }
+};

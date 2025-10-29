@@ -84,7 +84,8 @@ export const getBookingById = async (req, res, next) => {
               select: {
                 id: true,
                 login: true,
-                email: true
+                email: true,
+                confidentialityPolicy: true
               }
             }
           }

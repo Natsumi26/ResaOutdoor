@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI } from '../../services/api';
+import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -32,7 +32,8 @@ const BookingForm = () => {
     voucherCode: '',
     paymentMethod: 'onsite', // 'online' ou 'onsite'
     fillParticipantsNow: true, // Toujours afficher le formulaire des participants
-    payFullAmount: false // Payer la totalité (si acompte requis)
+    payFullAmount: false, // Payer la totalité (si acompte requis)
+    acceptNewsletterTerms: false // Accepter les conditions et s'inscrire à la newsletter
   });
 
   const [participants, setParticipants] = useState([]);
@@ -306,6 +307,22 @@ const BookingForm = () => {
         discountAmount: discount > 0 ? discount : null
       };
 
+      // Enregistrer l'email à la newsletter si accepté
+      if (formData.acceptNewsletterTerms) {
+        try {
+          await newsletterAPI.subscribe({
+            email: formData.clientEmail,
+            firstName: formData.clientFirstName,
+            lastName: formData.clientLastName,
+            source: 'booking',
+            acceptedTerms: true
+          });
+        } catch (error) {
+          // Si erreur newsletter, on continue quand même la réservation
+          console.warn('Erreur inscription newsletter:', error);
+        }
+      }
+
       // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
       if (session.depositRequired || formData.paymentMethod === 'online') {
         // Créer une session Stripe avec les données de réservation en metadata
@@ -365,7 +382,7 @@ const BookingForm = () => {
     { code: "FR", label: "🇫🇷 Français", flag: "🇫🇷" },
     { code: "EN", label: "🇬🇧 English", flag: "🇬🇧" }
   ];
-
+console.log(session)
   return (
     <div className={styles.clientContainer}>
       {/* Bouton retour */}
@@ -870,6 +887,33 @@ const BookingForm = () => {
                   </label>
                 </div>
               )}
+            </div>
+
+            {/* Acceptation des conditions de confidentialité et newsletter */}
+            <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.acceptNewsletterTerms}
+                  onChange={(e) => handleChange('acceptNewsletterTerms', e.target.checked)}
+                  required
+                  style={{ marginTop: '0.25rem', width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+                  <span>
+                    J'accepte les{' '}
+                    <a
+                      href={session.guide.confidentialityPolicy}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#007bff', textDecoration: 'underline' }}
+                    >
+                      conditions de confidentialité
+                    </a>{' '}
+                    et souhaite recevoir la newsletter avec les actualités et offres spéciales. *
+                  </span>
+                </div>
+              </label>
             </div>
 
             {/* Bouton de soumission */}

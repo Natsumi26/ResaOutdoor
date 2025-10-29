@@ -15,6 +15,7 @@ const Users = () => {
     email: '',
     stripeAccount: '',
     role: 'employee',
+    confidentialityPolicy: '',
     teamName: '', // Pour les leaders : nom de la team
     teamLeaderId: '' // Pour les employees/trainees : ID du leader
   });
@@ -55,7 +56,8 @@ const Users = () => {
         login: formData.login,
         email: formData.email,
         stripeAccount: formData.stripeAccount,
-        role: formData.role
+        role: formData.role,
+        confidentialityPolicy: formData.confidentialityPolicy
       };
 
       // Ajouter le mot de passe seulement si fourni
@@ -119,6 +121,7 @@ const Users = () => {
         email: user.email || '',
         stripeAccount: user.stripeAccount || '',
         role: user.role,
+        confidentialityPolicy: user.confidentialityPolicy,
         teamName: '',
         teamLeaderId: user.teamLeaderId || ''
       });
@@ -130,6 +133,7 @@ const Users = () => {
         email: '',
         stripeAccount: '',
         role: 'employee',
+        confidentialityPolicy: '',
         teamName: '',
         teamLeaderId: currentUser?.role === 'leader' ? currentUser.userId : ''
       });
@@ -251,6 +255,15 @@ console.log(users)
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Lien vers la page politiques de confidentialité</label>
+                <input
+                  type="text"
+                  value={formData.confidentialityPolicy}
+                  onChange={(e) => setFormData({ ...formData, confidentialityPolicy: e.target.value })}
                 />
               </div>
 

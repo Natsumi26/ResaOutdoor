@@ -1,0 +1,292 @@
+.newsletterPage {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+/* Statistiques */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #3498db;
+}
+
+.statLabel {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+}
+
+/* Formulaire d'envoi */
+.emailForm {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.emailForm h2 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.formGroup input[type="text"],
+.formGroup textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.helpText {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Filtres */
+.filters {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filterTabs button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterTabs button:hover {
+  background: #f8f9fa;
+}
+
+.filterTabs button.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.searchInput {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+  max-width: 400px;
+}
+
+/* Liste des abonnés */
+.subscribersList {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  background: #f8f9fa;
+}
+
+.table th,
+.table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.table tr:hover {
+  background: #f8f9fa;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  background: #e9ecef;
+  color: #495057;
+}
+
+.statusActive {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  background: #d4edda;
+  color: #155724;
+  font-weight: 500;
+}
+
+.statusInactive {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  background: #f8d7da;
+  color: #721c24;
+  font-weight: 500;
+}
+
+/* Boutons */
+.btnPrimary {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.btnPrimary:hover {
+  background: #2980b9;
+}
+
+.btnPrimary:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: white;
+  color: #3498db;
+  border: 1px solid #3498db;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.btnSecondary:hover {
+  background: #3498db;
+  color: white;
+}
+
+.btnSecondary:disabled {
+  border-color: #95a5a6;
+  color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.btnDelete {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.25rem;
+  transition: transform 0.2s;
+}
+
+.btnDelete:hover {
+  transform: scale(1.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .newsletterPage {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchInput {
+    max-width: none;
+  }
+
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}
