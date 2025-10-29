@@ -68,18 +68,22 @@ router.post('/create-checkout-session', authMiddleware, async (req, res, next) =
  */
 router.post('/create-booking-checkout', async (req, res, next) => {
   try {
-    const { sessionId, productId, bookingData, amountDue, participants } = req.body;
+    const { sessionId, productId, bookingData, amountDue, participants, payFullAmount } = req.body;
 
     if (!sessionId || !productId || !bookingData|| !amountDue) {
       throw new AppError('sessionId, productId et bookingData requis', 400);
     }
 
     // Charger la session et le produit
-    const [session, product] = await Promise.all([
+    const [dbSession, product] = await Promise.all([
       prisma.session.findUnique({
         where: { id: sessionId },
         include: {
-          guide: true,
+          guide: {
+            include: {
+              teamLeader: true // Pour récupérer le leader si trainee
+            }
+          },
           bookings: true
         }
       }),
@@ -88,7 +92,7 @@ router.post('/create-booking-checkout', async (req, res, next) => {
       })
     ]);
 
-    if (!session) {
+    if (!dbSession) {
       throw new AppError('Session non trouvée', 404);
     }
 
@@ -96,7 +100,32 @@ router.post('/create-booking-checkout', async (req, res, next) => {
       throw new AppError('Produit non trouvé', 404);
     }
 
-    const sessionDate = format(new Date(session.date), 'dd MMMM yyyy', { locale: fr });
+    const sessionDate = format(new Date(dbSession.date), 'dd MMMM yyyy', { locale: fr });
+
+    // Calculer le montant à payer (acompte ou totalité)
+    let amountToPay = amountDue;
+    let isDeposit = false;
+
+    if (dbSession.depositRequired && !payFullAmount) {
+      // Calculer l'acompte
+      if (dbSession.depositType === 'percentage') {
+        amountToPay = (amountDue * dbSession.depositAmount) / 100;
+      } else {
+        // fixed
+        amountToPay = Math.min(dbSession.depositAmount, amountDue);
+      }
+      isDeposit = true;
+    }
+
+    // Déterminer le compte Stripe à utiliser
+    let stripeAccountId = null;
+    if (dbSession.guide.role === 'trainee' && dbSession.guide.teamLeader) {
+      // Si le guide est trainee, utiliser le compte Stripe du leader
+      stripeAccountId = dbSession.guide.teamLeader.stripeAccount;
+    } else {
+      // Sinon, utiliser le compte du guide
+      stripeAccountId = dbSession.guide.stripeAccount;
+    }
 
     // Créer la session Stripe avec toutes les métadonnées nécessaires
     const sessionConfig = {
@@ -106,13 +135,13 @@ router.post('/create-booking-checkout', async (req, res, next) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `${product.name} - ${sessionDate}`,
-              description: `${session.timeSlot} - ${session.startTime} | ${bookingData.numberOfPeople} personne(s)`,
+              name: `${product.name} - ${sessionDate}${isDeposit ? ' (Acompte)' : ''}`,
+              description: `${dbSession.timeSlot} - ${dbSession.startTime} | ${bookingData.numberOfPeople} personne(s)`,
               images: product.images && product.images.length > 0
                 ? [product.images[0].startsWith('http') ? product.images[0] : `${process.env.APP_URL || 'http://localhost:5000'}${product.images[0]}`]
                 : []
             },
-            unit_amount: Math.round(amountDue * 100)
+            unit_amount: Math.round(amountToPay * 100)
           },
           quantity: 1
         }
@@ -126,9 +155,21 @@ router.post('/create-booking-checkout', async (req, res, next) => {
         sessionId: sessionId,
         productId: productId,
         bookingData: JSON.stringify(bookingData),
-        participants: participants ? JSON.stringify(participants) : null
+        participants: participants ? JSON.stringify(participants) : null,
+        isDeposit: isDeposit ? 'true' : 'false',
+        totalAmount: amountDue.toString()
       }
     };
+
+    // Si on a un compte Stripe Connect, l'ajouter
+    if (stripeAccountId) {
+      sessionConfig.payment_intent_data = {
+        application_fee_amount: 0, // Pas de frais d'application
+        transfer_data: {
+          destination: stripeAccountId
+        }
+      };
+    }
 
     // Créer la session de checkout
     const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
@@ -136,7 +177,9 @@ router.post('/create-booking-checkout', async (req, res, next) => {
     res.json({
       success: true,
       sessionId: checkoutSession.id,
-      url: checkoutSession.url
+      url: checkoutSession.url,
+      amountToPay: amountToPay,
+      isDeposit: isDeposit
     });
   } catch (error) {
     next(error);

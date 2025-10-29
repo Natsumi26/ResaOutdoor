@@ -886,6 +886,21 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   </tr>
                 </thead>
                 <tbody>
+                  {booking.session.depositRequired === true && (
+                    <tr>
+                      <td>Acompte</td>
+                      <td colSpan={2}>
+                        {booking.session.depositType === 'percentage'
+                          ? `-${booking.session.depositAmount}%`
+                          : `-${booking.session.depositAmount} €`}
+                      </td>
+                      <td>
+                        -{booking.session.depositType === 'percentage'
+                          ? `${((booking.totalPrice * booking.session.depositAmount) / 100).toFixed(2)} €`
+                          : `${booking.session.depositAmount.toFixed(2)} €`}
+                      </td>
+                    </tr>
+                  )}
                   <tr>
                     <td>Par personne</td>
                     <td>{(() => {
@@ -938,8 +953,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                     <td>{(() => {
                       const discount = booking.discountAmount ?? 0;
                       const activityPrice = booking.totalPrice - discount ;
-                      console.log(booking.totalPrice)
-                      console.log(activityPrice)
                       const pricePerPerson = activityPrice / booking.numberOfPeople;
                       return pricePerPerson.toFixed(2);
                     })()} €</td>
@@ -1117,7 +1130,30 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               ) : (
                 <div className={styles.totalPrice}>
                   <span>Total :</span>
-                  <span className={styles.totalValue}>{booking.discountAmount ? (booking.totalPrice - booking.discountAmount) : booking.totalPrice} €</span>
+                  <span className={styles.totalValue}>{
+                    (() => {
+                      const hasDiscount = !!booking.discountAmount;
+                      const hasDeposit = !!booking.session?.depositRequired;
+
+                      const depositValue =
+                        booking.session?.depositRequired
+                          ? booking.session.depositType === 'percentage'
+                            ? (booking.totalPrice * booking.session.depositAmount)/100
+                            : booking.session.depositAmount
+                          : 0;
+
+                      if (hasDiscount && hasDeposit) {
+                        return booking.totalPrice - booking.discountAmount - depositValue;
+                      } else if (hasDiscount) {
+                        return booking.totalPrice - booking.discountAmount;
+                      } else if (hasDeposit) {
+                        return booking.totalPrice - depositValue;
+                      } else {
+                        return booking.totalPrice;
+                      }
+                    })()
+                    } €
+                  </span>
                 </div>
               )}
             </div>

@@ -31,7 +31,8 @@ const BookingForm = () => {
     clientNationality: initialLanguage,
     voucherCode: '',
     paymentMethod: 'onsite', // 'online' ou 'onsite'
-    fillParticipantsNow: true // Toujours afficher le formulaire des participants
+    fillParticipantsNow: true, // Toujours afficher le formulaire des participants
+    payFullAmount: false // Payer la totalité (si acompte requis)
   });
 
   const [participants, setParticipants] = useState([]);
@@ -221,6 +222,33 @@ const BookingForm = () => {
     return total - discount;
   };
 
+  // Calculer l'acompte si requis
+  const calculateDeposit = () => {
+    if (!session || !session.depositRequired) return 0;
+
+    const finalPrice = calculateFinalPrice();
+
+    if (session.depositType === 'percentage') {
+      return (finalPrice * session.depositAmount) / 100;
+    } else {
+      // fixed
+      return Math.min(session.depositAmount, finalPrice);
+    }
+  };
+
+  // Calculer le montant à payer (acompte ou totalité selon le choix)
+  const calculateAmountToPay = () => {
+    const finalPrice = calculateFinalPrice();
+
+    if (!session || !session.depositRequired || formData.payFullAmount) {
+      // Pas d'acompte requis OU le client veut payer la totalité
+      return finalPrice;
+    }
+
+    // Acompte requis et client ne veut pas payer la totalité
+    return calculateDeposit();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -278,21 +306,22 @@ const BookingForm = () => {
         discountAmount: discount > 0 ? discount : null
       };
 
-      // SI PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
-      if (formData.paymentMethod === 'online') {
+      // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
+      if (session.depositRequired || formData.paymentMethod === 'online') {
         // Créer une session Stripe avec les données de réservation en metadata
         const stripeResponse = await stripeAPI.createBookingCheckout({
           sessionId: session.id,
           productId: productId,
           amountDue: finalPrice,
           bookingData: bookingData,
-          participants: participants.length > 0 ? participants : null
+          participants: participants.length > 0 ? participants : null,
+          payFullAmount: formData.payFullAmount || false
         });
 
         // Rediriger vers Stripe
         window.location.href = stripeResponse.data.url;
       } else {
-        // SI PAIEMENT SUR PLACE : créer la réservation normalement
+        // SI PAIEMENT SUR PLACE (et pas d'acompte requis) : créer la réservation normalement
         const bookingDataForCreate = {
           sessionId: session.id,
           productId: productId,
@@ -437,6 +466,24 @@ const BookingForm = () => {
               <strong>{t('Total')}</strong>
               <strong>{voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)}€</strong>
             </div>
+
+            {/* Affichage de l'acompte si requis */}
+            {session.depositRequired && (
+              <>
+                <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
+                  <div className={styles.priceItem}>
+                    <span>💳 Acompte à payer maintenant</span>
+                    <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
+                  </div>
+                  {!formData.payFullAmount && (
+                    <div className={styles.priceItem} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                      <span>💵 Solde à payer sur place</span>
+                      <span>{((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -734,40 +781,95 @@ const BookingForm = () => {
                   <strong>{total.toFixed(2)}€</strong>
                 </div>
               )}
+
+              {/* Affichage de l'acompte si requis */}
+              {session.depositRequired && (
+                <>
+                  <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
+                    <div className={styles.priceItem}>
+                      <span>💳 Acompte à payer maintenant</span>
+                      <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
+                    </div>
+                    {!formData.payFullAmount && (
+                      <div className={styles.priceItem} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                        <span>💵 Solde à payer sur place</span>
+                        <span>{((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Option de paiement de la totalité si acompte requis */}
+            {session.depositRequired && (
+              <div className={styles.payFullAmountSection} style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.payFullAmount}
+                    onChange={(e) => handleChange('payFullAmount', e.target.checked)}
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <strong>💰 Payer la totalité maintenant</strong>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
+                      Au lieu de payer l'acompte de {calculateDeposit().toFixed(2)}€, vous pouvez payer la totalité de {(voucherInfo ? finalPrice : total).toFixed(2)}€ dès maintenant par carte bancaire.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* Mode de paiement */}
             <div className={styles.paymentMethodSection}>
               <h3>{t('PaymentMode')}</h3>
-              <div className={styles.paymentOptions}>
-                <label className={styles.paymentOption}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="onsite"
-                    checked={formData.paymentMethod === 'onsite'}
-                    onChange={(e) => handleChange('paymentMethod', e.target.value)}
-                  />
-                  <div>
-                    <strong>{t('payOnPlace')}</strong>
-                    <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
-                  </div>
-                </label>
 
-                <label className={styles.paymentOption}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="online"
-                    checked={formData.paymentMethod === 'online'}
-                    onChange={(e) => handleChange('paymentMethod', e.target.value)}
-                  />
-                  <div>
-                    <strong>{t('payNow')}</strong>
-                    <p>{t('cbPay')}</p>
-                  </div>
-                </label>
-              </div>
+              {session.depositRequired ? (
+                /* Si acompte requis : toujours passer par Stripe pour l'acompte */
+                <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold', color: '#856404' }}>
+                    💳 Paiement par carte bancaire obligatoire
+                  </p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#856404' }}>
+                    {formData.payFullAmount
+                      ? `Vous allez payer la totalité (${calculateAmountToPay().toFixed(2)}€) par carte bancaire.`
+                      : `Vous allez payer l'acompte de ${calculateDeposit().toFixed(2)}€ par carte bancaire. Le solde de ${((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€ sera à régler sur place.`
+                    }
+                  </p>
+                </div>
+              ) : (
+                /* Si pas d'acompte : choix normal entre sur place et en ligne */
+                <div className={styles.paymentOptions}>
+                  <label className={styles.paymentOption}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="onsite"
+                      checked={formData.paymentMethod === 'onsite'}
+                      onChange={(e) => handleChange('paymentMethod', e.target.value)}
+                    />
+                    <div>
+                      <strong>{t('payOnPlace')}</strong>
+                      <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
+                    </div>
+                  </label>
+
+                  <label className={styles.paymentOption}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="online"
+                      checked={formData.paymentMethod === 'online'}
+                      onChange={(e) => handleChange('paymentMethod', e.target.value)}
+                    />
+                    <div>
+                      <strong>{t('payNow')}</strong>
+                      <p>{t('cbPay')}</p>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Bouton de soumission */}
@@ -786,7 +888,9 @@ const BookingForm = () => {
                 disabled={submitting}
               >
                 {submitting ? t('Traitement...') : (
-                  formData.paymentMethod === 'online' ? `${t('Payer')} ${finalPrice.toFixed(2)}€` : t('comfirmResa')
+                  session.depositRequired || formData.paymentMethod === 'online'
+                    ? `${t('Payer')} ${calculateAmountToPay().toFixed(2)}€`
+                    : t('comfirmResa')
                 )}
               </button>
             </div>

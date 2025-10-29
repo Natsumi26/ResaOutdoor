@@ -93,6 +93,11 @@ model Session {
   shoeRentalAvailable   Boolean     @default(false) // Location de chaussures disponible
   shoeRentalPrice       Float?      // Prix de location de chaussures
 
+  // Acompte
+  depositRequired       Boolean     @default(false) // Acompte obligatoire pour cette session
+  depositAmount         Float?      // Montant de l'acompte (si type = fixed)
+  depositType           String?     // "fixed" (montant fixe) ou "percentage" (pourcentage)
+
   guideId               String
   guide                 User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
 

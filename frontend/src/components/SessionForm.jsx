@@ -12,7 +12,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
     guideId: '',  // Guide assigné (pour leader)
     status: 'open',
     shoeRentalAvailable: false,  // Location de chaussures disponible
-    shoeRentalPrice: ''  // Prix de location
+    shoeRentalPrice: '',  // Prix de location
+    depositRequired: false,  // Acompte obligatoire
+    depositAmount: '',  // Montant de l'acompte
+    depositType: 'percentage'  // Type d'acompte: 'fixed' ou 'percentage'
   });
 
   const [errors, setErrors] = useState({});
@@ -31,7 +34,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         guideId: session.guideId || '',
         status: session.status,
         shoeRentalAvailable: session.shoeRentalAvailable || false,
-        shoeRentalPrice: session.shoeRentalPrice || ''
+        shoeRentalPrice: session.shoeRentalPrice || '',
+        depositRequired: session.depositRequired || false,
+        depositAmount: session.depositAmount || '',
+        depositType: session.depositType || 'percentage'
       });
     } else if (currentUser && !formData.guideId) {
       // Par défaut, le guide connecté
@@ -144,7 +150,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       productIds: formData.productIds,
       guideId: formData.guideId,
       shoeRentalAvailable: formData.shoeRentalAvailable,
-      shoeRentalPrice: formData.shoeRentalAvailable ? parseFloat(formData.shoeRentalPrice) : null
+      shoeRentalPrice: formData.shoeRentalAvailable ? parseFloat(formData.shoeRentalPrice) : null,
+      depositRequired: formData.depositRequired,
+      depositAmount: formData.depositRequired ? parseFloat(formData.depositAmount) : null,
+      depositType: formData.depositRequired ? formData.depositType : null
     };
     console.log(submitData)
     onSubmit(submitData);
@@ -309,6 +318,67 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
             />
             {errors.shoeRentalPrice && <span className={styles.errorMsg}>{errors.shoeRentalPrice}</span>}
             <p className={styles.helpText}>Le prix sera ajouté au total de la réservation pour chaque participant qui souhaite louer des chaussures.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Acompte */}
+      <div className={styles.section}>
+        <h3>💳 Acompte</h3>
+
+        <div className={styles.formGroup}>
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              name="depositRequired"
+              checked={formData.depositRequired}
+              onChange={handleChange}
+            />
+            <div>
+              <strong>Acompte obligatoire</strong>
+              <p className={styles.helpText}>
+                Les clients devront payer un acompte par Stripe lors de la réservation.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {formData.depositRequired && (
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Type d'acompte *</label>
+              <select
+                name="depositType"
+                value={formData.depositType}
+                onChange={handleChange}
+              >
+                <option value="percentage">Pourcentage (%)</option>
+                <option value="fixed">Montant fixe (€)</option>
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                {formData.depositType === 'percentage' ? 'Pourcentage *' : 'Montant *'}
+              </label>
+              <input
+                type="number"
+                name="depositAmount"
+                value={formData.depositAmount}
+                onChange={handleChange}
+                placeholder={formData.depositType === 'percentage' ? 'Ex: 30' : 'Ex: 50'}
+                step={formData.depositType === 'percentage' ? '1' : '0.01'}
+                min="0"
+                max={formData.depositType === 'percentage' ? '100' : undefined}
+                className={errors.depositAmount ? styles.error : ''}
+              />
+              {errors.depositAmount && <span className={styles.errorMsg}>{errors.depositAmount}</span>}
+              <p className={styles.helpText}>
+                {formData.depositType === 'percentage'
+                  ? 'Pourcentage du prix total (ex: 30 pour 30%)'
+                  : 'Montant fixe en euros (ex: 50 pour 50€)'}
+              </p>
+            </div>
           </div>
         )}
       </div>
