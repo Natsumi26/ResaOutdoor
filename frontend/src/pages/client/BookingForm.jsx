@@ -223,17 +223,33 @@ const BookingForm = () => {
     return total - discount;
   };
 
+  // Vérifier si un acompte est requis selon le mode de paiement du guide
+  const isDepositRequired = () => {
+    if (!session || !session.guide) return false;
+    const paymentMode = session.guide.paymentMode || 'onsite_only';
+    return paymentMode === 'deposit_only' || paymentMode === 'deposit_and_full';
+  };
+
+  // Vérifier si le paiement en ligne est possible/requis
+  const isOnlinePaymentRequired = () => {
+    if (!session || !session.guide) return false;
+    const paymentMode = session.guide.paymentMode || 'onsite_only';
+    return paymentMode !== 'onsite_only';
+  };
+
   // Calculer l'acompte si requis
   const calculateDeposit = () => {
-    if (!session || !session.depositRequired) return 0;
+    if (!isDepositRequired()) return 0;
 
     const finalPrice = calculateFinalPrice();
+    const depositType = session.guide.depositType;
+    const depositAmount = session.guide.depositAmount;
 
-    if (session.depositType === 'percentage') {
-      return (finalPrice * session.depositAmount) / 100;
+    if (depositType === 'percentage') {
+      return (finalPrice * depositAmount) / 100;
     } else {
       // fixed
-      return Math.min(session.depositAmount, finalPrice);
+      return Math.min(depositAmount, finalPrice);
     }
   };
 
@@ -241,7 +257,7 @@ const BookingForm = () => {
   const calculateAmountToPay = () => {
     const finalPrice = calculateFinalPrice();
 
-    if (!session || !session.depositRequired || formData.payFullAmount) {
+    if (!isDepositRequired() || formData.payFullAmount) {
       // Pas d'acompte requis OU le client veut payer la totalité
       return finalPrice;
     }
@@ -324,7 +340,7 @@ const BookingForm = () => {
       }
 
       // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
-      if (session.depositRequired || formData.paymentMethod === 'online') {
+      if (isDepositRequired() || formData.paymentMethod === 'online') {
         // Créer une session Stripe avec les données de réservation en metadata
         const stripeResponse = await stripeAPI.createBookingCheckout({
           sessionId: session.id,
@@ -485,7 +501,7 @@ console.log(session)
             </div>
 
             {/* Affichage de l'acompte si requis */}
-            {session.depositRequired && (
+            {isDepositRequired() && (
               <>
                 <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
                   <div className={styles.priceItem}>
@@ -800,7 +816,7 @@ console.log(session)
               )}
 
               {/* Affichage de l'acompte si requis */}
-              {session.depositRequired && (
+              {isDepositRequired() && (
                 <>
                   <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
                     <div className={styles.priceItem}>
@@ -819,7 +835,7 @@ console.log(session)
             </div>
 
             {/* Option de paiement de la totalité si acompte requis */}
-            {session.depositRequired && (
+            {isDepositRequired() && (
               <div className={styles.payFullAmountSection} style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                   <input
@@ -842,7 +858,7 @@ console.log(session)
             <div className={styles.paymentMethodSection}>
               <h3>{t('PaymentMode')}</h3>
 
-              {session.depositRequired ? (
+              {isDepositRequired() ? (
                 /* Si acompte requis : toujours passer par Stripe pour l'acompte */
                 <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
                   <p style={{ margin: 0, fontWeight: 'bold', color: '#856404' }}>
@@ -932,7 +948,7 @@ console.log(session)
                 disabled={submitting}
               >
                 {submitting ? t('Traitement...') : (
-                  session.depositRequired || formData.paymentMethod === 'online'
+                  isDepositRequired() || formData.paymentMethod === 'online'
                     ? `${t('Payer')} ${calculateAmountToPay().toFixed(2)}€`
                     : t('comfirmResa')
                 )}

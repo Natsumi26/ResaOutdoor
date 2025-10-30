@@ -15,6 +15,9 @@ export const getAllUsers = async (req, res, next) => {
         stripeAccount: true,
         teamName: true,
         teamLeaderId: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
         createdAt: true,
         updatedAt: true
       },
@@ -33,7 +36,10 @@ export const getAllUsers = async (req, res, next) => {
 // Créer un utilisateur (admin seulement)
 export const createUser = async (req, res, next) => {
   try {
-    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId } = req.body;
+    const {
+      login, password, email, stripeAccount, role, confidentialityPolicy,
+      teamName, teamLeaderId, paymentMode, depositType, depositAmount
+    } = req.body;
 
     if (!login || !password) {
       throw new AppError('Login et mot de passe requis', 400);
@@ -60,6 +66,9 @@ export const createUser = async (req, res, next) => {
         stripeAccount,
         role: role || 'employee',
         confidentialityPolicy,
+        paymentMode: paymentMode || 'onsite_only',
+        depositType,
+        depositAmount,
         teamName: (role === 'leader') ? teamName : null, // teamName uniquement pour les leaders
         teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
       },
@@ -70,6 +79,9 @@ export const createUser = async (req, res, next) => {
         role: true,
         confidentialityPolicy: true,
         stripeAccount: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
         teamName: true,
         teamLeaderId: true,
         createdAt: true
@@ -89,16 +101,19 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { login, password, email, stripeAccount, role,confidentialityPolicy, teamName, teamLeaderId } = req.body;
+    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId, paymentMode, depositType, depositAmount } = req.body;
 
     const updateData = {
       ...(login && { login }),
       ...(email && { email }),
       ...(stripeAccount !== undefined && { stripeAccount }),
       ...(role && { role }),
-      ...(confidentialityPolicy && {confidentialityPolicy}),
+      ...(confidentialityPolicy && { confidentialityPolicy }),
       ...(teamName !== undefined && { teamName }),
-      ...(teamLeaderId !== undefined && { teamLeaderId })
+      ...(teamLeaderId !== undefined && { teamLeaderId }),
+      ...(paymentMode && { paymentMode }),
+      ...(depositType !== undefined && { depositType }),
+      ...(depositAmount !== undefined && { depositAmount })
     };
 
     // Si un nouveau mot de passe est fourni
@@ -118,6 +133,9 @@ export const updateUser = async (req, res, next) => {
         stripeAccount: true,
         teamName: true,
         teamLeaderId: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
         updatedAt: true
       }
     });

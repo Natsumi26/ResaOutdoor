@@ -17,7 +17,12 @@ model User {
   email                 String?
   stripeAccount         String?   // Compte Stripe associé
   role                  String    @default("employee") // "super_admin", "leader", "employee", "trainee"
-  confidentialityPolicy String?
+  confidentialityPolicy String?   // Lien vers la politique de confidentialité
+
+  // Configuration des moyens de paiement (pour leaders et admins)
+  paymentMode           String?   @default("onsite_only") // "deposit_only", "deposit_and_full", "full_or_later", "full_only", "onsite_only"
+  depositType           String?   // "percentage" ou "fixed"
+  depositAmount         Float?    // Montant de l'acompte (pourcentage ou montant fixe)
 
   // Hiérarchie de team
   teamName              String?   // Nom de l'équipe (uniquement pour les leaders)
@@ -94,11 +99,6 @@ model Session {
   status                String      @default("open") // "open", "full", "closed"
   shoeRentalAvailable   Boolean     @default(false) // Location de chaussures disponible
   shoeRentalPrice       Float?      // Prix de location de chaussures
-
-  // Acompte
-  depositRequired       Boolean     @default(false) // Acompte obligatoire pour cette session
-  depositAmount         Float?      // Montant de l'acompte (si type = fixed)
-  depositType           String?     // "fixed" (montant fixe) ou "percentage" (pourcentage)
 
   guideId               String
   guide                 User        @relation(fields: [guideId], references: [id], onDelete: Cascade)

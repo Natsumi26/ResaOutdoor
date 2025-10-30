@@ -25,6 +25,11 @@ export const getTeamMembers = async (req, res) => {
           email: true,
           role: true,
           teamLeaderId: true,
+          stripeAccount: true,
+          confidentialityPolicy: true,
+          paymentMode: true,
+          depositType: true,
+          depositAmount: true,
           createdAt: true,
           updatedAt: true
         },
@@ -40,6 +45,11 @@ export const getTeamMembers = async (req, res) => {
           email: true,
           role: true,
           teamLeaderId: true,
+          stripeAccount: true,
+          confidentialityPolicy: true,
+          paymentMode: true,
+          depositType: true,
+          depositAmount: true,
           createdAt: true,
           updatedAt: true
         },
@@ -61,7 +71,17 @@ export const addTeamMember = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const userRole = req.user.role;
-    const { login, password, email, role } = req.body;
+    const {
+      login,
+      password,
+      email,
+      role,
+      stripeAccount,
+      confidentialityPolicy,
+      paymentMode,
+      depositType,
+      depositAmount
+    } = req.body;
 
     // Seuls les leaders et super_admin peuvent ajouter des membres
     if (userRole !== 'leader' && userRole !== 'super_admin') {
@@ -85,21 +105,38 @@ export const addTeamMember = async (req, res) => {
     // Hash du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Préparer les données pour la création
+    const userData = {
+      login,
+      password: hashedPassword,
+      email,
+      role,
+      teamLeaderId: userRole === 'super_admin' ? null : userId
+    };
+
+    // Ajouter les champs de paiement pour les stagiaires
+    if (role === 'trainee') {
+      if (stripeAccount) userData.stripeAccount = stripeAccount;
+      if (confidentialityPolicy) userData.confidentialityPolicy = confidentialityPolicy;
+      if (paymentMode) userData.paymentMode = paymentMode;
+      if (depositType) userData.depositType = depositType;
+      if (depositAmount !== undefined) userData.depositAmount = parseFloat(depositAmount);
+    }
+
     // Créer l'utilisateur avec le leader comme teamLeaderId
     const newMember = await prisma.user.create({
-      data: {
-        login,
-        password: hashedPassword,
-        email,
-        role,
-        teamLeaderId: userRole === 'super_admin' ? null : userId // Super admin n'assigne pas de leader
-      },
+      data: userData,
       select: {
         id: true,
         login: true,
         email: true,
         role: true,
         teamLeaderId: true,
+        stripeAccount: true,
+        confidentialityPolicy: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
         createdAt: true,
         updatedAt: true
       }
@@ -120,7 +157,17 @@ export const updateTeamMember = async (req, res) => {
     const userId = req.user.userId || req.user.id;
     const userRole = req.user.role;
     const { memberId } = req.params;
-    const { login, email, role, password } = req.body;
+    const {
+      login,
+      email,
+      role,
+      password,
+      stripeAccount,
+      confidentialityPolicy,
+      paymentMode,
+      depositType,
+      depositAmount
+    } = req.body;
 
     // Seuls les leaders et super_admin peuvent modifier des membres
     if (userRole !== 'leader' && userRole !== 'super_admin') {
@@ -137,19 +184,28 @@ export const updateTeamMember = async (req, res) => {
     }
 
     // Vérifier que le leader ne modifie que ses propres membres
-    if (userRole === 'leader' && member.teamLeaderId !== userId) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres membres d\'équipe.' });
+    if (userRole === 'leader' && member.teamLeaderId !== userId && member.id !== userId) {
+      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres membres d\'équipe ou votre propre compte.' });
     }
 
     // Préparer les données de mise à jour
     const updateData = {};
     if (login) updateData.login = login;
     if (email !== undefined) updateData.email = email;
-    if (role && (role === 'employee' || role === 'trainee')) updateData.role = role;
+    if (role && (role === 'employee' || role === 'trainee' || role === 'leader')) updateData.role = role;
 
     // Si un nouveau mot de passe est fourni
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Ajouter les champs de paiement pour les stagiaires
+    if (role === 'trainee' || (member.role === 'trainee' && role === undefined)) {
+      if (stripeAccount !== undefined) updateData.stripeAccount = stripeAccount;
+      if (confidentialityPolicy !== undefined) updateData.confidentialityPolicy = confidentialityPolicy;
+      if (paymentMode !== undefined) updateData.paymentMode = paymentMode;
+      if (depositType !== undefined) updateData.depositType = depositType;
+      if (depositAmount !== undefined) updateData.depositAmount = depositAmount ? parseFloat(depositAmount) : null;
     }
 
     // Mettre à jour le membre
@@ -162,6 +218,11 @@ export const updateTeamMember = async (req, res) => {
         email: true,
         role: true,
         teamLeaderId: true,
+        stripeAccount: true,
+        confidentialityPolicy: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
         updatedAt: true
       }
     });

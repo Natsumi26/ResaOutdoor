@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   // Détecter si on est sur mobile et gérer l'état du sidebar
   useEffect(() => {
@@ -80,16 +81,17 @@ const Dashboard = () => {
             {sidebarOpen && <span>Réservations</span>}
           </NavLink>
 
-          <NavLink
-            to="/gift-vouchers"
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <span className={styles.icon}>🎁</span>
-            {sidebarOpen && <span>Bons cadeaux</span>}
-          </NavLink>
-
+          {(user?.role !== 'trainee') && (
+            <>
+            <NavLink
+              to="/gift-vouchers"
+              className={({ isActive }) =>
+                `${styles.navItem} ${isActive ? styles.active : ''}`
+              }
+            >
+              <span className={styles.icon}>🎁</span>
+              {sidebarOpen && <span>Bons cadeaux</span>}
+            </NavLink>
           {/* Menu déroulant Paramètres */}
           <div className={styles.navDropdown}>
             <div
@@ -109,7 +111,7 @@ const Dashboard = () => {
 
             {settingsOpen && sidebarOpen && (
               <div className={styles.subMenu}>
-              {isSuperAdmin && (
+                {isSuperAdmin && (
                   <NavLink
                     to="/users"
                     className={({ isActive }) =>
@@ -121,7 +123,91 @@ const Dashboard = () => {
                   </NavLink>
                 )}
 
-                {(user?.role === 'leader' || user?.role === 'super_admin') && (
+                  <NavLink
+                    to="/products"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>🏞️</span>
+                    {sidebarOpen && <span>Produits</span>}
+                  </NavLink>
+
+                  <NavLink
+                    to="/settings/emails"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>📧</span>
+                    <span>Emails</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/settings/online-sales"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>💳</span>
+                    <span>Vente en ligne</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/settings/resellers"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>🏪</span>
+                    <span>Revendeurs</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/settings/newsletter"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>📧</span>
+                    <span>Newsletter</span>
+                  </NavLink>
+
+                {/* Menu déroulant Préférences */}
+              <div
+                className={`${styles.subMenuItem} ${styles.navDropdownToggle}`}
+                onClick={() => setPreferencesOpen(!preferencesOpen)}
+              >
+                <span className={styles.icon}>⚙️</span>
+                    <span>Préférences</span>
+                    <span className={`${styles.dropdownArrow} ${preferencesOpen ? styles.open : ''}`}>
+                      ▼
+                    </span>
+              </div>
+
+              {preferencesOpen && (
+                <div className={styles.subSubMenu}>
+                  <NavLink
+                    to="/settings/preferences/personalization"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>⚙️</span>
+                    <span>Personnalisation</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/settings/preferences/payment-preferences"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>💳</span>
+                    <span>Moyens de paiement</span>
+                  </NavLink>
+
+                  {(user?.role === 'leader' || isSuperAdmin) && (
                   <NavLink
                     to="/team"
                     className={({ isActive }) =>
@@ -132,70 +218,13 @@ const Dashboard = () => {
                     {sidebarOpen && <span>Mon Équipe</span>}
                   </NavLink>
                 )}
-
-                <NavLink
-                  to="/products"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>🏞️</span>
-                  {sidebarOpen && <span>Produits</span>}
-                </NavLink>
-                <NavLink
-                  to="/settings/emails"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>📧</span>
-                  <span>Emails</span>
-                </NavLink>
-
-                <NavLink
-                  to="/settings/online-sales"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>💳</span>
-                  <span>Vente en ligne</span>
-                </NavLink>
-
-                <NavLink
-                  to="/settings/resellers"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>🏪</span>
-                  <span>Revendeurs</span>
-                </NavLink>
-
-                {user?.role !== 'trainee' && (
-                <NavLink
-                  to="/settings/newsletter"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>📧</span>
-                  <span>Newsletter</span>
-                </NavLink>
+                </div>
                 )}
-
-                <NavLink
-                  to="/settings/preferences"
-                  className={({ isActive }) =>
-                    `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                  }
-                >
-                  <span className={styles.icon}>⚙️</span>
-                  <span>Préférences</span>
-                </NavLink>
-              </div>
-            )}
+            </div>
+          )}
           </div>
+          </>
+          )}
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -210,12 +239,12 @@ const Dashboard = () => {
                   {user?.role === 'trainee'
                     ? 'Stagiaire'
                     : user?.role === 'employee'
-                    ? 'Employé'
-                    : user?.role === 'leader'
-                    ? 'Chef d\'équipe'
-                    : user?.role === 'super_admin'
-                    ? 'Super Admin'
-                    : 'Utilisateur'}
+                      ? 'Employé'
+                      : user?.role === 'leader'
+                        ? 'Chef d\'équipe'
+                        : user?.role === 'super_admin'
+                          ? 'Super Admin'
+                          : 'Utilisateur'}
                 </p>
               </div>
             )}

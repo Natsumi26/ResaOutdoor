@@ -299,7 +299,12 @@ console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)')
         guide: {
           select: {
             id: true,
-            login: true
+            login: true,
+            email: true,
+            confidentialityPolicy: true,
+            paymentMode: true,
+            depositType: true,
+            depositAmount: true
           }
         },
         bookings: {
@@ -387,7 +392,10 @@ export const getSessionById = async (req, res, next) => {
             id: true,
             login: true,
             email: true,
-            confidentialityPolicy: true
+            confidentialityPolicy: true,
+            paymentMode: true,
+            depositType: true,
+            depositAmount: true
           }
         },
         bookings: {
@@ -425,10 +433,7 @@ export const createSession = async (req, res, next) => {
       status,
       guideId: bodyGuideId,  // Optionnel : fourni par l'admin
       shoeRentalAvailable,   // Nouveau : location de chaussures disponible
-      shoeRentalPrice,       // Nouveau : prix de location
-      depositRequired,       // Nouveau : acompte obligatoire
-      depositAmount,         // Nouveau : montant de l'acompte
-      depositType            // Nouveau : type d'acompte ("fixed" ou "percentage")
+      shoeRentalPrice        // Nouveau : prix de location
     } = req.body;
 
     // Récupérer le guideId depuis le user authentifié
@@ -463,19 +468,6 @@ export const createSession = async (req, res, next) => {
       throw new AppError('Le prix de location de chaussures doit être spécifié et supérieur à 0', 400);
     }
 
-    // Validation : si acompte requis, le montant et le type doivent être fournis
-    if (depositRequired && (!depositAmount || depositAmount <= 0)) {
-      throw new AppError('Le montant de l\'acompte doit être spécifié et supérieur à 0', 400);
-    }
-
-    if (depositRequired && !depositType) {
-      throw new AppError('Le type d\'acompte (fixed ou percentage) doit être spécifié', 400);
-    }
-
-    if (depositRequired && depositType === 'percentage' && depositAmount > 100) {
-      throw new AppError('Le pourcentage d\'acompte ne peut pas dépasser 100%', 400);
-    }
-
     // Note: Suppression de la vérification d'unicité pour permettre plusieurs sessions
     // sur le même créneau pour le même guide
 
@@ -491,10 +483,7 @@ export const createSession = async (req, res, next) => {
           guideId,
           status: status || 'open',
           shoeRentalAvailable: shoeRentalAvailable || false,
-          shoeRentalPrice: shoeRentalAvailable ? shoeRentalPrice : null,
-          depositRequired: depositRequired || false,
-          depositAmount: depositRequired ? depositAmount : null,
-          depositType: depositRequired ? depositType : null
+          shoeRentalPrice: shoeRentalAvailable ? shoeRentalPrice : null
         }
       });
 
@@ -547,22 +536,12 @@ export const updateSession = async (req, res, next) => {
       productIds,
       status,
       shoeRentalAvailable,
-      shoeRentalPrice,
-      depositRequired,
-      depositAmount,
-      depositType
+      shoeRentalPrice
     } = req.body;
 
-    // Vérifier si la session a des réservations (si oui, interdire la modification de l'acompte)
+    // Vérifier si la session existe
     const session = await prisma.session.findUnique({
-      where: { id },
-      include: {
-        bookings: {
-          where: {
-            status: { not: 'cancelled' }
-          }
-        }
-      }
+      where: { id }
     });
 
     if (!session) {
@@ -593,36 +572,6 @@ export const updateSession = async (req, res, next) => {
       updateData.shoeRentalPrice = shoeRentalPrice;
     }
 
-    // Gestion de l'acompte : uniquement si pas de réservations
-    if (depositRequired !== undefined) {
-      if (session.bookings.length > 0) {
-        throw new AppError('Impossible de modifier l\'acompte : cette session a déjà des réservations', 400);
-      }
-
-      if (typeof depositRequired === 'boolean') {
-        updateData.depositRequired = depositRequired;
-
-        if (depositRequired) {
-          // Validation de l'acompte
-          if (!depositAmount || depositAmount <= 0) {
-            throw new AppError('Le montant de l\'acompte doit être spécifié et supérieur à 0', 400);
-          }
-          if (!depositType) {
-            throw new AppError('Le type d\'acompte (fixed ou percentage) doit être spécifié', 400);
-          }
-          if (depositType === 'percentage' && depositAmount > 100) {
-            throw new AppError('Le pourcentage d\'acompte ne peut pas dépasser 100%', 400);
-          }
-
-          updateData.depositAmount = depositAmount;
-          updateData.depositType = depositType;
-        } else {
-          // Si acompte désactivé, mettre à null
-          updateData.depositAmount = null;
-          updateData.depositType = null;
-        }
-      }
-    }
 
     // Mettre à jour en transaction
     const updatedSession = await prisma.$transaction(async (tx) => {
