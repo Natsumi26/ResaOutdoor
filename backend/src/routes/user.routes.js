@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Toutes les routes nécessitent authentification + admin
 router.use(authMiddleware);
-router.use(adminOnly);
+
 
 router.get('/', getAllUsers);
 router.post('/', createUser);

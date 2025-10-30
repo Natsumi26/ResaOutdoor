@@ -18,6 +18,7 @@ const BookingForm = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [modePayment, setModePayment] = useState('')
 
   // Déterminer la langue initiale basée sur la langue de l'interface
   const initialLanguage = i18n.language?.startsWith('en') ? 'EN' : 'FR';
@@ -111,6 +112,7 @@ const BookingForm = () => {
           productsAPI.getById(productId)
         ]);
         setSession(sessionRes.data.session);
+        setModePayment(sessionRes.data.session.guide.paymentMode);
         setProduct(productRes.data.product);
       } catch (error) {
         console.error('Erreur chargement données:', error);
@@ -136,7 +138,12 @@ const BookingForm = () => {
     }
   }, [session]);
 
-
+  useEffect(() => {
+    if (modePayment === 'full_only') {
+      handleChange(setFormData({ ...formData, paymentMethod: 'online' }));
+    }
+  }, [modePayment]);
+console.log(formData)
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -230,12 +237,6 @@ const BookingForm = () => {
     return paymentMode === 'deposit_only' || paymentMode === 'deposit_and_full';
   };
 
-  // Vérifier si le paiement en ligne est possible/requis
-  const isOnlinePaymentRequired = () => {
-    if (!session || !session.guide) return false;
-    const paymentMode = session.guide.paymentMode || 'onsite_only';
-    return paymentMode !== 'onsite_only';
-  };
 
   // Calculer l'acompte si requis
   const calculateDeposit = () => {
@@ -303,6 +304,7 @@ const BookingForm = () => {
       const totalPrice = calculateTotal(); // Prix AVANT réduction
       const finalPrice = calculateFinalPrice(); // Prix APRÈS réduction
       const discount = calculateDiscount();
+      const acompte = calculateDeposit();
 
       // Calculer le nombre de locations de chaussures
       let shoeRentalCount = 0;
@@ -341,12 +343,25 @@ const BookingForm = () => {
 
       // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
       if (isDepositRequired() || formData.paymentMethod === 'online') {
+        let amountDue = 0;
+
+        if (formData.payFullAmount) {
+          // Le client a choisi de payer la totalité
+          amountDue = finalPrice;
+        } else if (isDepositRequired()) {
+          // Le guide demande un acompte
+          amountDue = acompte;
+        } else {
+          // Paiement en ligne sans acompte (ex: full_only ou full_or_later)
+          amountDue = finalPrice;
+        }
+
         // Créer une session Stripe avec les données de réservation en metadata
         const stripeResponse = await stripeAPI.createBookingCheckout({
           sessionId: session.id,
           productId: productId,
-          amountDue: finalPrice,
-          bookingData: bookingData,
+          amountDue,
+          bookingData,
           participants: participants.length > 0 ? participants : null,
           payFullAmount: formData.payFullAmount || false
         });
@@ -398,7 +413,12 @@ const BookingForm = () => {
     { code: "FR", label: "🇫🇷 Français", flag: "🇫🇷" },
     { code: "EN", label: "🇬🇧 English", flag: "🇬🇧" }
   ];
-console.log(session)
+
+  const getGuidePaymentMode = () => {
+    return session?.guide?.paymentMode || 'onsite_only';
+  };
+  const guidePaymentMode = getGuidePaymentMode();
+
   return (
     <div className={styles.clientContainer}>
       {/* Bouton retour */}
@@ -835,7 +855,7 @@ console.log(session)
             </div>
 
             {/* Option de paiement de la totalité si acompte requis */}
-            {isDepositRequired() && (
+            {modePayment === 'deposit_and_full' && (
               <div className={styles.payFullAmountSection} style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                   <input
@@ -858,7 +878,7 @@ console.log(session)
             <div className={styles.paymentMethodSection}>
               <h3>{t('PaymentMode')}</h3>
 
-              {isDepositRequired() ? (
+              {guidePaymentMode === 'deposit_only' || guidePaymentMode === 'deposit_and_full' ? (
                 /* Si acompte requis : toujours passer par Stripe pour l'acompte */
                 <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
                   <p style={{ margin: 0, fontWeight: 'bold', color: '#856404' }}>
@@ -871,7 +891,17 @@ console.log(session)
                     }
                   </p>
                 </div>
-              ) : (
+              ) : guidePaymentMode === 'full_only' ? (
+                 // 💳 Paiement total obligatoire
+                <div style={{ padding: '1rem', backgroundColor: '#e2f0d9', borderRadius: '8px', border: '1px solid #a3d9a5' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold', color: '#2f6627' }}>
+                    💳 Paiement en ligne requis
+                  </p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#2f6627' }}>
+                    Vous devez payer la totalité (${calculateAmountToPay().toFixed(2)}€) par carte bancaire.
+                  </p>
+                </div>
+              ) : guidePaymentMode === 'full_or_later' ? (
                 /* Si pas d'acompte : choix normal entre sur place et en ligne */
                 <div className={styles.paymentOptions}>
                   <label className={styles.paymentOption}>
@@ -899,6 +929,22 @@ console.log(session)
                     <div>
                       <strong>{t('payNow')}</strong>
                       <p>{t('cbPay')}</p>
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <div className={styles.paymentOptions}>
+                  <label className={styles.paymentOption}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="onsite"
+                      checked={formData.paymentMethod === 'onsite'}
+                      onChange={(e) => handleChange('paymentMethod', e.target.value)}
+                    />
+                    <div>
+                      <strong>{t('payOnPlace')}</strong>
+                      <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
                     </div>
                   </label>
                 </div>

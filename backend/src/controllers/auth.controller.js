@@ -21,7 +21,11 @@ export const login = async (req, res, next) => {
         email: true,
         role: true,
         teamName: true,
-        stripeAccount: true
+        stripeAccount: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
+        confidentialityPolicy:true
       }
     });
 
@@ -72,7 +76,11 @@ export const getCurrentUser = async (req, res, next) => {
         role: true,
         teamName: true,
         stripeAccount: true,
-        createdAt: true
+        createdAt: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
+        confidentialityPolicy:true
       }
     });
 

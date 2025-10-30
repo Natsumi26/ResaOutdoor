@@ -9,11 +9,11 @@ const PaymentPreferences = () => {
   const [saveMessage, setSaveMessage] = useState('');
 
   // État pour les préférences de paiement
-  const [paymentMode, setPaymentMode] = useState('onsite_only');
+  const [paymentMode, setPaymentMode] = useState(user?.paymentMode || 'onsite_only');
   const [depositType, setDepositType] = useState('percentage');
   const [depositAmount, setDepositAmount] = useState('');
   const [confidentialityPolicy, setConfidentialityPolicy] = useState('');
-
+  console.log(user)
   useEffect(() => {
     loadPaymentPreferences();
   }, [user]);
@@ -34,7 +34,8 @@ const PaymentPreferences = () => {
 
       // Validation
       if (paymentMode === 'onsite_only' && (depositAmount && parseFloat(depositAmount) > 0)) {
-        setSaveMessage('❌ Impossible de combiner paiement sur place avec acompte');
+        setDepositType('');
+        setDepositAmount('');
         setLoading(false);
         return;
       }
@@ -115,7 +116,6 @@ const PaymentPreferences = () => {
   ];
 
   const requiresDeposit = paymentMode === 'deposit_only' || paymentMode === 'deposit_and_full';
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
