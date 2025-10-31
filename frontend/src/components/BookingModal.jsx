@@ -886,18 +886,18 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   </tr>
                 </thead>
                 <tbody>
-                  {booking.session.depositRequired === true && (
+                  {(booking.session.guide.paymentMode === 'deposit_only'|| booking.session.guide.paymentMode === 'deposit_and_full') && booking.amountPaid < booking.totalPrice && (
                     <tr>
                       <td>Acompte</td>
                       <td colSpan={2}>
-                        {booking.session.depositType === 'percentage'
-                          ? `-${booking.session.depositAmount}%`
-                          : `-${booking.session.depositAmount} €`}
+                        {booking.session.guide.depositType === 'percentage'
+                          ? `-${booking.session.guide.depositAmount}%`
+                          : `-${booking.session.guide.depositAmount} €`}
                       </td>
                       <td>
-                        -{booking.session.depositType === 'percentage'
-                          ? `${((booking.totalPrice * booking.session.depositAmount) / 100).toFixed(2)} €`
-                          : `${booking.session.depositAmount.toFixed(2)} €`}
+                        -{booking.session.guide.depositType === 'percentage'
+                          ? `${((booking.totalPrice * booking.session.guide.depositAmount) / 100).toFixed(2)} €`
+                          : `${booking.session.guide.depositAmount.toFixed(2)} €`}
                       </td>
                     </tr>
                   )}
@@ -1133,13 +1133,13 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   <span className={styles.totalValue}>{
                     (() => {
                       const hasDiscount = !!booking.discountAmount;
-                      const hasDeposit = !!booking.session?.depositRequired;
+                      const hasDeposit = !!((booking.session.guide.paymentMode === 'deposit_only'|| booking.session.guide.paymentMode === 'deposit_and_full') && booking.amountPaid < booking.totalPrice) ;
 
                       const depositValue =
-                        booking.session?.depositRequired
-                          ? booking.session.depositType === 'percentage'
-                            ? (booking.totalPrice * booking.session.depositAmount)/100
-                            : booking.session.depositAmount
+                        hasDeposit
+                          ? booking.session.guide.depositType === 'percentage'
+                            ? (booking.totalPrice * booking.session.guide.depositAmount)/100
+                            : booking.session.guide.depositAmount
                           : 0;
 
                       if (hasDiscount && hasDeposit) {

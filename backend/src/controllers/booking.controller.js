@@ -10,9 +10,7 @@ import {
 import {
   notifyAdmins,
   createNewBookingNotification,
-  createBookingCancelledNotification,
   updateCalendar,
-  NotificationTypes
 } from '../services/notification.service.js';
 
 // Lister toutes les réservations
@@ -80,14 +78,7 @@ export const getBookingById = async (req, res, next) => {
                 product: true
               }
             },
-            guide: {
-              select: {
-                id: true,
-                login: true,
-                email: true,
-                confidentialityPolicy: true
-              }
-            }
+            guide: true,
           }
         },
         product: {
@@ -477,25 +468,6 @@ export const updateBooking = async (req, res, next) => {
       console.error('Erreur envoi email au guide (modification):', err);
     });
 
-    // 🔔 Notifier les admins de la modification
-    notifyAdmins({
-      type: NotificationTypes.BOOKING_UPDATED,
-      title: 'Réservation modifiée',
-      message: `La réservation de ${booking.clientFirstName} ${booking.clientLastName} a été modifiée`,
-      data: {
-        bookingId: booking.id,
-        productName: booking.product.name
-      },
-      priority: 'normal'
-    });
-
-    // Mettre à jour le calendrier en temps réel
-    updateCalendar({
-      action: 'booking-updated',
-      bookingId: booking.id,
-      sessionId: booking.sessionId
-    });
-
     res.json({
       success: true,
       booking
@@ -665,27 +637,6 @@ export const cancelBooking = async (req, res, next) => {
       });
 
       return cancelledBooking;
-    });
-
-    // 📧 Envoyer email de notification d'annulation au guide
-    sendGuideCancellationNotification(booking).catch(err => {
-      console.error('Erreur envoi email au guide (annulation):', err);
-    });
-
-    // 🔔 Notifier les admins de l'annulation
-    const notification = createBookingCancelledNotification({
-      id: booking.id,
-      clientName: `${booking.clientFirstName} ${booking.clientLastName}`,
-      productName: booking.product.name,
-      cancellationReason: 'Annulation par le client'
-    });
-    notifyAdmins(notification);
-
-    // Mettre à jour le calendrier en temps réel
-    updateCalendar({
-      action: 'booking-cancelled',
-      bookingId: booking.id,
-      sessionId: booking.sessionId
     });
 
     res.json({

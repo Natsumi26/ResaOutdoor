@@ -72,15 +72,10 @@ export const updateCalendar = (data) => {
 export const NotificationTypes = {
   // Notifications pour les admins
   NEW_BOOKING: 'new-booking',
-  BOOKING_UPDATED: 'booking-updated',
-  BOOKING_CANCELLED: 'booking-cancelled',
-  PAYMENT_RECEIVED: 'payment-received',
   NEW_MESSAGE: 'new-message',
 
   // Notifications pour les clients
   BOOKING_CONFIRMED: 'booking-confirmed',
-  BOOKING_STATUS_CHANGED: 'booking-status-changed',
-  SESSION_REMINDER: 'session-reminder',
   ADMIN_MESSAGE: 'admin-message'
 };
 
@@ -122,39 +117,3 @@ export const createBookingConfirmedNotification = (booking) => {
   };
 };
 
-/**
- * Crée une notification d'annulation de réservation
- * @param {Object} booking - Données de la réservation
- */
-export const createBookingCancelledNotification = (booking) => {
-  return {
-    type: NotificationTypes.BOOKING_CANCELLED,
-    title: 'Réservation annulée',
-    message: `La réservation de ${booking.clientName} a été annulée`,
-    data: {
-      bookingId: booking.id,
-      clientName: booking.clientName,
-      productName: booking.productName,
-      reason: booking.cancellationReason
-    },
-    priority: 'medium'
-  };
-};
-
-/**
- * Crée une notification de paiement reçu
- * @param {Object} payment - Données du paiement
- */
-export const createPaymentReceivedNotification = (payment) => {
-  return {
-    type: NotificationTypes.PAYMENT_RECEIVED,
-    title: 'Paiement reçu',
-    message: `Paiement de ${payment.amount}€ reçu pour la réservation #${payment.bookingId}`,
-    data: {
-      bookingId: payment.bookingId,
-      amount: payment.amount,
-      paymentMethod: payment.method
-    },
-    priority: 'normal'
-  };
-};

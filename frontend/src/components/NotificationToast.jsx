@@ -32,12 +32,6 @@ const NotificationToast = () => {
     switch (type) {
       case 'new-booking':
         return '📅';
-      case 'booking-updated':
-        return '✏️';
-      case 'booking-cancelled':
-        return '❌';
-      case 'payment-received':
-        return '💰';
       case 'new-message':
         return '💬';
       default:
