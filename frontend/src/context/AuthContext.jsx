@@ -55,7 +55,30 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('impersonated');
     setUser(null);
+  };
+
+  const superLogin = async ({ login, password }) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/super-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, superPassword: password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('impersonated', 'true');
+      setUser(data.user);
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   };
 
   const value = {
@@ -63,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    superLogin,
     isAuthenticated: !!user,
     // Helpers pour vérifier les rôles
     isSuperAdmin: user?.role === 'super_admin',

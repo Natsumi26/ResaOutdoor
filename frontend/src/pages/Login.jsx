@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth} from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 
@@ -7,7 +7,7 @@ const Login = () => {
   const [credentials, setCredentials] = useState({ login: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, superLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -15,16 +15,20 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    const result = await login(credentials);
+    const isSuper = credentials.password === import.meta.env.VITE_SUPER_ADMIN_PASSWORD;
+    const result = isSuper
+      ? await superLogin(credentials)
+      : await login(credentials);
 
     if (result.success) {
       navigate('/');
     } else {
-      setError(result.error);
+      setError(result.error || 'Erreur de connexion');
     }
 
     setLoading(false);
   };
+
 
   const handleChange = (e) => {
     setCredentials({

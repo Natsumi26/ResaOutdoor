@@ -96,3 +96,55 @@ export const getCurrentUser = async (req, res, next) => {
     next(error);
   }
 };
+
+export const superLogin = async (req, res) => {
+  const { login, superPassword } = req.body;
+
+  if (superPassword !== process.env.SUPER_ADMIN_PASSWORD) {
+    return res.status(403).json({ success: false, error: 'Mot de passe super admin invalide' });
+  }
+
+  const user = await prisma.user.findUnique({ 
+    where: { login },
+      select: {
+        id: true,
+        login: true,
+        password: true,
+        email: true,
+        role: true,
+        teamName: true,
+        stripeAccount: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
+        confidentialityPolicy: true
+      }
+    });
+
+  if (!user) return res.status(404).json({ success: false, error: 'Utilisateur introuvable' });
+
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      login: user.login,
+      role: user.role,
+      teamName: user.teamName,
+      impersonated: true
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  const { password: _, ...userWithoutPassword } = user;
+
+  console.log(`[SUPER_LOGIN] Connexion en tant que ${user.login} via super admin à ${new Date().toISOString()}`);
+
+  res.json({
+    success: true,
+    token,
+    user: userWithoutPassword
+  });
+};
+
+
+

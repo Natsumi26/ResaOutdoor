@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
+import SuperAdminBanner from '../components/SuperAdminBanner';
 
 const Dashboard = () => {
   const { user, logout, isSuperAdmin } = useAuth();
@@ -257,6 +258,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className={styles.main}>
+        <SuperAdminBanner />
         <Outlet />
       </main>
 
