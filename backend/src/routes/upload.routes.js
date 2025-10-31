@@ -42,13 +42,19 @@ const logoStorage = multer.diskStorage({
 
 // Filtre pour n'accepter que les images
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 
-  if (extname && mimetype) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = file.mimetype;
+
+  const isMimeValid = allowedMimeTypes.includes(mime);
+  const isExtValid = allowedExtensions.includes(ext);
+
+  if (isMimeValid && (isExtValid || ext === '')) {
     cb(null, true);
   } else {
+    console.warn(`Fichier rejeté : ${file.originalname} (${file.mimetype})`);
     cb(new Error('Seules les images sont autorisées (jpg, jpeg, png, gif, webp)'));
   }
 };
@@ -57,7 +63,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max
+    fileSize: 2 * 1024 * 1024 // 2mo max par image
   }
 });
 

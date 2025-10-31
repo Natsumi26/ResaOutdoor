@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
 import { categoriesAPI } from '../services/api';
 import styles from './ProductForm.module.css';
+import imageCompression from 'browser-image-compression';
 
 const ProductForm = ({ product, categories: initialCategories, users, currentUser, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -154,14 +155,30 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     setFormData(prev => ({ ...prev, color: color.hex }));
   };
 
+//Gestion des images avec compression 
+  const compressImages = async (files) => {
+    const options = {
+      maxSizeMB: 1, // limite à 1 Mo
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
+
+    const compressedFiles = await Promise.all(
+      files.map(file => imageCompression(file, options))
+    );
+
+    return compressedFiles;
+  };
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-
+    const compressed = await compressImages(files);
+    console.log(compressed)
     setUploading(true);
     try {
       const formDataUpload = new FormData();
-      files.forEach(file => {
+      compressed.forEach(file => {
         formDataUpload.append('images', file);
       });
 
@@ -246,7 +263,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
 
     onSubmit(submitData);
   };
-console.log(formData)
+
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.formGrid}>
