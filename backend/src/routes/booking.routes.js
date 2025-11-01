@@ -14,13 +14,13 @@ import {
   updateNote,
   deleteNote
 } from '../controllers/booking.controller.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Routes publiques (accessibles sans authentification)
 router.get('/:id', getBookingById);
-router.post('/', createBooking);
+router.post('/', optionalAuth, createBooking);
 router.put('/:id', updateBooking);
 router.post('/:id/cancel', cancelBooking);
 

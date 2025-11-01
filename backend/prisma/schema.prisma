@@ -355,17 +355,19 @@ model EmailTemplate {
 
 // Paramètres globaux de l'application
 model Settings {
-  id              String   @id @default(uuid())
-  companyName     String?  // Nom de l'entreprise
-  companyPhone    String?  // Téléphone de l'entreprise
-  companyEmail    String?  // Email de l'entreprise
-  website         String?  // Site internet de l'entreprise
-  logo            String?  // URL du logo
-  primaryColor    String?  // Couleur principale
-  secondaryColor  String?  // Couleur secondaire
+  id                String   @id @default(uuid())
+  companyName       String?  // Nom de l'entreprise
+  companyPhone      String?  // Téléphone de l'entreprise
+  companyEmail      String?  // Email de l'entreprise
+  website           String?  // Site internet de l'entreprise
+  logo              String?  // URL du logo
+  primaryColor      String?  // Couleur principale (sidebar guide)
+  secondaryColor    String?  // Couleur secondaire (session button guide)
+  clientButtonColor String?  // Couleur des boutons côté client
+  clientAccentColor String?  // Couleur des textes/accents côté client
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@map("settings")
 }

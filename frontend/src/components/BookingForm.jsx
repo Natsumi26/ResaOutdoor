@@ -134,12 +134,31 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     // Recalculer le prix quand le produit, le nombre de personnes ou le voucher change
     if (selectedProduct && formData.numberOfPeople) {
       const voucherData = giftVoucherInfo || (selectedPromoCode ? promoCodes.find(p => p.code === selectedPromoCode) : null);
-      const price = calculatePrice(selectedProduct, formData.numberOfPeople, voucherData);
+
+      // Calculer le prix de base (SANS réduction)
+      const hasVoucher = voucherData !== null;
+      let basePrice;
+      if (!hasVoucher && selectedProduct.priceGroup && formData.numberOfPeople >= selectedProduct.priceGroup.min) {
+        basePrice = formData.numberOfPeople * selectedProduct.priceGroup.price;
+      } else {
+        basePrice = formData.numberOfPeople * selectedProduct.priceIndividual;
+      }
+
+      // Calculer le montant de la réduction
+      let discountAmount = 0;
+      if (voucherData) {
+        if (voucherData.discountType === 'percentage') {
+          discountAmount = basePrice * (voucherData.amount / 100);
+        } else {
+          discountAmount = Math.min(voucherData.amount, basePrice);
+        }
+      }
+
       setFormData(prev => ({
         ...prev,
-        totalPrice: price,
+        totalPrice: basePrice, // Prix AVANT réduction
         voucherCode: voucherData?.code || null,
-        discountAmount: voucherData ? (selectedProduct.priceIndividual * formData.numberOfPeople) - price : 0
+        discountAmount: discountAmount
       }));
     }
   }, [selectedProduct, formData.numberOfPeople, giftVoucherInfo, selectedPromoCode]);
@@ -617,7 +636,7 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
             {/* Prix total */}
             <div className={styles.priceRow} style={{ borderTop: '1px solid #dee2e6', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
               <strong>Prix total :</strong>
-              <strong>{formData.totalPrice.toFixed(2)}€</strong>
+              <strong>{(formData.totalPrice - formData.discountAmount).toFixed(2)}€</strong>
             </div>
 
             {/* Indication prix de groupe */}
@@ -637,7 +656,7 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
               onChange={handleChange}
               step="0.01"
               min="0"
-              max={formData.totalPrice}
+              max={formData.totalPrice - formData.discountAmount}
             />
             <small>Laissez 0 si aucun acompte n'a été versé</small>
           </div>

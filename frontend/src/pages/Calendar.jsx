@@ -9,7 +9,7 @@ import SessionDuplicateDialog from '../components/SessionDuplicateDialog';
 import SessionDeleteDialog from '../components/SessionDeleteDialog';
 import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
 import NotificationBell from '../components/NotificationBell';
-import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI } from '../services/api';
+import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI, settingsAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
 
@@ -34,6 +34,29 @@ const Calendar = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false); // Dialog de suppression
   const [showConfirmDuplicate, setShowConfirmDuplicate] = useState(false); // Modal de confirmation de duplication
   const [selectedSessionId, setSelectedSessionId] = useState(null); // Session sélectionnée pour le modal de détail
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  }); // Couleurs du dégradé (sidebar et bouton Session)
+
+  // Charger les couleurs du thème depuis les settings
+  useEffect(() => {
+    const loadThemeColors = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setThemeColors({
+            primary: settings.primaryColor,
+            secondary: settings.secondaryColor || settings.primaryColor
+          });
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleurs thème:', error);
+      }
+    };
+    loadThemeColors();
+  }, []);
 
   // Charger les sessions de la semaine
   const loadSessions = async (baseDate= new Date()) => {
@@ -257,7 +280,9 @@ const Calendar = () => {
           isMagicRotation: sessionToDuplicate.isMagicRotation,
           status: sessionToDuplicate.status,
           productIds: sessionToDuplicate.products.map(sp => sp.productId),
-          guideId: sessionToDuplicate.guideId
+          guideId: sessionToDuplicate.guideId,
+          shoeRentalAvailable: sessionToDuplicate.shoeRentalAvailable,
+          shoeRentalPrice: sessionToDuplicate.shoeRentalPrice
         };
         await sessionsAPI.create(sessionData);
       }
@@ -375,6 +400,7 @@ const Calendar = () => {
             <button
               className={styles.btnPrimary}
               onClick={() => setSessionMenuOpen(!sessionMenuOpen)}
+              style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}
             >
               Session ▾
             </button>

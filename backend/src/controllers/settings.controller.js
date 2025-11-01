@@ -30,7 +30,9 @@ export const updateSettings = async (req, res) => {
       website,
       logo,
       primaryColor,
-      secondaryColor
+      secondaryColor,
+      clientButtonColor,
+      clientAccentColor
     } = req.body;
 
     // Récupérer ou créer le settings
@@ -46,7 +48,9 @@ export const updateSettings = async (req, res) => {
           website,
           logo,
           primaryColor,
-          secondaryColor
+          secondaryColor,
+          clientButtonColor,
+          clientAccentColor
         }
       });
     } else {
@@ -60,7 +64,9 @@ export const updateSettings = async (req, res) => {
           ...(website !== undefined && { website }),
           ...(logo !== undefined && { logo }),
           ...(primaryColor !== undefined && { primaryColor }),
-          ...(secondaryColor !== undefined && { secondaryColor })
+          ...(secondaryColor !== undefined && { secondaryColor }),
+          ...(clientButtonColor !== undefined && { clientButtonColor }),
+          ...(clientAccentColor !== undefined && { clientAccentColor })
         }
       });
     }

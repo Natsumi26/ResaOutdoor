@@ -1,9 +1,28 @@
+import { useState, useEffect } from 'react';
 import { Droppable } from 'react-beautiful-dnd';
 import styles from './SessionSlot.module.css';
 import BookingBadge from './BookingBadge';
+import { settingsAPI } from '../services/api';
 
 const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filters = { reservations: true, paiements: false, stocks: false } }) => {
   const { bookings = [], startTime } = session;
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
+
+  // Charger la couleur primary depuis les settings
+  useEffect(() => {
+    const loadThemeColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setPrimaryColor(settings.primaryColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur thème:', error);
+      }
+    };
+    loadThemeColor();
+  }, []);
 
   // Calculer le taux de remplissage
   const getMaxCapacity = () => {
@@ -103,6 +122,7 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
             onCreateBooking(session);
           }}
           title="Ajouter une réservation"
+          style={{ backgroundColor: primaryColor }}
         >
           +
         </button>

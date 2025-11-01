@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { settingsAPI } from '../services/api';
 import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
 
@@ -12,6 +13,29 @@ const Dashboard = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
+
+  // Charger les couleurs du thème depuis les settings
+  useEffect(() => {
+    const loadThemeColors = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setThemeColors({
+            primary: settings.primaryColor,
+            secondary: settings.secondaryColor || settings.primaryColor
+          });
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleurs thème:', error);
+      }
+    };
+    loadThemeColors();
+  }, []);
 
   // Détecter si on est sur mobile et gérer l'état du sidebar
   useEffect(() => {
@@ -48,12 +72,16 @@ const Dashboard = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}>
+      <aside
+        className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}
+        style={{ background: `linear-gradient(180deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}
+      >
         <div className={styles.sidebarHeader}>
           <h2>🏔️ CanyonLife</h2>
           <button
             className={styles.toggleBtn}
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={isMobile ? { background: `linear-gradient(180deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` } : {}}
           >
             {sidebarOpen ? '◀' : '▶'}
           </button>

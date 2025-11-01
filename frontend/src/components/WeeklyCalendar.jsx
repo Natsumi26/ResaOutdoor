@@ -1,10 +1,37 @@
+import { useState, useEffect } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';
 import SessionSlot from './SessionSlot';
+import { settingsAPI } from '../services/api';
 
 const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession, onWeekChange, selectedDate, currentUser }) => {
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
+
+  // Charger la couleur primary depuis les settings
+  useEffect(() => {
+    const loadThemeColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setPrimaryColor(settings.primaryColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur thème:', error);
+      }
+    };
+    loadThemeColor();
+  }, []);
+
+  // Convertir hex en rgba avec opacité
+  const hexToRgba = (hex, alpha) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   // Générer les 7 jours de la semaine
   const weekStart = selectedDate
@@ -108,6 +135,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             <div
               key={day.toString()}
               className={`${styles.dayColumn} ${isToday ? styles.todayColumn : ''}`}
+              style={isToday ? { backgroundColor: hexToRgba(primaryColor, 0.7) } : {}}
             >
               <div className={styles.dayName}>
                 {format(day, 'EEEE', { locale: fr })}

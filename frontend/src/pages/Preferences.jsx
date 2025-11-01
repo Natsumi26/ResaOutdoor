@@ -20,6 +20,8 @@ const Preferences = () => {
   const [themeColors, setThemeColors] = useState({
     primary: '#3498db',
     secondary: '#2c3e50',
+    clientButton: '#3498db',
+    clientAccent: '#3498db',
     success: '#28a745',
     danger: '#dc3545',
     warning: '#ffc107',
@@ -53,7 +55,9 @@ const Preferences = () => {
           setThemeColors(prev => ({
             ...prev,
             primary: settings.primaryColor,
-            secondary: settings.secondaryColor || prev.secondary
+            secondary: settings.secondaryColor || prev.secondary,
+            clientButton: settings.clientButtonColor || prev.clientButton,
+            clientAccent: settings.clientAccentColor || prev.clientAccent
           }));
         }
       }
@@ -84,7 +88,9 @@ const Preferences = () => {
         website,
         logo,
         primaryColor: themeColors.primary,
-        secondaryColor: themeColors.secondary
+        secondaryColor: themeColors.secondary,
+        clientButtonColor: themeColors.clientButton,
+        clientAccentColor: themeColors.clientAccent
       });
 
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
@@ -140,6 +146,8 @@ const Preferences = () => {
     setThemeColors({
       primary: '#3498db',
       secondary: '#2c3e50',
+      clientButton: '#3498db',
+      clientAccent: '#3498db',
       success: '#28a745',
       danger: '#dc3545',
       warning: '#ffc107',
@@ -342,7 +350,7 @@ const Preferences = () => {
           </div>
         </div>
 
-        {/* Thème et couleurs */}
+        {/* Thème Guide */}
         <div className={styles.section} style={{
           background: 'white',
           padding: '30px',
@@ -351,16 +359,16 @@ const Preferences = () => {
           marginBottom: '30px'
         }}>
           <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            🎨 Personnalisation du thème
+            👨‍💼 Thème Guide
           </h2>
           <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Personnalisez les couleurs de votre interface
+            Personnalisez le dégradé de l'interface guide (sidebar et bouton Session)
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur principale
+                Dégradé - Début
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
@@ -380,7 +388,7 @@ const Preferences = () => {
 
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur secondaire
+                Dégradé - Fin
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
@@ -393,101 +401,120 @@ const Preferences = () => {
                   type="text"
                   value={themeColors.secondary}
                   onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Succès
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.success}
-                  onChange={(e) => setThemeColors({ ...themeColors, success: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.success}
-                  onChange={(e) => setThemeColors({ ...themeColors, success: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Danger
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.danger}
-                  onChange={(e) => setThemeColors({ ...themeColors, danger: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.danger}
-                  onChange={(e) => setThemeColors({ ...themeColors, danger: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Avertissement
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.warning}
-                  onChange={(e) => setThemeColors({ ...themeColors, warning: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.warning}
-                  onChange={(e) => setThemeColors({ ...themeColors, warning: e.target.value })}
                   style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button
-              onClick={handleResetTheme}
-              style={{
-                padding: '10px 20px',
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                fontWeight: '500'
-              }}
-            >
-              🔄 Réinitialiser les couleurs
-            </button>
+          <div style={{
+            padding: '12px 16px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            color: '#6c757d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            ℹ️ Ces couleurs s'appliquent uniquement à l'interface guide (sidebar et bouton Session)
+          </div>
+        </div>
 
-            <div style={{
-              padding: '10px 20px',
-              background: '#f8f9fa',
+        {/* Thème Client */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            👥 Thème Client
+          </h2>
+          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
+            Personnalisez les couleurs de l'interface client (boutons et textes colorés)
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                Couleur des boutons
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="color"
+                  value={themeColors.clientButton}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value })}
+                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={themeColors.clientButton}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value })}
+                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                Couleur des textes et accents
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="color"
+                  value={themeColors.clientAccent}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientAccent: e.target.value })}
+                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={themeColors.clientAccent}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientAccent: e.target.value })}
+                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: '12px 16px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            color: '#6c757d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            ℹ️ Ces couleurs s'appliquent à l'interface client (boutons et textes colorés)
+          </div>
+        </div>
+
+        {/* Bouton Reset */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '20px 30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <button
+            onClick={handleResetTheme}
+            style={{
+              padding: '12px 24px',
+              background: '#6c757d',
+              color: 'white',
+              border: 'none',
               borderRadius: '6px',
-              fontSize: '0.9rem',
-              color: '#6c757d',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              ℹ️ Les couleurs seront appliquées à l'ensemble de l'interface
-            </div>
-          </div>
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '500'
+            }}
+          >
+            🔄 Réinitialiser toutes les couleurs
+          </button>
         </div>
 
         {/* Notifications */}

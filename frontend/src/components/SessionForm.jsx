@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import styles from './SessionForm.module.css';
+import { settingsAPI } from '../services/api';
 
 const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCancel, initialDate }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,23 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
   });
 
   const [errors, setErrors] = useState({});
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
+
+  // Charger la couleur primary depuis les settings
+  useEffect(() => {
+    const loadThemeColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setPrimaryColor(settings.primaryColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur thème:', error);
+      }
+    };
+    loadThemeColor();
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -55,7 +73,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
     }
   };
   const getTimeSlotFromTime = (time) => time >= '13:00' ? 'après-midi' : 'matin';
-  const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '14:00' : '09:00';
+  const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '13:00' : '09:00';
 
   const handleTimeSlotChange = (slot) => {
     const defaultTime = getDefaultTimeFromSlot(slot);
@@ -88,13 +106,12 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
             : [...prev.productIds, productId]
         };
       } else {
-        // Mode normal: sélection unique ou multiple (selon votre besoin)
-        // Pour l'instant, on autorise quand même le multi-sélection en mode normal
+        // Mode normal: sélection unique uniquement
         return {
           ...prev,
           productIds: isSelected
-            ? prev.productIds.filter(id => id !== productId)
-            : [...prev.productIds, productId]
+            ? [] // Désélectionner si déjà sélectionné
+            : [productId] // Sélectionner uniquement celui-ci (remplace les autres)
         };
       }
     });
@@ -191,6 +208,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               type="button"
               className={formData.timeSlot === 'matin' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('matin')}
+              style={formData.timeSlot === 'matin' ? {
+                backgroundColor: primaryColor,
+                borderColor: primaryColor
+              } : {}}
             >
               🌅 Matin
             </button>
@@ -198,6 +219,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               type="button"
               className={formData.timeSlot === 'après-midi' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('après-midi')}
+              style={formData.timeSlot === 'après-midi' ? {
+                backgroundColor: primaryColor,
+                borderColor: primaryColor
+              } : {}}
             >
               ☀️ Après-midi
             </button>
@@ -266,8 +291,8 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         ) : (
           <div className={styles.normalModeInfo}>
             <p className={styles.infoBox}>
-              ℹ️ Mode standard : Vous pouvez proposer plusieurs canyons sur ce créneau.
-              Chaque canyon peut être réservé indépendamment jusqu'à sa capacité maximale.
+              ℹ️ Mode standard : Sélectionnez un seul canyon pour ce créneau.
+              Le canyon peut être réservé jusqu'à sa capacité maximale.
             </p>
           </div>
         )}
