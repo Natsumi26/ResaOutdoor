@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { productsAPI, sessionsAPI } from '../../services/api';
+import { productsAPI, sessionsAPI, settingsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -23,6 +23,10 @@ const CanyonDetails = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateAvailability, setDateAvailability] = useState({});
   const [dateInfo, setDateInfo] = useState({}); // Stocke les infos détaillées par date
+  const [clientColor, setClientColor] = useState(() => {
+    // Essayer de récupérer depuis localStorage d'abord
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
 
   // Vérifie que la date est bien définie et valide
   let formattedDate = '';
@@ -39,10 +43,25 @@ const CanyonDetails = () => {
   useEffect(() => {
     loadProduct();
     loadMonthAvailability();
+    loadClientColor();
     // Initialiser la date sélectionnée
     const initialDate = startDateParam ? new Date(startDateParam) : new Date();
     setSelectedDate(initialDate);
   }, [id]);
+
+  const loadClientColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.clientButtonColor) {
+        setClientColor(settings.clientButtonColor);
+        // Sauvegarder dans localStorage pour éviter le flash au prochain chargement
+        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur client:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedDate) {
@@ -67,62 +86,95 @@ const CanyonDetails = () => {
 
       // Convertir l'ID en string pour les comparaisons
       const currentProductId = String(id);
+      const now = new Date();
 
-      console.log('=== DÉBUT ANALYSE DISPONIBILITÉS ===');
-      console.log('Canyon actuel ID:', currentProductId);
-      console.log('Nombre de sessions:', allSessions.length);
+      // Tracker les dates qui ont au moins une session (passée ou future)
+      const datesWithSessions = new Set();
 
       // Analyser chaque session
       allSessions.forEach(session => {
         const dateKey = format(new Date(session.date), 'yyyy-MM-dd');
-        console.log(`\n--- Session du ${dateKey} ---`);
-        console.log('Produits dans la session:', session.products.map(p => ({ id: p.product.id, name: p.product.name })));
+
+        // Vérifier si la session est passée
+        const sessionDate = new Date(session.date);
+        const [hours, minutes] = session.startTime.split(':').map(Number);
+        sessionDate.setHours(hours, minutes, 0, 0);
+        const isSessionPast = sessionDate <= now;
 
         // Vérifier si ce produit est dans la session
         const hasThisProduct = session.products.some(p => String(p.product.id) === currentProductId);
-        console.log('Ce canyon est dans la session?', hasThisProduct);
+
+        // Marquer cette date comme ayant une session
+        if (hasThisProduct) {
+          datesWithSessions.add(dateKey);
+        }
+
+        // Ignorer les sessions passées pour le calcul de disponibilité
+        if (isSessionPast) {
+          return;
+        }
 
         if (hasThisProduct) {
-          // Calculer les places disponibles pour ce produit
-          const productInSession = session.products.find(p => String(p.product.id) === currentProductId);
-          if (productInSession) {
-            const maxCapacity = productInSession.product.maxCapacity;
-            const booked = session.bookings
-              .filter(b => String(b.productId) === currentProductId && b.status !== 'cancelled')
-              .reduce((sum, b) => sum + b.numberOfPeople, 0);
-            const availablePlaces = maxCapacity - booked;
+          // VÉRIFICATION IMPORTANTE : Le guide a-t-il déjà une réservation pour un AUTRE canyon ?
+          const hasBookingForOtherProduct = session.bookings.some(
+            b => String(b.productId) !== currentProductId && b.status !== 'cancelled'
+          );
 
-            console.log(`Places: ${availablePlaces}/${maxCapacity}, statut: ${session.status}`);
+          if (hasBookingForOtherProduct) {
+            // Le guide est déjà pris par un autre canyon → ce canyon n'est PAS disponible
+            // On ne fait RIEN ici, on laisse la logique "else" ci-dessous gérer le marquage en jaune
+          } else {
+            // Calculer les places disponibles pour ce produit
+            const productInSession = session.products.find(p => String(p.product.id) === currentProductId);
+            if (productInSession) {
+              const maxCapacity = productInSession.product.maxCapacity;
+              const booked = session.bookings
+                .filter(b => String(b.productId) === currentProductId && b.status !== 'cancelled')
+                .reduce((sum, b) => sum + b.numberOfPeople, 0);
+              const availablePlaces = maxCapacity - booked;
 
-            if (session.status === 'open' && availablePlaces > 0) {
-              availability[dateKey] = 'available';
-              info[dateKey] = { type: 'available', places: availablePlaces };
-              console.log('→ VERT (disponible)');
-            } else {
-              availability[dateKey] = 'full';
-              info[dateKey] = { type: 'full' };
-              console.log('→ ROUGE (plein/fermé)');
+              if (session.status === 'open' && availablePlaces > 0) {
+                availability[dateKey] = 'available';
+                info[dateKey] = { type: 'available', places: availablePlaces };
+              } else {
+                availability[dateKey] = 'full';
+                info[dateKey] = { type: 'full' };
+              }
             }
           }
-        } else {
-          // Ce canyon n'est pas dans la session, vérifier s'il y a d'autres canyons
+        }
+
+        // Vérifier s'il y a d'autres canyons disponibles dans cette session
+        if (!hasThisProduct || session.bookings.some(b => String(b.productId) !== currentProductId && b.status !== 'cancelled')) {
+          // Trouver les canyons qui ont effectivement des réservations (donc qui prennent le guide)
+          const bookedProductIds = session.bookings
+            .filter(b => b.status !== 'cancelled')
+            .map(b => String(b.productId));
+
+          // Ne garder que les canyons qui ont des réservations ET qui ne sont pas le canyon actuel
           const otherProducts = session.products
-            .filter(sp => String(sp.product.id) !== currentProductId)
+            .filter(sp => {
+              const productId = String(sp.product.id);
+              return productId !== currentProductId && bookedProductIds.includes(productId);
+            })
             .map(sp => ({
               id: sp.product.id,
               name: sp.product.name
             }));
 
-          console.log('Autres canyons dans la session:', otherProducts);
-
           if (otherProducts.length > 0) {
-            // Accumuler les sessions et produits pour cette date
+            // Ce canyon n'est PAS disponible, mais d'autres le sont → TOUJOURS marquer en jaune
+            // Ne pas marquer en jaune SEULEMENT si ce canyon est déjà disponible pour cette date
             if (!info[dateKey] || info[dateKey].type !== 'available') {
               if (!info[dateKey]) {
                 availability[dateKey] = 'otherProduct';
                 info[dateKey] = { type: 'otherProduct', sessions: [] };
               } else if (info[dateKey].type === 'otherProduct') {
                 // Ajouter à la liste existante
+              } else if (info[dateKey].type === 'full' || info[dateKey].type === 'closed') {
+                // Si c'était marqué fermé/complet, le remplacer par otherProduct
+                availability[dateKey] = 'otherProduct';
+                info[dateKey] = { type: 'otherProduct', sessions: [] };
               }
 
               info[dateKey].sessions.push({
@@ -130,26 +182,28 @@ const CanyonDetails = () => {
                 startTime: session.startTime,
                 products: otherProducts
               });
-              console.log('→ JAUNE (autre canyon disponible)');
             }
           }
         }
       });
 
-      // Marquer les dates à venir sans session en rouge
+      // Marquer les dates à venir sans session
       for (let i = 0; i < 60; i++) {
         const date = addDays(today, i);
         const dateKey = format(date, 'yyyy-MM-dd');
 
         if (!availability[dateKey]) {
-          availability[dateKey] = 'closed';
-          info[dateKey] = { type: 'closed' };
+          // Si cette date avait des sessions mais qu'elles sont toutes passées, marquer comme 'past'
+          if (datesWithSessions.has(dateKey)) {
+            availability[dateKey] = 'past';
+            info[dateKey] = { type: 'past' };
+          } else {
+            // Sinon, marquer comme 'closed' (aucune session prévue)
+            availability[dateKey] = 'closed';
+            info[dateKey] = { type: 'closed' };
+          }
         }
       }
-
-      console.log('\n=== RÉSULTAT FINAL ===');
-      console.log('Disponibilités:', availability);
-      console.log('Infos détaillées:', info);
 
       setDateAvailability(availability);
       setDateInfo(info);
@@ -174,10 +228,11 @@ const CanyonDetails = () => {
   const loadSessions = async () => {
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+
       const response = await sessionsAPI.getAll({
-        date: formattedDate,
-        productId: id
+        date: formattedDate
       });
+
       setSessions(response.data.sessions || []);
     } catch (error) {
       console.error('Erreur chargement sessions:', error);
@@ -246,12 +301,50 @@ const CanyonDetails = () => {
   const isSessionReservedByOtherProduct = (session) => {
     return session.bookings.some(b => b.productId !== product.id);
   };
+
+  // Filtrer pour garder UNIQUEMENT les sessions qui contiennent ce canyon et qui ne sont pas passées
   const visibleSessions = sessions.filter(s => {
-    return !s.bookings.some(b => b.productId !== product.id);
+    // Vérifier si ce produit est dans la session (comparer en String)
+    const hasThisProduct = s.products?.some(p => {
+      return String(p.product?.id) === String(product.id);
+    });
+
+    if (!hasThisProduct) return false;
+
+    // Vérifier si la session n'est pas passée
+    const now = new Date();
+    const sessionDate = new Date(s.date);
+
+    // Extraire l'heure de début (format "09:00" ou "14:00")
+    const [hours, minutes] = s.startTime.split(':').map(Number);
+    sessionDate.setHours(hours, minutes, 0, 0);
+
+    // Ne garder que les sessions futures
+    return sessionDate > now;
   });
 
   return (
     <div className={styles.clientContainer}>
+      {/* Styles globaux pour les éléments avec effets bleus */}
+      <style>
+        {`
+          .${styles.thumbnail}.active {
+            border-color: ${clientColor} !important;
+          }
+          .${styles.dateBtn}:hover {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+          .${styles.dateBtn}.active {
+            background: ${clientColor} !important;
+            border-color: ${clientColor} !important;
+          }
+          .${styles.sessionCard}:hover:not(.${styles.disabled}) {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+        `}
+      </style>
       {/* Bouton retour */}
       <button
         onClick={() => navigate(-1)}
@@ -301,7 +394,7 @@ const CanyonDetails = () => {
               <p className={styles.subtitle}>{product.shortDescription}</p>
             )}
           </div>
-          <div className={styles.priceBox}>
+          <div className={styles.priceBox} style={{ backgroundColor: `${clientColor}15` }}>
             <span className={styles.priceAmount}>{product.priceIndividual}€</span>
             <span className={styles.priceUnit}>/pers</span>
             {product.priceGroup && (
@@ -447,6 +540,7 @@ const CanyonDetails = () => {
               initialEndDate={null}
               hideRangeMode={true}
               dateAvailability={dateAvailability}
+              accentColor={clientColor}
             />
           </div>
 
@@ -513,26 +607,29 @@ const CanyonDetails = () => {
             {/* Liste des sessions */}
             <div className={styles.sessionsList}>
           {visibleSessions.length === 0 ? (
-            <div className={styles.noSessions}>
-              <p>{t('noSessionDispo')}</p>
-              <p className={styles.hint}>Essayer une autre date ou contactez-nous pour ouvrir un créneau</p>
+            // Ne pas afficher le message "Aucune session" si c'est une date jaune (otherProduct)
+            selectedDate && dateInfo[format(selectedDate, 'yyyy-MM-dd')]?.type === 'otherProduct' ? null : (
+              <div className={styles.noSessions}>
+                <p>{t('noSessionDispo')}</p>
+                <p className={styles.hint}>Essayer une autre date ou contactez-nous pour ouvrir un créneau</p>
 
-              {/* Informations de contact - uniquement si aucune session */}
-              <div className={styles.contactInfo} style={{ marginTop: '1.5rem' }}>
-                <a href="tel:+33688788186" className={styles.contactButton} style={{ textDecoration: 'none' }}>
-                  <div>
-                    <strong>📞 Appeler</strong>
-                    <p style={{ margin: 0 }}>06 88 78 81 86</p>
-                  </div>
-                </a>
-                <a href="mailto:contact@canyonlife.fr" className={styles.contactButton} style={{ textDecoration: 'none' }}>
-                  <div>
-                    <strong>✉️ Envoyer un email</strong>
-                    <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
-                  </div>
-                </a>
+                {/* Informations de contact - uniquement si aucune session */}
+                <div className={styles.contactInfo} style={{ marginTop: '1.5rem' }}>
+                  <a href="tel:+33688788186" className={styles.contactButton} style={{ textDecoration: 'none', borderColor: clientColor }}>
+                    <div>
+                      <strong>📞 Appeler</strong>
+                      <p style={{ margin: 0 }}>06 88 78 81 86</p>
+                    </div>
+                  </a>
+                  <a href="mailto:contact@canyonlife.fr" className={styles.contactButton} style={{ textDecoration: 'none', borderColor: clientColor }}>
+                    <div>
+                      <strong>✉️ Envoyer un email</strong>
+                      <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
+                    </div>
+                  </a>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             visibleSessions.map((session) => {
               const availableSpots = getAvailableSpots(session);
@@ -559,7 +656,7 @@ const CanyonDetails = () => {
                   <div className={styles.sessionInfo}>
                     <div className={styles.sessionTime}>
                       <span className={styles.timeSlot}>{getTimeSlotLabel(session.timeSlot)}</span>
-                      <span className={styles.startTime}>{session.startTime}</span>
+                      <span className={styles.startTime} style={{ color: clientColor }}>{session.startTime}</span>
                     </div>
                     <div className={styles.sessionDetails}>
                       <p>Guide: {session.guide.login}</p>
@@ -603,6 +700,7 @@ const CanyonDetails = () => {
                       <button
                         onClick={() => handleBookSession(session.id)}
                         className={styles.btnPrimary}
+                        style={{ backgroundColor: clientColor, borderColor: clientColor }}
                       >
                         {t('Réserver')}
                       </button>

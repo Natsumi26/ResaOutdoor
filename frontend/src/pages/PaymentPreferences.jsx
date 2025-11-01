@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usersAPI } from '../services/api';
+import { usersAPI, settingsAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const PaymentPreferences = () => {
@@ -13,10 +13,25 @@ const PaymentPreferences = () => {
   const [depositType, setDepositType] = useState('percentage');
   const [depositAmount, setDepositAmount] = useState('');
   const [confidentialityPolicy, setConfidentialityPolicy] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
+
   console.log(user)
   useEffect(() => {
     loadPaymentPreferences();
+    loadThemeColor();
   }, [user]);
+
+  const loadThemeColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setPrimaryColor(settings.primaryColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur thème:', error);
+    }
+  };
 
   const loadPaymentPreferences = () => {
     if (user) {
@@ -148,11 +163,11 @@ const PaymentPreferences = () => {
                   alignItems: 'flex-start',
                   gap: '15px',
                   padding: '20px',
-                  border: paymentMode === option.value ? '2px solid #3498db' : '2px solid #dee2e6',
+                  border: paymentMode === option.value ? `2px solid ${primaryColor}` : '2px solid #dee2e6',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  background: paymentMode === option.value ? '#f0f8ff' : 'white'
+                  background: paymentMode === option.value ? `${primaryColor}15` : 'white'
                 }}
                 onMouseEnter={(e) => {
                   if (paymentMode !== option.value) {
@@ -176,7 +191,7 @@ const PaymentPreferences = () => {
                     width: '20px',
                     height: '20px',
                     cursor: 'pointer',
-                    accentColor: '#3498db'
+                    accentColor: primaryColor
                   }}
                 />
                 <div style={{ flex: 1 }}>

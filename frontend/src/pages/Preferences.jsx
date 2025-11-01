@@ -93,6 +93,9 @@ const Preferences = () => {
         clientAccentColor: themeColors.clientAccent
       });
 
+      // Sauvegarder la couleur client dans localStorage pour éviter le flash
+      localStorage.setItem('clientThemeColor', themeColors.clientButton);
+
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
@@ -433,45 +436,25 @@ const Preferences = () => {
             👥 Thème Client
           </h2>
           <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Personnalisez les couleurs de l'interface client (boutons et textes colorés)
+            Personnalisez la couleur de l'interface client
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur des boutons
+                Couleur du thème
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '400px' }}>
                 <input
                   type="color"
                   value={themeColors.clientButton}
-                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value })}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
                   style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={themeColors.clientButton}
-                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur des textes et accents
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.clientAccent}
-                  onChange={(e) => setThemeColors({ ...themeColors, clientAccent: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.clientAccent}
-                  onChange={(e) => setThemeColors({ ...themeColors, clientAccent: e.target.value })}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
                   style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
                 />
               </div>
@@ -488,7 +471,7 @@ const Preferences = () => {
             alignItems: 'center',
             gap: '8px'
           }}>
-            ℹ️ Ces couleurs s'appliquent à l'interface client (boutons et textes colorés)
+            ℹ️ Cette couleur s'applique à tous les éléments de l'interface client
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { newsletterAPI } from '../services/api';
+import { newsletterAPI, settingsAPI } from '../services/api';
 import styles from './Newsletter.module.css';
 
 const Newsletter = () => {
@@ -17,10 +17,24 @@ const Newsletter = () => {
     textContent: ''
   });
   const [sending, setSending] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
 
   useEffect(() => {
     loadNewsletters();
+    loadThemeColor();
   }, [filter, search]);
+
+  const loadThemeColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setPrimaryColor(settings.primaryColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur thème:', error);
+    }
+  };
 
   const loadNewsletters = async () => {
     try {
@@ -109,6 +123,7 @@ const Newsletter = () => {
         <button
           className={styles.btnPrimary}
           onClick={() => setShowEmailForm(!showEmailForm)}
+          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
         >
           {showEmailForm ? 'Annuler' : 'Envoyer une newsletter'}
         </button>
@@ -117,15 +132,15 @@ const Newsletter = () => {
       {/* Statistiques */}
       <div className={styles.stats}>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>{stats.active}</div>
+          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.active}</div>
           <div className={styles.statLabel}>Abonnés actifs</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>{stats.total}</div>
+          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.total}</div>
           <div className={styles.statLabel}>Total</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>{stats.inactive}</div>
+          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.inactive}</div>
           <div className={styles.statLabel}>Désabonnés</div>
         </div>
       </div>
@@ -195,18 +210,21 @@ const Newsletter = () => {
           <button
             className={filter === 'active' ? styles.active : ''}
             onClick={() => setFilter('active')}
+            style={filter === 'active' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
           >
             Actifs ({stats.active})
           </button>
           <button
             className={filter === 'all' ? styles.active : ''}
             onClick={() => setFilter('all')}
+            style={filter === 'all' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
           >
             Tous ({stats.total})
           </button>
           <button
             className={filter === 'inactive' ? styles.active : ''}
             onClick={() => setFilter('inactive')}
+            style={filter === 'inactive' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
           >
             Désabonnés ({stats.inactive})
           </button>

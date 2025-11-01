@@ -94,14 +94,11 @@
 }
 
 .selectedDay {
-  background: #3498db !important;
-  color: white !important;
   font-weight: bold;
   transform: scale(1.1);
 }
 
 .inRange {
-  background: #cce5ff !important;
   color: #2c3e50;
 }
 

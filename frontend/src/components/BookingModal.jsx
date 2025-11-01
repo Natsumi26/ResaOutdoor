@@ -1264,7 +1264,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 <div className={styles.blockHeader}>
                   <span className={styles.blockIcon}>📝</span>
                   <span className={styles.blockTitle}>Notes ({notes.length})</span>
-                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
+                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)} style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
                     + Ajouter
                   </button>
                 </div>

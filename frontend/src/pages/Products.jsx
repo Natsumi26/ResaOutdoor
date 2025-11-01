@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI, categoriesAPI, usersAPI, authAPI } from '../services/api';
+import { productsAPI, categoriesAPI, usersAPI, authAPI, settingsAPI } from '../services/api';
 import ProductForm from '../components/ProductForm';
 import styles from './Common.module.css';
 import modalStyles from '../components/ProductForm.module.css';
@@ -13,10 +13,30 @@ const Products = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [regionFilter, setRegionFilter] = useState('all');
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadData();
+    loadThemeColors();
   }, []);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -118,7 +138,7 @@ return (
     <div className={styles.header}>
       <h1>🏞️ Gestion des Produits</h1>
       {!showForm && (
-        <button className={styles.btnPrimary} onClick={handleCreate}>
+        <button className={styles.btnPrimary} onClick={handleCreate} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
           + Nouveau Produit
         </button>
       )}

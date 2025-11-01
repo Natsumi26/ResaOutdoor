@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { stripeAPI } from '../../services/api';
+import { stripeAPI, settingsAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,10 @@ import { useTranslation } from 'react-i18next';
 const GiftVoucherPurchase = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const [clientColor, setClientColor] = useState(() => {
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
 
   const [formData, setFormData] = useState({
     // Informations de l'acheteur
@@ -38,6 +42,22 @@ const GiftVoucherPurchase = () => {
 
   // Options de montants prédéfinis
   const amountOptions = [50, 75, 100, 150, 200];
+
+  useEffect(() => {
+    const loadClientColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.clientButtonColor) {
+          setClientColor(settings.clientButtonColor);
+          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur client:', error);
+      }
+    };
+    loadClientColor();
+  }, []);
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -85,6 +105,43 @@ const GiftVoucherPurchase = () => {
 
   return (
     <div className={styles.clientContainer}>
+      {/* Styles globaux pour les éléments avec effets bleus */}
+      <style>
+        {`
+          .${styles.voucherTypeCard}:hover {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+          .${styles.voucherTypeCard}.active {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+          .${styles.amountOption}:hover {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+          .${styles.amountOption}.active {
+            border-color: ${clientColor} !important;
+            background: ${clientColor} !important;
+          }
+          .${styles.formGroup} input:focus,
+          .${styles.formGroup} select:focus {
+            border-color: ${clientColor} !important;
+            box-shadow: 0 0 0 3px ${clientColor}20 !important;
+          }
+          .${styles.radioOption}:hover {
+            background: ${clientColor}15 !important;
+            border-color: ${clientColor} !important;
+          }
+          .${styles.voucherCodeBox} {
+            background: ${clientColor}15 !important;
+            border-color: ${clientColor} !important;
+          }
+          .${styles.loader} {
+            border-top-color: ${clientColor} !important;
+          }
+        `}
+      </style>
       <div className={styles.searchHeader}>
         <button
           onClick={() => navigate('/client/search')}

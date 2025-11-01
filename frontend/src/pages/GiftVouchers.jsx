@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { giftVouchersAPI } from '../services/api';
+import { giftVouchersAPI, settingsAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const GiftVouchers = () => {
@@ -17,10 +17,30 @@ const GiftVouchers = () => {
   const [verifyCode, setVerifyCode] = useState('');
   const [verifyResult, setVerifyResult] = useState(null);
   const [showVerifySection, setShowVerifySection] = useState(false);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadVouchers();
+    loadThemeColors();
   }, []);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadVouchers = async () => {
     try {
@@ -96,7 +116,7 @@ const GiftVouchers = () => {
           <button className={styles.btnSecondary} onClick={() => setShowVerifySection(!showVerifySection)}>
             🔍 Vérifier un code
           </button>
-          <button className={styles.btnPrimary} onClick={openModal}>
+          <button className={styles.btnPrimary} onClick={openModal} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
             + Nouveau Code
           </button>
         </div>

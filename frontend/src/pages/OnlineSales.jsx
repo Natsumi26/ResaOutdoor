@@ -1,14 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { stripeAPI } from '../services/api';
+import { stripeAPI, settingsAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const OnlineSales = () => {
   const [stripeAccount, setStripeAccount] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadStripeAccount();
+    loadThemeColors();
   }, []);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadStripeAccount = async () => {
     try {
@@ -111,7 +131,7 @@ const OnlineSales = () => {
               <button
                 className={styles.btnPrimary}
                 onClick={handleConnectStripe}
-                style={{ width: '100%', padding: '15px', fontSize: '16px' }}
+                style={{ width: '100%', padding: '15px', fontSize: '16px', background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}
               >
                 🔗 Connecter mon compte Stripe
               </button>
@@ -195,9 +215,9 @@ const OnlineSales = () => {
           <div style={{
             marginTop: '30px',
             padding: '15px',
-            background: '#e7f3ff',
+            background: `${themeColors.primary}15`,
             borderRadius: '8px',
-            border: '1px solid #b3d9ff',
+            border: `1px solid ${themeColors.primary}40`,
             fontSize: '14px'
           }}>
             <h4 style={{ marginTop: 0, marginBottom: '10px', fontSize: '14px' }}>ℹ️ Comment ça marche ?</h4>

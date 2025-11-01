@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI } from '../services/api';
+import { bookingsAPI, settingsAPI } from '../services/api';
 import BookingModal from '../components/BookingModal';
 import styles from './Reservations.module.css';
 import { useAuth } from '../context/AuthContext';
@@ -16,11 +16,25 @@ const Reservations = () => {
   const [searchClient, setSearchClient] = useState('');
   const [searchYear, setSearchYear] = useState('');
   const { user, isSuperAdmin, isLeader } = useAuth();
+  const [primaryColor, setPrimaryColor] = useState('#3498db');
 
 
   useEffect(() => {
     loadBookings();
+    loadThemeColor();
   }, []);
+
+  const loadThemeColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setPrimaryColor(settings.primaryColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur thème:', error);
+    }
+  };
 
   useEffect(() => {
     filterBookings();
@@ -128,17 +142,17 @@ console.log(user)
         <h1>📋 Réservations</h1>
         <div className={styles.stats}>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>{bookings.length}</span>
+            <span className={styles.statValue} style={{ color: primaryColor }}>{bookings.length}</span>
             <span className={styles.statLabel}>Total</span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>
+            <span className={styles.statValue} style={{ color: primaryColor }}>
               {bookings.filter(b => b.status === 'confirmed').length}
             </span>
             <span className={styles.statLabel}>Confirmées</span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>
+            <span className={styles.statValue} style={{ color: primaryColor }}>
               {bookings.filter(b => b.status === 'pending').length}
             </span>
             <span className={styles.statLabel}>En attente</span>
