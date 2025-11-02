@@ -247,7 +247,7 @@ const Preferences = () => {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Canyon Life"
+              placeholder="Votre entreprise"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -307,7 +307,7 @@ const Preferences = () => {
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://www.canyon-life.com"
+                placeholder="https://www.example.com"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -326,7 +326,7 @@ const Preferences = () => {
                 type="text"
                 value={slogan}
                 onChange={(e) => setSlogan(e.target.value)}
-                placeholder="Ex: Pour une sortie exceptionnelle"
+                placeholder="Ex: Votre slogan ou accroche"
                 style={{
                   width: '100%',
                   padding: '12px',

@@ -25,29 +25,33 @@ async function main() {
 
   console.log('✅ Utilisateur super admin créé:', admin.login);
 
-  // // Créer quelques catégories d'exemple
-  // const categories = await Promise.all([
-  //   prisma.category.upsert({
-  //     where: { id: '1' },
-  //     update: {},
-  //     create: {
-  //       id: '1',
-  //       name: 'Canyoning',
-  //       description: 'Activités de descente de canyon'
-  //     }
-  //   }),
-  //   prisma.category.upsert({
-  //     where: { id: '2' },
-  //     update: {},
-  //     create: {
-  //       id: '2',
-  //       name: 'Via Ferrata',
-  //       description: 'Parcours en via ferrata'
-  //     }
-  //   })
-  // ]);
+  // Créer les catégories d'activités principales
+  const activitiesData = [
+    { name: 'Canyoning', description: 'Activités de descente de canyon' },
+    { name: 'Escalade', description: 'Escalade en falaise et bloc' },
+    { name: 'Via Ferrata', description: 'Parcours en via ferrata' },
+    { name: 'Spéléologie', description: 'Exploration de grottes et souterrains' }
+  ];
 
-  // console.log('✅ Catégories créées:', categories.length);
+  const categories = [];
+  for (const activity of activitiesData) {
+    const existing = await prisma.category.findFirst({
+      where: { name: activity.name }
+    });
+
+    if (!existing) {
+      const category = await prisma.category.create({
+        data: activity
+      });
+      categories.push(category);
+      console.log(`✅ Catégorie créée: ${category.name}`);
+    } else {
+      categories.push(existing);
+      console.log(`ℹ️ Catégorie existante: ${existing.name}`);
+    }
+  }
+
+  console.log('✅ Total des catégories:', categories.length);
 
   // Créer des produits d'exemple
   // const products = await Promise.all([
