@@ -30,11 +30,7 @@ const GiftVoucherPurchase = () => {
     voucherType: 'amount', // 'amount' ou 'activity'
     amount: '',
     selectedProduct: '',
-    quantity: 1,
-
-    // Livraison
-    deliveryMethod: 'email', // 'email' ou 'postal'
-    deliveryDate: '',
+    quantity: 1
   });
 
   const [loading, setLoading] = useState(false);
@@ -68,10 +64,8 @@ const GiftVoucherPurchase = () => {
     setLoading(true);
 
     try {
-      // Calculer le montant total (bon cadeau + frais de livraison si applicable)
-      const voucherAmount = parseFloat(formData.amount);
-      const deliveryFee = formData.deliveryMethod === 'postal' ? 5 : 0;
-      const totalAmount = voucherAmount + deliveryFee;
+      // Calculer le montant total du bon cadeau
+      const totalAmount = parseFloat(formData.amount);
 
       // Préparer les données pour l'API
       const recipientName = formData.recipientFirstName && formData.recipientLastName
@@ -174,8 +168,8 @@ const GiftVoucherPurchase = () => {
                     </button>
                   ))}
                 </div>
-                <div className={styles.customAmount}>
-                  <label>{t('MontantPerso')}</label>
+                <div className={styles.customAmount} style={{ maxWidth: '300px', margin: '1.5rem auto', textAlign: 'center' }}>
+                  <label style={{ display: 'block', marginBottom: '0.75rem' }}>{t('MontantPerso')}</label>
                   <input
                     type="number"
                     min="20"
@@ -183,6 +177,7 @@ const GiftVoucherPurchase = () => {
                     value={formData.amount}
                     onChange={(e) => handleChange('amount', e.target.value)}
                     required
+                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
                   />
                 </div>
               </>
@@ -216,10 +211,10 @@ const GiftVoucherPurchase = () => {
             )}
           </div>
 
-          {/* Informations de l'acheteur */}
-          <div className={styles.formSection}>
-            <h2>{t('yoursInfos')}</h2>
-            <div className={styles.formGrid}>
+          {/* Informations de l'acheteur et du bénéficiaire en 2 colonnes */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+            <div className={styles.formSection}>
+              <h2>{t('yoursInfos')}</h2>
               <div className={styles.formGroup}>
                 <label>Prénom *</label>
                 <input
@@ -257,12 +252,9 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
             </div>
-          </div>
 
-          {/* Informations du bénéficiaire */}
-          <div className={styles.formSection}>
-            <h2>{t('BeneficiaireGift')}</h2>
-            <div className={styles.formGrid}>
+            <div className={styles.formSection}>
+              <h2>{t('BeneficiaireGift')}</h2>
               <div className={styles.formGroup}>
                 <label>{t('Prénom')}</label>
                 <input
@@ -291,91 +283,32 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
             </div>
-            <div className={styles.formGroup}>
-              <label>{t('MessagePerso')}</label>
-              <textarea
-                value={formData.personalMessage}
-                onChange={(e) => handleChange('personalMessage', e.target.value)}
-                placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
-                rows="4"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit'
-                }}
-              />
-            </div>
           </div>
 
-          {/* Options de livraison */}
+          {/* Message personnel */}
           <div className={styles.formSection}>
-            <h2>{t('ModeLivraison')}</h2>
-            <div className={styles.deliveryOptions}>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="email"
-                  checked={formData.deliveryMethod === 'email'}
-                  onChange={(e) => handleChange('deliveryMethod', e.target.value)}
-                />
-                <div>
-                  <strong>{t('emailFree')}</strong>
-                  <p>{t('LivraisonImmediate')}</p>
-                </div>
-              </label>
-
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="postal"
-                  checked={formData.deliveryMethod === 'postal'}
-                  onChange={(e) => handleChange('deliveryMethod', e.target.value)}
-                />
-                <div>
-                  <strong>{t('Courrier')} (+5€)</strong>
-                  <p>{t('CartePhysique')}</p>
-                </div>
-              </label>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>{t('DateSend')}</label>
-              <input
-                type="date"
-                value={formData.deliveryDate}
-                onChange={(e) => handleChange('deliveryDate', e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-              <small>{t('BonEnvoyerDate')}</small>
-            </div>
+            <h3 style={{ marginTop: '0', marginBottom: '1rem' }}>{t('MessagePerso')}</h3>
+            <textarea
+              value={formData.personalMessage}
+              onChange={(e) => handleChange('personalMessage', e.target.value)}
+              placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
+              rows="4"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                fontFamily: 'inherit'
+              }}
+            />
           </div>
 
-          {/* Résumé et paiement */}
-          <div className={styles.formSection}>
-            <div className={styles.orderSummary}>
-              <h2>{t('Récapitulatif')}</h2>
-              <div className={styles.summaryItem}>
-                <span>{t('MontantBon')}</span>
-                <strong>{formData.amount || '0'}€</strong>
-              </div>
-              {formData.deliveryMethod === 'postal' && (
-                <div className={styles.summaryItem}>
-                  <span>{t('FraisLivraison')}</span>
-                  <strong>5€</strong>
-                </div>
-              )}
-              <div className={styles.summaryTotal}>
-                <span>{t('Total')}</span>
-                <strong>
-                  {(parseFloat(formData.amount || 0) + (formData.deliveryMethod === 'postal' ? 5 : 0)).toFixed(2)}€
-                </strong>
-              </div>
-            </div>
+          {/* Info mémo */}
+          <div className={styles.formSection} style={{ backgroundColor: '#f0f8ff', borderLeft: `4px solid ${clientColor}` }}>
+            <p style={{ margin: '0', lineHeight: '1.6', color: '#333' }}>
+              <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, le bénéficiaire reçoit un email contenant le bon cadeau en version imprimable et personnalisé. Le bon peut être utilisé en une ou plusieurs fois directement sur le site.
+            </p>
           </div>
 
           {/* Bouton de soumission */}
@@ -396,7 +329,7 @@ const GiftVoucherPurchase = () => {
                 cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
               }}
             >
-              {loading ? t('payment.processing') : t('payment.proceed')}
+              {loading ? t('payment.processing') : `${t('payment.proceed')} - ${formData.amount || '0'}€`}
             </button>
           </div>
         </div>
