@@ -136,14 +136,44 @@ const GiftVoucherPurchase = () => {
           }
         `}
       </style>
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          background: 'white',
+          border: '2px solid #2c3e50',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s',
+          padding: 0
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.target.style.background = '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.target.style.background = 'white';
+        }}
+        title="Retour"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
       <div className={styles.searchHeader}>
-        <button
-          onClick={() => navigate('/client/search')}
-          className={styles.btnSecondary}
-          style={{ marginBottom: '1rem' }}
-        >
-          ← {t('RetourSearch')}
-        </button>
         <h1>🎁 {t('achatGift')}</h1>
         <p>{t('GiftExp')}</p>
       </div>
@@ -177,7 +207,7 @@ const GiftVoucherPurchase = () => {
                     value={formData.amount}
                     onChange={(e) => handleChange('amount', e.target.value)}
                     required
-                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', width: '100%' }}
                   />
                 </div>
               </>
@@ -274,40 +304,29 @@ const GiftVoucherPurchase = () => {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.recipientEmail}
-                  onChange={(e) => handleChange('recipientEmail', e.target.value)}
-                  placeholder="Optionnel"
+                <label>{t('MessagePerso')}</label>
+                <textarea
+                  value={formData.personalMessage}
+                  onChange={(e) => handleChange('personalMessage', e.target.value)}
+                  placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
+                  rows="4"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '6px',
+                    fontSize: '1rem',
+                    fontFamily: 'inherit'
+                  }}
                 />
               </div>
             </div>
           </div>
 
-          {/* Message personnel */}
-          <div className={styles.formSection}>
-            <h3 style={{ marginTop: '0', marginBottom: '1rem' }}>{t('MessagePerso')}</h3>
-            <textarea
-              value={formData.personalMessage}
-              onChange={(e) => handleChange('personalMessage', e.target.value)}
-              placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
-              rows="4"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #dee2e6',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
           {/* Info mémo */}
           <div className={styles.formSection} style={{ backgroundColor: '#f0f8ff', borderLeft: `4px solid ${clientColor}` }}>
             <p style={{ margin: '0', lineHeight: '1.6', color: '#333' }}>
-              <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, le bénéficiaire reçoit un email contenant le bon cadeau en version imprimable et personnalisé. Le bon peut être utilisé en une ou plusieurs fois directement sur le site.
+              <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email contenant le bon cadeau en version imprimable et personnalisé. Le bon peut être utilisé en une ou plusieurs fois directement sur le site.
             </p>
           </div>
 
