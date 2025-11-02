@@ -54,7 +54,8 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  products    ProductCategory[]
+  products              ProductCategory[]
+  productsAsActivityType Product[] // Produits utilisant cette catégorie comme type d'activité
 
   @@map("categories")
 }
@@ -78,6 +79,9 @@ model Product {
   googleMapsLink        String?
   websiteLink           String?  // Lien vers la page internet du produit
   images                String[] // URLs des images
+
+  activityTypeId        String   // Type d'activité principal (référence à une catégorie)
+  activityType          Category @relation(fields: [activityTypeId], references: [id], onDelete: Restrict)
 
   guideId               String
   guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)

@@ -137,10 +137,11 @@ export const createProduct = async (req, res, next) => {
       websiteLink,
       images,
       guideId: bodyGuideId,
+      activityTypeId, // Type d'activité principal (obligatoire)
       categoryIds // Tableau d'IDs de catégories (peut être vide)
     } = req.body;
 
-    if (!name || !priceIndividual || !duration || !level || !maxCapacity) {
+    if (!name || !priceIndividual || !duration || !level || !maxCapacity || !activityTypeId) {
       throw new AppError('Champs requis manquants', 400);
     }
 
@@ -170,6 +171,7 @@ export const createProduct = async (req, res, next) => {
       googleMapsLink,
       websiteLink,
       images: images || [],
+      activityTypeId,
       guideId
     };
 
@@ -213,7 +215,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { categoryIds, ...updateData } = req.body;
+    const { categoryIds, activityTypeId, ...updateData } = req.body;
 
     // Vérifier que le produit existe et appartient au guide (sauf si admin)
     const existingProduct = await prisma.product.findUnique({
@@ -249,6 +251,9 @@ export const updateProduct = async (req, res, next) => {
     }
     if (updateData.autoCloseHoursBefore) {
       updateData.autoCloseHoursBefore = parseInt(updateData.autoCloseHoursBefore);
+    }
+    if (activityTypeId !== undefined) {
+      updateData.activityTypeId = activityTypeId;
     }
 
     // Gérer la mise à jour des catégories si fournie

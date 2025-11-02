@@ -20,6 +20,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     websiteLink: '',
     wazeLink: '',
     googleMapsLink: '',
+    activityTypeId: '', // Type d'activité (catégorie principale)
     categoryIds: [],
     guideId: '',
     images: [],
@@ -30,6 +31,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState(initialCategories || []);
+  const [guidePracticeActivities, setGuidePracticeActivities] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -39,6 +41,21 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
       setCategories(initialCategories);
     }
   }, [initialCategories]);
+
+  useEffect(() => {
+    // Initialiser les activités pratiquées du guide actuel
+    if (currentUser?.practiceActivities) {
+      setGuidePracticeActivities(currentUser.practiceActivities);
+
+      // Si le guide n'a qu'une activité, la pré-sélectionner
+      if (currentUser.practiceActivities.length === 1 && !formData.activityTypeId) {
+        setFormData(prev => ({
+          ...prev,
+          activityTypeId: currentUser.practiceActivities[0]
+        }));
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (product) {
@@ -216,6 +233,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const validate = () => {
     const newErrors = {};
 
+    if (!formData.activityTypeId.trim()) newErrors.activityTypeId = 'Type d\'activité requis';
     if (!formData.name.trim()) newErrors.name = 'Nom requis';
     if (!formData.priceIndividual || formData.priceIndividual <= 0)
       newErrors.priceIndividual = 'Prix individuel requis';
@@ -267,6 +285,38 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.formGrid}>
+        {/* Type d'activité */}
+        <div className={styles.section}>
+          <h3>🏃 Type d'activité</h3>
+
+          <div className={styles.formGroup}>
+            <label>Type d'activité *</label>
+            <select
+              name="activityTypeId"
+              value={formData.activityTypeId}
+              onChange={handleChange}
+              className={errors.activityTypeId ? styles.error : ''}
+            >
+              <option value="">-- Sélectionner une activité --</option>
+              {categories
+                .filter(cat => guidePracticeActivities.includes(cat.id))
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+            </select>
+            {errors.activityTypeId && <span className={styles.errorMsg}>{errors.activityTypeId}</span>}
+            <small>
+              {guidePracticeActivities.length === 0
+                ? '⚠️ Veuillez d\'abord sélectionner vos activités dans les préférences'
+                : guidePracticeActivities.length === 1
+                ? '✓ Activité pré-sélectionnée automatiquement'
+                : `${guidePracticeActivities.length} activité(s) disponible(s)`}
+            </small>
+          </div>
+        </div>
+
         {/* Informations de base */}
         <div className={styles.section}>
           <h3>📝 Informations de base</h3>
