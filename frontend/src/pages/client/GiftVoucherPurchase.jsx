@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { stripeAPI, settingsAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
+import GiftVoucherPreview from '../../components/GiftVoucherPreview';
 
 
 const GiftVoucherPurchase = () => {
@@ -35,24 +36,45 @@ const GiftVoucherPurchase = () => {
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [guideSettings, setGuideSettings] = useState({
+    companyName: '',
+    companyPhone: '',
+    companyEmail: '',
+    companyWebsite: '',
+    logo: ''
+  });
 
   // Options de montants prédéfinis
   const amountOptions = [50, 75, 100, 150, 200];
 
   useEffect(() => {
-    const loadClientColor = async () => {
+    const loadSettings = async () => {
       try {
         const response = await settingsAPI.get();
         const settings = response.data.settings;
+
+        // Charger la couleur client
         if (settings?.clientButtonColor) {
           setClientColor(settings.clientButtonColor);
           localStorage.setItem('clientThemeColor', settings.clientButtonColor);
         }
+
+        // Charger les infos du guide
+        if (settings) {
+          setGuideSettings({
+            companyName: settings.companyName || 'Canyon Life',
+            companyPhone: settings.companyPhone || '',
+            companyEmail: settings.companyEmail || '',
+            companyWebsite: settings.website || '',
+            logo: settings.logo || ''
+          });
+        }
       } catch (error) {
-        console.error('Erreur chargement couleur client:', error);
+        console.error('Erreur chargement settings:', error);
       }
     };
-    loadClientColor();
+    loadSettings();
   }, []);
 
   const handleChange = (field, value) => {
@@ -180,6 +202,24 @@ const GiftVoucherPurchase = () => {
 
       <form onSubmit={handleSubmit}>
         <div className={styles.giftVoucherForm}>
+          {/* Preview du bon cadeau */}
+          {showPreview && formData.amount && (
+            <div style={{ marginBottom: '2rem' }}>
+              <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Aperçu de votre bon cadeau</h2>
+              <GiftVoucherPreview
+                amount={formData.amount}
+                buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
+                recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
+                personalMessage={formData.personalMessage}
+                companyName={guideSettings.companyName}
+                companyPhone={guideSettings.companyPhone}
+                companyEmail={guideSettings.companyEmail}
+                companyWebsite={guideSettings.companyWebsite}
+                logo={guideSettings.logo}
+                themeColor={clientColor}
+              />
+            </div>
+          )}
 
           {/* Montant ou activité */}
           <div className={styles.formSection}>
@@ -345,18 +385,39 @@ const GiftVoucherPurchase = () => {
             >
               {t('Annuler')}
             </button>
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
-              style={{
-                backgroundColor: clientColor,
-                opacity: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 1 : 0.5,
-                cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {loading ? t('payment.processing') : `${t('payment.proceed')} - ${formData.amount || '0'}€`}
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                disabled={!formData.amount || parseFloat(formData.amount) < 20}
+                style={{
+                  backgroundColor: 'white',
+                  color: clientColor,
+                  border: `2px solid ${clientColor}`,
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: (!formData.amount || parseFloat(formData.amount) < 20) ? 'not-allowed' : 'pointer',
+                  opacity: (!formData.amount || parseFloat(formData.amount) < 20) ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                👁️ {showPreview ? 'Masquer' : 'Aperçu'}
+              </button>
+              <button
+                type="submit"
+                className={styles.btnPrimary}
+                disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
+                style={{
+                  backgroundColor: clientColor,
+                  opacity: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 1 : 0.5,
+                  cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {loading ? t('payment.processing') : `${t('payment.proceed')} - ${formData.amount || '0'}€`}
+              </button>
+            </div>
           </div>
         </div>
       </form>

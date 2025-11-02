@@ -1,0 +1,238 @@
+.voucherContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+}
+
+.voucherCard {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  width: 100%;
+  max-width: 600px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  border-left: 8px solid #667eea;
+  min-height: 400px;
+}
+
+.leftBand {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: white;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.bandContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bandLabel {
+  font-size: 0.9rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.bandAmount {
+  font-size: 2rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 1.5rem;
+}
+
+.logoSection {
+  flex-shrink: 0;
+}
+
+.logo {
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.companyInfo {
+  flex: 1;
+}
+
+.companyName {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 0.3rem 0;
+  letter-spacing: 0.5px;
+}
+
+.tagline {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  font-style: italic;
+}
+
+.voucherInfo {
+  text-align: center;
+}
+
+.voucherTitle {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.voucherDescription {
+  font-size: 0.95rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.beneficiary {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+}
+
+.beneficiaryLabel {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.personalMessage {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.codeSection {
+  border-top: 1px dashed rgba(102, 126, 234, 0.3);
+  border-bottom: 1px dashed rgba(102, 126, 234, 0.3);
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.codeBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.codeLabel {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.maskedCode {
+  font-size: 1.8rem;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  color: #667eea;
+  letter-spacing: 2px;
+  word-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.codeHint {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.3rem;
+  font-style: italic;
+}
+
+.validity {
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.validity p {
+  margin: 0;
+}
+
+.footer {
+  border-top: 2px solid #f0f0f0;
+  padding-top: 1rem;
+  text-align: center;
+}
+
+.footerContent {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.footerContent p {
+  margin: 0.3rem 0;
+}
+
+.footerContent a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footerContent a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .voucherCard {
+    grid-template-columns: 100px 1fr;
+    min-height: 350px;
+  }
+
+  .mainContent {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .companyName {
+    font-size: 1.4rem;
+  }
+
+  .bandAmount {
+    font-size: 1.5rem;
+  }
+
+  .maskedCode {
+    font-size: 1.4rem;
+  }
+
+  .voucherContainer {
+    padding: 0.5rem;
+  }
+}
