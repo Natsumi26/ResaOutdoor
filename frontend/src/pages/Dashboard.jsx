@@ -12,7 +12,6 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   // Charger les couleurs du thème depuis les settings et mettre à jour les CSS variables
   useEffect(() => {
@@ -194,28 +193,14 @@ const Dashboard = () => {
                     <span>Revendeurs</span>
                   </NavLink>
 
-                {/* Menu déroulant Préférences */}
-              <div
-                className={`${styles.subMenuItem} ${styles.navDropdownToggle}`}
-                onClick={() => setPreferencesOpen(!preferencesOpen)}
-              >
-                <span className={styles.icon}>⚙️</span>
-                    <span>Préférences</span>
-                    <span className={`${styles.dropdownArrow} ${preferencesOpen ? styles.open : ''}`}>
-                      ▼
-                    </span>
-              </div>
-
-              {preferencesOpen && (
-                <div className={styles.subSubMenu}>
                   <NavLink
                     to="/settings/preferences/personalization"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
                   >
-                    <span className={styles.icon}>⚙️</span>
-                    <span>Personnalisation</span>
+                    <span className={styles.icon}>🎨</span>
+                    {sidebarOpen && <span>Personnalisation</span>}
                   </NavLink>
 
                   <NavLink
@@ -225,7 +210,7 @@ const Dashboard = () => {
                     }
                   >
                     <span className={styles.icon}>💳</span>
-                    <span>Moyens de paiement</span>
+                    {sidebarOpen && <span>Moyens de paiement</span>}
                   </NavLink>
 
                   {(user?.role === 'leader' || isSuperAdmin) && (
@@ -238,8 +223,6 @@ const Dashboard = () => {
                     <span className={styles.icon}>🌟</span>
                     {sidebarOpen && <span>Mon Équipe</span>}
                   </NavLink>
-                )}
-                </div>
                 )}
             </div>
           )}
