@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
-import { categoriesAPI } from '../services/api';
 import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
@@ -32,9 +31,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState(initialCategories || []);
   const [guidePracticeActivities, setGuidePracticeActivities] = useState([]);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
-  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   useEffect(() => {
     if (initialCategories) {
@@ -77,65 +73,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     }
   }, [product, users]);
 
-  // Fonctions de gestion des catégories
-  const loadCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data.categories);
-    } catch (error) {
-      console.error('Erreur lors du chargement des catégories:', error);
-    }
-  };
-
-  const openCategoryModal = (category = null) => {
-    if (category) {
-      setEditingCategoryId(category.id);
-      setCategoryFormData({ name: category.name, description: category.description || '' });
-    } else {
-      setEditingCategoryId(null);
-      setCategoryFormData({ name: '', description: '' });
-    }
-    setShowCategoryModal(true);
-  };
-
-  const closeCategoryModal = () => {
-    setShowCategoryModal(false);
-    setEditingCategoryId(null);
-    setCategoryFormData({ name: '', description: '' });
-  };
-
-  const handleCategorySubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingCategoryId) {
-        await categoriesAPI.update(editingCategoryId, categoryFormData);
-      } else {
-        await categoriesAPI.create(categoryFormData);
-      }
-      await loadCategories();
-      closeCategoryModal();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Erreur lors de la sauvegarde de la catégorie');
-    }
-  };
-
-  const handleCategoryDelete = async (categoryId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      return;
-    }
-    try {
-      await categoriesAPI.delete(categoryId);
-      await loadCategories();
-      // Retirer la catégorie des sélections si elle était sélectionnée
-      setFormData(prev => ({
-        ...prev,
-        categoryIds: prev.categoryIds.filter(id => id !== categoryId)
-      }));
-    } catch (error) {
-      alert(error.response?.data?.error || 'Erreur lors de la suppression de la catégorie');
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -152,20 +89,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         [field]: value
       }
     }));
-  };
-
-  const handleCategoryToggle = (categoryId) => {
-    setFormData(prev => {
-      const categoryIds = prev.categoryIds || [];
-      const isSelected = categoryIds.includes(categoryId);
-
-      return {
-        ...prev,
-        categoryIds: isSelected
-          ? categoryIds.filter(id => id !== categoryId)
-          : [...categoryIds, categoryId]
-      };
-    });
   };
 
   const handleColorChange = (color) => {
@@ -285,38 +208,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.formGrid}>
-        {/* Type d'activité */}
-        <div className={styles.section}>
-          <h3>🏃 Type d'activité</h3>
-
-          <div className={styles.formGroup}>
-            <label>Type d'activité *</label>
-            <select
-              name="activityTypeId"
-              value={formData.activityTypeId}
-              onChange={handleChange}
-              className={errors.activityTypeId ? styles.error : ''}
-            >
-              <option value="">-- Sélectionner une activité --</option>
-              {categories
-                .filter(cat => guidePracticeActivities.includes(cat.id))
-                .map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-            </select>
-            {errors.activityTypeId && <span className={styles.errorMsg}>{errors.activityTypeId}</span>}
-            <small>
-              {guidePracticeActivities.length === 0
-                ? '⚠️ Veuillez d\'abord sélectionner vos activités dans les préférences'
-                : guidePracticeActivities.length === 1
-                ? '✓ Activité pré-sélectionnée automatiquement'
-                : `${guidePracticeActivities.length} activité(s) disponible(s)`}
-            </small>
-          </div>
-        </div>
-
         {/* Informations de base */}
         <div className={styles.section}>
           <h3>📝 Informations de base</h3>
@@ -356,55 +247,27 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label>Catégories (sélection multiple possible)</label>
-            <div className={styles.categoriesCheckboxes}>
-              {categories.length === 0 ? (
-                <p className={styles.noCategories}>Aucune catégorie disponible</p>
-              ) : (
-                categories.map(cat => (
-                  <div key={cat.id} className={styles.categoryItem}>
-                    <label className={styles.categoryCheckbox}>
-                      <input
-                        type="checkbox"
-                        checked={formData.categoryIds?.includes(cat.id) || false}
-                        onChange={() => handleCategoryToggle(cat.id)}
-                      />
-                      <span>{cat.name}</span>
-                    </label>
-                    <div className={styles.categoryActions}>
-                      <button
-                        type="button"
-                        className={styles.btnCategoryEdit}
-                        onClick={() => openCategoryModal(cat)}
-                        title="Modifier la catégorie"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.btnCategoryDelete}
-                        onClick={() => handleCategoryDelete(cat.id)}
-                        title="Supprimer la catégorie"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <button
-              type="button"
-              className={styles.btnAddCategory}
-              onClick={() => openCategoryModal()}
-            >
-              + Ajouter une catégorie
-            </button>
-            <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
-          </div>
-
           <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Type d'activité *</label>
+              <select
+                name="activityTypeId"
+                value={formData.activityTypeId}
+                onChange={handleChange}
+                className={errors.activityTypeId ? styles.error : ''}
+              >
+                <option value="">-- Sélectionner --</option>
+                {categories
+                  .filter(cat => guidePracticeActivities.includes(cat.id))
+                  .map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+              </select>
+              {errors.activityTypeId && <span className={styles.errorMsg}>{errors.activityTypeId}</span>}
+            </div>
+
             <div className={styles.formGroup}>
               <label>Niveau *</label>
               <select
@@ -417,7 +280,9 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
                 <option value="sportif">Sportif</option>
               </select>
             </div>
+          </div>
 
+          <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label>Région *</label>
               <select
@@ -653,45 +518,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           {product ? 'Modifier' : 'Créer'} le produit
         </button>
       </div>
-
-      {/* Modal de gestion des catégories */}
-      {showCategoryModal && (
-        <div className={styles.modal} onClick={closeCategoryModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2>{editingCategoryId ? 'Modifier' : 'Créer'} une catégorie</h2>
-            <div onSubmit={handleCategorySubmit}>
-              <div className={styles.formGroup}>
-                <label>Nom *</label>
-                <input
-                  type="text"
-                  value={categoryFormData.name}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Description</label>
-                <textarea
-                  value={categoryFormData.description}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                  rows="3"
-                />
-              </div>
-
-              <div className={styles.modalActions}>
-                <button type="button" className={styles.btnCancel} onClick={closeCategoryModal}>
-                  Annuler
-                </button>
-                <button type="submit" className={styles.btnSubmit} onClick={handleCategorySubmit}>
-                  {editingCategoryId ? 'Modifier' : 'Créer'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </form>
   );
 };
