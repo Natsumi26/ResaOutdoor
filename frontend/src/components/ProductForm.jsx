@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
+import { categoriesAPI } from '../services/api';
 import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
@@ -31,6 +32,9 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState(initialCategories || []);
   const [guidePracticeActivities, setGuidePracticeActivities] = useState([]);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   useEffect(() => {
     if (initialCategories) {
@@ -103,6 +107,38 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           : [...categoryIds, categoryId]
       };
     });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Veuillez entrer un nom de catégorie');
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      const response = await categoriesAPI.create({
+        name: newCategoryName,
+        description: ''
+      });
+
+      // Ajouter la nouvelle catégorie à la liste
+      const newCategory = response.data.category;
+      setCategories(prev => [...prev, newCategory]);
+
+      // Pré-sélectionner la nouvelle catégorie
+      setFormData(prev => ({
+        ...prev,
+        categoryIds: [...(prev.categoryIds || []), newCategory.id]
+      }));
+
+      setNewCategoryName('');
+      setShowCategoryModal(false);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erreur lors de la création de la catégorie');
+    } finally {
+      setCreatingCategory(false);
+    }
   };
 
   const handleColorChange = (color) => {
@@ -297,10 +333,10 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           </div>
 
           <div className={styles.formGroup}>
-            <label>Catégories (sélection multiple possible)</label>
+            <label>Catégories personnalisées</label>
             <div className={styles.categoriesCheckboxes}>
               {categories.length === 0 ? (
-                <p className={styles.noCategories}>Aucune catégorie disponible</p>
+                <p className={styles.noCategories}>Aucune catégorie personnalisée pour le moment</p>
               ) : (
                 categories.map(cat => (
                   <div key={cat.id} className={styles.categoryItem}>
@@ -316,7 +352,14 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
                 ))
               )}
             </div>
-            <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
+            <button
+              type="button"
+              className={styles.btnAddCategory}
+              onClick={() => setShowCategoryModal(true)}
+            >
+              + Ajouter une catégorie
+            </button>
+            <small>Créez vos propres catégories pour organiser vos produits</small>
           </div>
 
           <div className={styles.formGroup}>
@@ -541,6 +584,42 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           {product ? 'Modifier' : 'Créer'} le produit
         </button>
       </div>
+
+      {/* Modal de création de catégorie personnalisée */}
+      {showCategoryModal && (
+        <div className={styles.modal} onClick={() => setShowCategoryModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2>Créer une catégorie personnalisée</h2>
+            <div className={styles.formGroup}>
+              <label>Nom de la catégorie *</label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Ex: Progression, Initiation, Expérience..."
+                autoFocus
+              />
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnCancel}
+                onClick={() => setShowCategoryModal(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className={styles.btnSubmit}
+                onClick={handleCreateCategory}
+                disabled={creatingCategory}
+              >
+                {creatingCategory ? 'Création...' : 'Créer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };
