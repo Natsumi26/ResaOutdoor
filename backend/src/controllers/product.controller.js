@@ -59,6 +59,7 @@ export const getAllProducts = async (req, res, next) => {
             role: true
           }
         },
+        activityType: true,
         categories: {
           include: {
             category: true
@@ -95,6 +96,7 @@ export const getProductById = async (req, res, next) => {
             email: true
           }
         },
+        activityType: true,
         categories: {
           include: {
             category: true
@@ -194,6 +196,7 @@ export const createProduct = async (req, res, next) => {
             email: true
           }
         },
+        activityType: true,
         categories: {
           include: {
             category: true
@@ -285,6 +288,7 @@ export const updateProduct = async (req, res, next) => {
             email: true
           }
         },
+        activityType: true,
         categories: {
           include: {
             category: true
