@@ -350,6 +350,7 @@ const GiftVoucherPurchase = () => {
               className={styles.btnPrimary}
               disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
               style={{
+                backgroundColor: clientColor,
                 opacity: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 1 : 0.5,
                 cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
               }}
