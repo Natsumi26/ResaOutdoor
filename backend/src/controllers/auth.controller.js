@@ -25,6 +25,7 @@ export const login = async (req, res, next) => {
         paymentMode: true,
         depositType: true,
         depositAmount: true,
+        practiceActivities: true,
         confidentialityPolicy:true
       }
     });
@@ -80,6 +81,7 @@ export const getCurrentUser = async (req, res, next) => {
         paymentMode: true,
         depositType: true,
         depositAmount: true,
+        practiceActivities: true,
         confidentialityPolicy:true
       }
     });
