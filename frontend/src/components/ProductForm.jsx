@@ -5,6 +5,14 @@ import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
 const ProductForm = ({ product, categories: initialCategories, users, currentUser, onSubmit, onCancel }) => {
+  // Activités pré-définies
+  const predefinedActivities = [
+    { id: 'canyoning', name: 'Canyoning', description: 'Descente de canyons en eau' },
+    { id: 'via-ferrata', name: 'Via Ferrata', description: 'Escalade équipée en montagne' },
+    { id: 'escalade', name: 'Escalade', description: 'Escalade de bloc et falaise' },
+    { id: 'speleologie', name: 'Spéléologie', description: 'Exploration de grottes' }
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
     shortDescription: '',
@@ -13,7 +21,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     duration: '',
     color: '#3498db',
     level: 'découverte',
-    region: 'annecy',
     maxCapacity: '',
     autoCloseHoursBefore: '',
     postBookingMessage: '',
@@ -307,11 +314,11 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
                 className={errors.activityTypeId ? styles.error : ''}
               >
                 <option value="">-- Sélectionner --</option>
-                {categories
-                  .filter(cat => guidePracticeActivities.includes(cat.id))
-                  .map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                {predefinedActivities
+                  .filter(activity => guidePracticeActivities.includes(activity.id))
+                  .map(activity => (
+                    <option key={activity.id} value={activity.id}>
+                      {activity.name}
                     </option>
                   ))}
               </select>

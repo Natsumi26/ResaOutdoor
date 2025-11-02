@@ -33,13 +33,18 @@ const Preferences = () => {
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [bookingReminders, setBookingReminders] = useState(true);
 
-  // Activités pratiquées par le guide
-  const [categories, setCategories] = useState([]);
+  // Activités pratiquées par le guide (pré-définies)
+  const predefinedActivities = [
+    { id: 'canyoning', name: 'Canyoning', description: 'Descente de canyons en eau' },
+    { id: 'via-ferrata', name: 'Via Ferrata', description: 'Escalade équipée en montagne' },
+    { id: 'escalade', name: 'Escalade', description: 'Escalade de bloc et falaise' },
+    { id: 'speleologie', name: 'Spéléologie', description: 'Exploration de grottes' }
+  ];
+
   const [practiceActivities, setPracticeActivities] = useState([]);
 
   useEffect(() => {
     loadPreferences();
-    loadCategories();
   }, []);
 
   const loadPreferences = async () => {
@@ -73,11 +78,6 @@ const Preferences = () => {
       if (!settings?.companyEmail && user?.email) {
         setEmail(user.email);
       }
-
-      // Charger les activités du guide
-      if (user?.practiceActivities) {
-        setPracticeActivities(user.practiceActivities);
-      }
     } catch (error) {
       console.error('Erreur chargement préférences:', error);
       // Fallback sur les données du user en cas d'erreur
@@ -87,14 +87,12 @@ const Preferences = () => {
     }
   };
 
-  const loadCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data.categories || []);
-    } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+  // Charger les activités pratiquées du user
+  useEffect(() => {
+    if (user?.practiceActivities) {
+      setPracticeActivities(user.practiceActivities);
     }
-  };
+  }, [user]);
 
   const handleActivityToggle = (categoryId) => {
     setPracticeActivities(prev => {
@@ -443,66 +441,62 @@ const Preferences = () => {
             🏃 Activités pratiquées
           </h2>
           <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-            Sélectionnez les activités que vous pratiquez. Cela permettra de personnaliser votre interface et de filtrer les produits.
+            Sélectionnez les activités que vous pratiquez. Cela permettra de filtrer le type d'activité lors de la création de produits.
           </p>
 
-          {categories.length === 0 ? (
-            <p style={{ color: '#6c757d', fontStyle: 'italic' }}>Aucune activité disponible</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
-              {categories.map((category) => (
-                <label
-                  key={category.id}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+            {predefinedActivities.map((activity) => (
+              <label
+                key={activity.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 15px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  background: practiceActivities.includes(activity.id) ? 'rgba(52, 152, 219, 0.1)' : 'white',
+                  borderColor: practiceActivities.includes(activity.id) ? '#3498db' : '#e5e7eb',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (!practiceActivities.includes(activity.id)) {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!practiceActivities.includes(activity.id)) {
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                  }
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={practiceActivities.includes(activity.id)}
+                  onChange={() => handleActivityToggle(activity.id)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px 15px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
+                    marginRight: '10px',
+                    width: '18px',
+                    height: '18px',
                     cursor: 'pointer',
-                    background: practiceActivities.includes(category.id) ? 'rgba(52, 152, 219, 0.1)' : 'white',
-                    borderColor: practiceActivities.includes(category.id) ? '#3498db' : '#e5e7eb',
-                    transition: 'all 0.2s'
+                    accentColor: '#3498db'
                   }}
-                  onMouseEnter={(e) => {
-                    if (!practiceActivities.includes(category.id)) {
-                      e.currentTarget.style.background = '#f8f9fa';
-                      e.currentTarget.style.borderColor = '#d1d5db';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!practiceActivities.includes(category.id)) {
-                      e.currentTarget.style.background = 'white';
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                    }
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={practiceActivities.includes(category.id)}
-                    onChange={() => handleActivityToggle(category.id)}
-                    style={{
-                      marginRight: '10px',
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer',
-                      accentColor: '#3498db'
-                    }}
-                  />
-                  <div>
-                    <div style={{ fontWeight: '600', color: '#2c3e50' }}>
-                      {category.name}
-                    </div>
-                    {category.description && (
-                      <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '2px' }}>
-                        {category.description}
-                      </div>
-                    )}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                    {activity.name}
                   </div>
-                </label>
-              ))}
-            </div>
-          )}
+                  {activity.description && (
+                    <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '2px' }}>
+                      {activity.description}
+                    </div>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Thème Guide */}
