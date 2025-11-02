@@ -330,7 +330,7 @@ const GiftVoucherPurchase = () => {
           </div>
 
           {/* Info mémo */}
-          <div className={styles.formSection} style={{ backgroundColor: '#f0f8ff', borderLeft: `4px solid ${clientColor}` }}>
+          <div className={styles.formSection} style={{ backgroundColor: `${clientColor}15`, borderLeft: `4px solid ${clientColor}` }}>
             <p style={{ margin: '0', lineHeight: '1.6', color: '#333' }}>
               <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email contenant le bon cadeau en version imprimable et personnalisé. Le bon peut être utilisé en une ou plusieurs fois directement sur le site.
             </p>
