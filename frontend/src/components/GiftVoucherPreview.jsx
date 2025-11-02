@@ -36,8 +36,8 @@ const GiftVoucherPreview = ({
         {/* Bande colorée à gauche */}
         <div className={styles.leftBand} style={{ backgroundColor: themeColor }}>
           <div className={styles.bandContent}>
-            <div className={styles.bandLabel}>BON CADEAU</div>
-            <div className={styles.bandAmount} style={{ color: themeColor }}>
+            <div className={styles.bandLabel}>BON<br />CADEAU</div>
+            <div className={styles.bandAmount}>
               {amount}€
             </div>
           </div>
