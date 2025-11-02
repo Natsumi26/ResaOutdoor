@@ -185,16 +185,6 @@ const Dashboard = () => {
                   </NavLink>
 
                   <NavLink
-                    to="/settings/online-sales"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>💳</span>
-                    <span>Vente en ligne</span>
-                  </NavLink>
-
-                  <NavLink
                     to="/settings/resellers"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
@@ -202,16 +192,6 @@ const Dashboard = () => {
                   >
                     <span className={styles.icon}>🏪</span>
                     <span>Revendeurs</span>
-                  </NavLink>
-
-                  <NavLink
-                    to="/settings/newsletter"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>📧</span>
-                    <span>Newsletter</span>
                   </NavLink>
 
                 {/* Menu déroulant Préférences */}

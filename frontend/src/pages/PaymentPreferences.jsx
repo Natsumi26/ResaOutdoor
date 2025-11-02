@@ -1,12 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usersAPI, settingsAPI } from '../services/api';
+import { useLocation } from 'react-router-dom';
+import { usersAPI, settingsAPI, stripeAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const PaymentPreferences = () => {
   const { user, updateUser } = useAuth();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabFromUrl = queryParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'online-sales' ? 'online-sales' : 'payment-methods');
   const [loading, setLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  // État pour Stripe (Vente en ligne)
+  const [stripeAccount, setStripeAccount] = useState(null);
+  const [stripeLoading, setStripeLoading] = useState(true);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   // État pour les préférences de paiement
   const [paymentMode, setPaymentMode] = useState(user?.paymentMode || 'onsite_only');
@@ -18,7 +31,58 @@ const PaymentPreferences = () => {
   useEffect(() => {
     loadPaymentPreferences();
     loadThemeColor();
+    loadStripeAccount();
   }, [user]);
+
+  const loadStripeAccount = async () => {
+    try {
+      setStripeLoading(true);
+      const response = await stripeAPI.getConnectAccount();
+      setStripeAccount(response.data);
+    } catch (error) {
+      console.error('Erreur chargement compte Stripe:', error);
+      if (error.response?.status === 401) {
+        alert('⚠️ Erreur de configuration Stripe\n\nVotre clé API Stripe est invalide ou a expiré.\n\nVeuillez vérifier votre configuration dans le fichier .env du backend :\n- STRIPE_SECRET_KEY\n- STRIPE_PUBLISHABLE_KEY');
+      }
+    } finally {
+      setStripeLoading(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      const response = await stripeAPI.connectOnboard();
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error('Erreur connexion Stripe:', error);
+      alert('Impossible de se connecter à Stripe: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleOpenDashboard = async () => {
+    try {
+      const response = await stripeAPI.getDashboardLink();
+      window.open(response.data.url, '_blank');
+    } catch (error) {
+      console.error('Erreur ouverture dashboard:', error);
+      alert('Impossible d\'ouvrir le dashboard: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir déconnecter votre compte Stripe ? Vous ne pourrez plus recevoir de paiements.')) {
+      return;
+    }
+
+    try {
+      await stripeAPI.disconnectAccount();
+      alert('Compte Stripe déconnecté avec succès');
+      loadStripeAccount();
+    } catch (error) {
+      console.error('Erreur déconnexion:', error);
+      alert('Impossible de déconnecter le compte: ' + (error.response?.data?.error || error.message));
+    }
+  };
 
   const loadThemeColor = async () => {
     try {
@@ -150,6 +214,11 @@ const PaymentPreferences = () => {
   ];
 
   const requiresDeposit = paymentMode === 'deposit_only' || paymentMode === 'deposit_and_full';
+
+  const getTabColor = (tabName) => {
+    return activeTab === tabName ? 'var(--guide-primary)' : '#6c757d';
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -158,20 +227,85 @@ const PaymentPreferences = () => {
       </div>
 
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        {/* Mode de paiement */}
-        <div className={styles.section} style={{
-          background: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        {/* Onglets */}
+        <div style={{
+          display: 'flex',
+          gap: '0',
+          borderBottom: '2px solid #e5e7eb',
           marginBottom: '30px'
         }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
-            Mode de paiement
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Choisissez comment vos clients pourront payer leurs réservations
-          </p>
+          <button
+            onClick={() => setActiveTab('payment-methods')}
+            style={{
+              padding: '15px 30px',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'payment-methods' ? '3px solid var(--guide-primary)' : 'none',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: getTabColor('payment-methods'),
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'payment-methods') {
+                e.currentTarget.style.color = 'var(--guide-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'payment-methods') {
+                e.currentTarget.style.color = '#6c757d';
+              }
+            }}
+          >
+            💳 Préférences de paiement
+          </button>
+
+          <button
+            onClick={() => setActiveTab('online-sales')}
+            style={{
+              padding: '15px 30px',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'online-sales' ? '3px solid var(--guide-primary)' : 'none',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: getTabColor('online-sales'),
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'online-sales') {
+                e.currentTarget.style.color = 'var(--guide-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'online-sales') {
+                e.currentTarget.style.color = '#6c757d';
+              }
+            }}
+          >
+            🛒 Vente en ligne
+          </button>
+        </div>
+
+        {/* ONGLET: Préférences de paiement */}
+        {activeTab === 'payment-methods' && (
+        <div>
+          {/* Mode de paiement */}
+          <div className={styles.section} style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
+              Mode de paiement
+            </h2>
+            <p style={{ color: '#6c757d', marginBottom: '30px' }}>
+              Choisissez comment vos clients pourront payer leurs réservations
+            </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {paymentModeOptions.map((option) => (
@@ -343,52 +477,198 @@ const PaymentPreferences = () => {
           </div>
         </div>
 
-        {/* Boutons d'action */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '15px',
-          alignItems: 'center'
-        }}>
-          {saveMessage && (
-            <div style={{
-              padding: '12px 20px',
-              background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
-              color: saveMessage.includes('✅') ? '#155724' : '#721c24',
-              borderRadius: '6px',
-              fontSize: '0.95rem',
-              fontWeight: '500',
-              border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
-            }}>
-              {saveMessage}
-            </div>
-          )}
+          {/* Boutons d'action */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '15px',
+            alignItems: 'center'
+          }}>
+            {saveMessage && (
+              <div style={{
+                padding: '12px 20px',
+                background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
+                color: saveMessage.includes('✅') ? '#155724' : '#721c24',
+                borderRadius: '6px',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+              }}>
+                {saveMessage}
+              </div>
+            )}
 
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            style={{
-              padding: '14px 35px',
-              background: loading ? '#dee2e6' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              transition: 'all 0.2s',
-              boxShadow: loading ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.background = '#218838';
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.background = '#28a745';
-            }}
-          >
-            {loading ? '⏳ Enregistrement...' : '💾 Enregistrer les préférences'}
-          </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              style={{
+                padding: '14px 35px',
+                background: loading ? '#dee2e6' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                boxShadow: loading ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.target.style.background = '#218838';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.target.style.background = '#28a745';
+              }}
+            >
+              {loading ? '⏳ Enregistrement...' : '💾 Enregistrer les préférences'}
+            </button>
+          </div>
         </div>
+        )}
+
+        {/* ONGLET: Vente en ligne */}
+        {activeTab === 'online-sales' && (
+        <div>
+          {/* Section Stripe */}
+          <div className={styles.section} style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '10px' }}>💳 Paiements Stripe</h2>
+            <p style={{ color: '#6c757d', marginBottom: '30px' }}>
+              Connectez votre compte Stripe pour recevoir les paiements de vos clients directement sur votre compte.
+            </p>
+
+            {stripeLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6c757d' }}>
+                ⏳ Chargement des informations Stripe...
+              </div>
+            ) : !stripeAccount || !stripeAccount.connected ? (
+              // Pas de compte connecté
+              <div>
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <h3 style={{ marginTop: 0, fontSize: '16px' }}>Pourquoi connecter Stripe ?</h3>
+                  <ul style={{ paddingLeft: '20px', color: '#495057' }}>
+                    <li>Recevez les paiements directement sur votre compte</li>
+                    <li>Gérez vos transactions depuis le dashboard Stripe</li>
+                    <li>Sécurité bancaire maximale</li>
+                    <li>Virements automatiques sur votre compte bancaire</li>
+                  </ul>
+                </div>
+
+                <button
+                  className={styles.btnPrimary}
+                  onClick={handleConnectStripe}
+                  style={{ width: '100%', padding: '15px', fontSize: '16px', background: 'var(--guide-primary)' }}
+                >
+                  🔗 Connecter mon compte Stripe
+                </button>
+              </div>
+            ) : (
+              // Compte connecté
+              <div>
+                <div style={{
+                  background: stripeAccount.account.charges_enabled ? '#d4edda' : '#fff3cd',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: `1px solid ${stripeAccount.account.charges_enabled ? '#c3e6cb' : '#ffeeba'}`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '24px' }}>
+                      {stripeAccount.account.charges_enabled ? '✅' : '⚠️'}
+                    </span>
+                    <strong style={{ fontSize: '18px' }}>
+                      {stripeAccount.account.charges_enabled ? 'Compte actif' : 'Configuration en attente'}
+                    </strong>
+                  </div>
+
+                  <div style={{ fontSize: '14px', color: '#495057' }}>
+                    <p><strong>Email:</strong> {stripeAccount.account.email || 'N/A'}</p>
+                    <p><strong>Pays:</strong> {stripeAccount.account.country || 'N/A'}</p>
+                    <p>
+                      <strong>Paiements:</strong>{' '}
+                      {stripeAccount.account.charges_enabled ? '✓ Activés' : '✗ Désactivés'}
+                    </p>
+                    <p>
+                      <strong>Virements:</strong>{' '}
+                      {stripeAccount.account.payouts_enabled ? '✓ Activés' : '✗ Désactivés'}
+                    </p>
+                  </div>
+
+                  {!stripeAccount.account.details_submitted && (
+                    <div style={{
+                      marginTop: '15px',
+                      padding: '10px',
+                      background: 'white',
+                      borderRadius: '6px',
+                      border: '1px solid #ffc107'
+                    }}>
+                      ℹ️ Complétez votre profil Stripe pour activer tous les paiements
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    className={styles.btnPrimary}
+                    onClick={handleOpenDashboard}
+                    style={{ flex: 1, background: 'var(--guide-primary)' }}
+                  >
+                    📊 Ouvrir mon dashboard Stripe
+                  </button>
+
+                  {!stripeAccount.account.details_submitted && (
+                    <button
+                      className={styles.btnSecondary}
+                      onClick={handleConnectStripe}
+                      style={{ flex: 1 }}
+                    >
+                      ✏️ Compléter mon profil
+                    </button>
+                  )}
+
+                  <button
+                    className={styles.btnDelete}
+                    onClick={handleDisconnect}
+                    style={{ flex: 1 }}
+                  >
+                    🔌 Déconnecter
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Informations supplémentaires */}
+            <div style={{
+              marginTop: '30px',
+              padding: '15px',
+              background: 'rgba(var(--guide-primary-rgb), 0.1)',
+              borderRadius: '8px',
+              border: `1px solid rgba(var(--guide-primary-rgb), 0.25)`,
+              fontSize: '14px'
+            }}>
+              <h4 style={{ marginTop: 0, marginBottom: '10px', fontSize: '14px' }}>ℹ️ Comment ça marche ?</h4>
+              <ol style={{ paddingLeft: '20px', margin: 0 }}>
+                <li>Cliquez sur "Connecter mon compte Stripe"</li>
+                <li>Créez un compte Stripe ou connectez-vous</li>
+                <li>Remplissez les informations demandées (bancaires, identité)</li>
+                <li>Une fois validé, vous recevrez les paiements directement</li>
+                <li>100% des paiements vont directement sur votre compte</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { emailTemplatesAPI, settingsAPI } from '../services/api';
+import { useLocation } from 'react-router-dom';
+import { emailTemplatesAPI, settingsAPI, newsletterAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const Emails = () => {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabFromUrl = queryParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'newsletter' ? 'newsletter' : 'templates'); // 'templates' or 'newsletter'
   const [templates, setTemplates] = useState([]);
   const [availableVariables, setAvailableVariables] = useState({});
   const [settings, setSettings] = useState(null);
@@ -20,6 +26,21 @@ const Emails = () => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('https://');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
+  // Newsletter states
+  const [newsletters, setNewsletters] = useState([]);
+  const [newsletterStats, setNewsletterStats] = useState({ active: 0, total: 0, inactive: 0 });
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('active');
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    subject: '',
+    htmlContent: '',
+    textContent: ''
+  });
+  const [sending, setSending] = useState(false);
+
   const [formData, setFormData] = useState({
     type: '',
     name: '',
@@ -124,7 +145,15 @@ const Emails = () => {
     loadTemplates();
     loadVariables();
     loadSettings();
+    loadThemeColor();
   }, []);
+
+  // Charger les newsletters quand l'onglet change ou que les filtres changent
+  useEffect(() => {
+    if (activeTab === 'newsletter') {
+      loadNewsletters();
+    }
+  }, [filter, search, activeTab]);
 
   // Fermer l'emoji picker si on clique ailleurs
   useEffect(() => {
@@ -198,6 +227,119 @@ const Emails = () => {
       setSettings(response.data.settings || null);
     } catch (error) {
       console.error('Erreur chargement settings:', error);
+    }
+  };
+
+  const loadThemeColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        const primaryColor = settings.primaryColor;
+        const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+        // Mettre à jour les CSS variables
+        document.documentElement.style.setProperty('--guide-primary', primaryColor);
+        document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+        // Extraire les composants RGB
+        const extractRGB = (hex) => {
+          const h = hex.replace('#', '');
+          const r = parseInt(h.substring(0, 2), 16);
+          const g = parseInt(h.substring(2, 4), 16);
+          const b = parseInt(h.substring(4, 6), 16);
+          return `${r}, ${g}, ${b}`;
+        };
+        document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+        document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('guidePrimaryColor', primaryColor);
+        localStorage.setItem('guideSecondaryColor', secondaryColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur thème:', error);
+    }
+  };
+
+  // Fonctions Newsletter
+  const loadNewsletters = async () => {
+    try {
+      setNewsletterLoading(true);
+      const params = {};
+      if (filter !== 'all') {
+        params.isActive = filter === 'active';
+      }
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await newsletterAPI.getAll(params);
+      setNewsletters(response.data.newsletters);
+      setNewsletterStats(response.data.stats);
+    } catch (error) {
+      console.error('Erreur chargement newsletters:', error);
+      alert('Erreur lors du chargement de la liste');
+    } finally {
+      setNewsletterLoading(false);
+    }
+  };
+
+  const handleDeleteNewsletter = async (id) => {
+    if (!confirm('Supprimer cet abonné ?')) return;
+
+    try {
+      await newsletterAPI.delete(id);
+      loadNewsletters();
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!emailForm.subject || !emailForm.htmlContent) {
+      alert('Veuillez remplir au moins le sujet et le contenu HTML');
+      return;
+    }
+
+    try {
+      setSending(true);
+      await newsletterAPI.sendTestEmail(emailForm);
+      alert('Email de test envoyé avec succès !');
+    } catch (error) {
+      console.error('Erreur envoi test:', error);
+      alert('Erreur lors de l\'envoi du test');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendNewsletter = async () => {
+    if (!emailForm.subject || !emailForm.htmlContent) {
+      alert('Veuillez remplir au moins le sujet et le contenu HTML');
+      return;
+    }
+
+    const activeCount = newsletterStats.active;
+    if (activeCount === 0) {
+      alert('Aucun abonné actif');
+      return;
+    }
+
+    if (!confirm(`Envoyer la newsletter à ${activeCount} abonnés ?`)) return;
+
+    try {
+      setSending(true);
+      const response = await newsletterAPI.sendEmail(emailForm);
+      alert(response.data.message);
+      setShowEmailForm(false);
+      setEmailForm({ subject: '', htmlContent: '', textContent: '' });
+    } catch (error) {
+      console.error('Erreur envoi newsletter:', error);
+      alert('Erreur lors de l\'envoi de la newsletter');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -501,13 +643,56 @@ const Emails = () => {
         </div>
       </div>
 
-      {templates.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p style={{ fontSize: '16px', marginBottom: '16px' }}>Chargement des templates...</p>
-        </div>
-      ) : (
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
+      {/* Onglets */}
+      <div style={{
+        display: 'flex',
+        gap: '0',
+        marginBottom: '24px',
+        borderBottom: '2px solid #e5e7eb'
+      }}>
+        <button
+          onClick={() => setActiveTab('templates')}
+          style={{
+            padding: '12px 24px',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: activeTab === 'templates' ? '3px solid var(--guide-primary)' : 'none',
+            color: activeTab === 'templates' ? 'var(--guide-primary)' : '#6b7280',
+            fontWeight: activeTab === 'templates' ? '600' : '400',
+            cursor: 'pointer',
+            fontSize: '15px',
+            transition: 'all 0.2s'
+          }}
+        >
+          📋 Templates
+        </button>
+        <button
+          onClick={() => setActiveTab('newsletter')}
+          style={{
+            padding: '12px 24px',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: activeTab === 'newsletter' ? '3px solid var(--guide-primary)' : 'none',
+            color: activeTab === 'newsletter' ? 'var(--guide-primary)' : '#6b7280',
+            fontWeight: activeTab === 'newsletter' ? '600' : '400',
+            cursor: 'pointer',
+            fontSize: '15px',
+            transition: 'all 0.2s'
+          }}
+        >
+          📧 Newsletter
+        </button>
+      </div>
+
+      {activeTab === 'templates' && (
+        <>
+          {templates.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p style={{ fontSize: '16px', marginBottom: '16px' }}>Chargement des templates...</p>
+            </div>
+          ) : (
+              <div className={styles.tableContainer}>
+                <table className={styles.table}>
             <thead>
               <tr>
                 <th>Nom</th>
@@ -1454,6 +1639,278 @@ const Emails = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
+      )}
+
+      {/* SECTION NEWSLETTER */}
+      {activeTab === 'newsletter' && (
+        <>
+          <div className={styles.header} style={{ marginBottom: '24px' }}>
+            <button
+              className={styles.btnPrimaryThemed}
+              onClick={() => setShowEmailForm(!showEmailForm)}
+            >
+              {showEmailForm ? 'Annuler' : 'Envoyer une newsletter'}
+            </button>
+          </div>
+
+          {/* Statistiques */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '24px' }}>
+            <div className={styles.statCard} style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, var(--guide-primary)15 0%, var(--guide-primary)05 100%)',
+              border: '2px solid var(--guide-primary)',
+              borderRadius: '12px',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--guide-primary)', marginBottom: '8px' }}>{newsletterStats.active}</div>
+              <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>Abonnés actifs</div>
+            </div>
+            <div className={styles.statCard} style={{
+              padding: '24px',
+              background: 'white',
+              border: '2px solid #e5e7eb',
+              borderRadius: '12px',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>{newsletterStats.total}</div>
+              <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>Total</div>
+            </div>
+            <div className={styles.statCard} style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, #ef444415 0%, #ef444405 100%)',
+              border: '2px solid #ef4444',
+              borderRadius: '12px',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#ef4444', marginBottom: '8px' }}>{newsletterStats.inactive}</div>
+              <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>Désabonnés</div>
+            </div>
+          </div>
+
+          {/* Formulaire d'envoi */}
+          {showEmailForm && (
+            <div className={styles.formContainer} style={{ marginBottom: '24px', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+              <h2 style={{ marginTop: 0 }}>Composer une newsletter</h2>
+
+              <div className={styles.formGroup}>
+                <label>Sujet *</label>
+                <input
+                  type="text"
+                  value={emailForm.subject}
+                  onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                  placeholder="Ex: Nouvelles activités disponibles"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Contenu HTML *</label>
+                <textarea
+                  value={emailForm.htmlContent}
+                  onChange={(e) => setEmailForm({ ...emailForm, htmlContent: e.target.value })}
+                  placeholder="Contenu de l'email en HTML..."
+                  rows={15}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                  Utilisez du HTML pour formater votre email. Exemple:<br/>
+                  &lt;h2&gt;Titre&lt;/h2&gt;&lt;p&gt;Texte&lt;/p&gt;
+                </p>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Contenu texte (optionnel)</label>
+                <textarea
+                  value={emailForm.textContent}
+                  onChange={(e) => setEmailForm({ ...emailForm, textContent: e.target.value })}
+                  placeholder="Version texte brut de l'email..."
+                  rows={8}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  className={styles.btnSecondary}
+                  onClick={handleSendTestEmail}
+                  disabled={sending}
+                >
+                  Envoyer un test à moi-même
+                </button>
+                <button
+                  className={styles.btnPrimaryThemed}
+                  onClick={handleSendNewsletter}
+                  disabled={sending}
+                >
+                  {sending ? 'Envoi en cours...' : `Envoyer à ${newsletterStats.active} abonnés`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filtres et recherche */}
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setFilter('active')}
+                className={styles.btnFilter}
+                style={{
+                  padding: '8px 16px',
+                  background: filter === 'active' ? 'var(--guide-primary)' : 'white',
+                  color: filter === 'active' ? 'white' : '#6b7280',
+                  border: `1px solid ${filter === 'active' ? 'var(--guide-primary)' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Actifs ({newsletterStats.active})
+              </button>
+              <button
+                onClick={() => setFilter('all')}
+                className={styles.btnFilter}
+                style={{
+                  padding: '8px 16px',
+                  background: filter === 'all' ? 'var(--guide-primary)' : 'white',
+                  color: filter === 'all' ? 'white' : '#6b7280',
+                  border: `1px solid ${filter === 'all' ? 'var(--guide-primary)' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Tous ({newsletterStats.total})
+              </button>
+              <button
+                onClick={() => setFilter('inactive')}
+                className={styles.btnFilter}
+                style={{
+                  padding: '8px 16px',
+                  background: filter === 'inactive' ? 'var(--guide-primary)' : 'white',
+                  color: filter === 'inactive' ? 'white' : '#6b7280',
+                  border: `1px solid ${filter === 'inactive' ? 'var(--guide-primary)' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Désabonnés ({newsletterStats.inactive})
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Rechercher par email, prénom ou nom..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+
+          {/* Liste des abonnés */}
+          <div className={styles.tableContainer}>
+            {newsletterLoading ? (
+              <p>Chargement...</p>
+            ) : newsletters.length === 0 ? (
+              <p>Aucun abonné trouvé</p>
+            ) : (
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Prénom</th>
+                    <th>Nom</th>
+                    <th>Source</th>
+                    <th>Inscrit le</th>
+                    <th>Statut</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {newsletters.map((newsletter) => (
+                    <tr key={newsletter.id}>
+                      <td>{newsletter.email}</td>
+                      <td>{newsletter.firstName || '-'}</td>
+                      <td>{newsletter.lastName || '-'}</td>
+                      <td>
+                        <span className={styles.badge}>{newsletter.source || 'manuel'}</span>
+                      </td>
+                      <td>{new Date(newsletter.subscribedAt).toLocaleDateString('fr-FR')}</td>
+                      <td>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          background: newsletter.isActive ? '#d1fae5' : '#fee2e2',
+                          color: newsletter.isActive ? '#065f46' : '#991b1b'
+                        }}>
+                          {newsletter.isActive ? 'Actif' : 'Désabonné'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleDeleteNewsletter(newsletter.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            padding: '4px'
+                          }}
+                          title="Supprimer"
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
