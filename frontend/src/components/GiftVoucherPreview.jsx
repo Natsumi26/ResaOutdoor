@@ -11,6 +11,7 @@ const GiftVoucherPreview = ({
   companyEmail,
   companyWebsite,
   logo,
+  slogan,
   themeColor,
   isOpen,
   onClose
@@ -37,30 +38,25 @@ const GiftVoucherPreview = ({
         <div className={styles.leftBand} style={{ backgroundColor: themeColor }}>
           <div className={styles.bandContent}>
             <div className={styles.bandLabel}>BON CADEAU</div>
-            <div className={styles.bandAmount}>
-              {amount}€
-            </div>
+            <div className={styles.bandAmount}>{amount}€</div>
           </div>
         </div>
 
         {/* Contenu principal */}
         <div className={styles.mainContent}>
-          {/* Header avec logo et infos */}
+          {/* Header avec logo et tagline */}
           <div className={styles.header}>
             <div className={styles.logoSection}>
               {logoUrl && (
                 <img src={logoUrl} alt="Logo" className={styles.logo} onError={(e) => e.target.style.display = 'none'} />
               )}
             </div>
-            <div className={styles.companyInfo}>
-              <h1 className={styles.companyName}>{companyName || 'Canyon Life'}</h1>
-              <p className={styles.tagline}>Pour une sortie exceptionnelle</p>
-            </div>
+            <p className={styles.tagline}>{slogan || 'Pour une sortie exceptionnelle'}</p>
           </div>
 
           {/* Description et montant */}
           <div className={styles.voucherInfo}>
-            <h2 className={styles.voucherTitle}>🎁 Bon cadeau</h2>
+            <h2 className={styles.voucherTitle}>🎁 Bon cadeau d'une valeur de {amount}€</h2>
             <p className={styles.voucherDescription}>
               Sensations fortes et paysages à couper le souffle !
             </p>
@@ -68,7 +64,7 @@ const GiftVoucherPreview = ({
 
           {/* Bénéficiaire */}
           {recipientName && (
-            <div className={styles.beneficiary}>
+            <div className={styles.beneficiary} style={{ borderLeftColor: themeColor, backgroundColor: themeColor + '08' }}>
               <p className={styles.beneficiaryLabel}>Pour <strong>{recipientName}</strong></p>
               {personalMessage && (
                 <p className={styles.personalMessage}>« {personalMessage} »</p>
@@ -79,24 +75,24 @@ const GiftVoucherPreview = ({
           {/* Code du bon (masqué) */}
           <div className={styles.codeSection} style={{ borderTopColor: themeColor + '30', borderBottomColor: themeColor + '30' }}>
             <div className={styles.codeBox}>
-              <div className={styles.codeLabel}>Code du bon</div>
-              <div className={styles.maskedCode}>{maskedCode}</div>
-              <div className={styles.codeHint}>(Code complet reçu par email après paiement)</div>
+              <div className={styles.codeLabel} style={{ color: themeColor }}>Code du bon</div>
+              <div className={styles.maskedText}>Code reçu par email après paiement</div>
+              <div className={styles.codeHint}>Utilisable sur le site internet en une ou plusieurs fois</div>
             </div>
           </div>
 
           {/* Validité */}
           <div className={styles.validity}>
             <p>
-              <strong>Valable jusqu'au :</strong> 31/12/2027<br />
-              <strong>Non échangeable, non remboursable</strong>
+              <strong>Valable jusqu'au :</strong> 31/12/2027
             </p>
+            <p className={styles.disclaimer}>Non échangeable, non remboursable</p>
           </div>
 
           {/* Contact footer */}
           <div className={styles.footer}>
             <div className={styles.footerContent}>
-              <p>{companyWebsite && <a href={`https://${companyWebsite}`}>{companyWebsite}</a>} {companyEmail && `| ${companyEmail}`}</p>
+              <p>{companyWebsite && <a href={`https://${companyWebsite}`} style={{ color: themeColor }}>{companyWebsite}</a>} {companyEmail && `| ${companyEmail}`}</p>
               {companyPhone && <p>{companyPhone}</p>}
             </div>
           </div>

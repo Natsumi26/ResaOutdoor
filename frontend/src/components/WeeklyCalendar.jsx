@@ -7,16 +7,34 @@ import SessionSlot from './SessionSlot';
 import { settingsAPI } from '../services/api';
 
 const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClick, onCreateBooking, onCreateSession, onDeleteSession, onWeekChange, selectedDate, currentUser }) => {
-  const [primaryColor, setPrimaryColor] = useState('#3498db');
-
-  // Charger la couleur primary depuis les settings
+  // Charger la couleur primary depuis les settings et mettre à jour les CSS variables
   useEffect(() => {
     const loadThemeColor = async () => {
       try {
         const response = await settingsAPI.get();
         const settings = response.data.settings;
         if (settings?.primaryColor) {
-          setPrimaryColor(settings.primaryColor);
+          const primaryColor = settings.primaryColor;
+          const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+          // Mettre à jour les CSS variables
+          document.documentElement.style.setProperty('--guide-primary', primaryColor);
+          document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+          // Extraire les composants RGB
+          const extractRGB = (hex) => {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0, 2), 16);
+            const g = parseInt(h.substring(2, 4), 16);
+            const b = parseInt(h.substring(4, 6), 16);
+            return `${r}, ${g}, ${b}`;
+          };
+          document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+          document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+          // Sauvegarder dans localStorage
+          localStorage.setItem('guidePrimaryColor', primaryColor);
+          localStorage.setItem('guideSecondaryColor', secondaryColor);
         }
       } catch (error) {
         console.error('Erreur chargement couleur thème:', error);
@@ -24,14 +42,6 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
     };
     loadThemeColor();
   }, []);
-
-  // Convertir hex en rgba avec opacité
-  const hexToRgba = (hex, alpha) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
 
   // Générer les 7 jours de la semaine
   const weekStart = selectedDate
@@ -135,7 +145,7 @@ const WeeklyCalendar = ({ sessions, onMoveBooking, onSessionClick, onBookingClic
             <div
               key={day.toString()}
               className={`${styles.dayColumn} ${isToday ? styles.todayColumn : ''}`}
-              style={isToday ? { backgroundColor: hexToRgba(primaryColor, 0.7) } : {}}
+              style={isToday ? { backgroundColor: 'rgba(var(--guide-primary-rgb), 0.7)' } : {}}
             >
               <div className={styles.dayName}>
                 {format(day, 'EEEE', { locale: fr })}

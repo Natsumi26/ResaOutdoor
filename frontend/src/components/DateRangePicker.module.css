@@ -22,7 +22,7 @@
 }
 
 .navButton {
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
   border: none;
   border-radius: 50%;
@@ -37,7 +37,7 @@
 }
 
 .navButton:hover {
-  background: #2980b9;
+  background: var(--guide-secondary);
   transform: scale(1.1);
 }
 
@@ -120,7 +120,7 @@
 }
 
 .selectedDates strong {
-  color: #3498db;
+  color: var(--guide-primary);
 }
 
 .selectedDates em {

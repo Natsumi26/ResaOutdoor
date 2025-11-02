@@ -361,6 +361,7 @@ model Settings {
   companyEmail      String?  // Email de l'entreprise
   website           String?  // Site internet de l'entreprise
   logo              String?  // URL du logo
+  slogan            String?  // Slogan utilisé dans les bons cadeaux
   primaryColor      String?  // Couleur principale (sidebar guide)
   secondaryColor    String?  // Couleur secondaire (session button guide)
   clientButtonColor String?  // Couleur des boutons côté client

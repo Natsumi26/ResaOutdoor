@@ -27,7 +27,15 @@
       "Bash(curl:*)",
       "Bash(git checkout:*)",
       "Bash(timeout /t 5)",
-      "Bash(npm run prisma:seed:*)"
+      "Bash(npm run prisma:seed:*)",
+      "Bash(for file in SessionDetailModal.module.css SessionForm.module.css SessionSlot.module.css BookingForm.module.css ParticipantForm.module.css ProductForm.module.css WetsuitSummary.module.css)",
+      "Bash(do:*)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

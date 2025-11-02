@@ -17,7 +17,6 @@ const Newsletter = () => {
     textContent: ''
   });
   const [sending, setSending] = useState(false);
-  const [primaryColor, setPrimaryColor] = useState('#3498db');
 
   useEffect(() => {
     loadNewsletters();
@@ -29,7 +28,27 @@ const Newsletter = () => {
       const response = await settingsAPI.get();
       const settings = response.data.settings;
       if (settings?.primaryColor) {
-        setPrimaryColor(settings.primaryColor);
+        const primaryColor = settings.primaryColor;
+        const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+        // Mettre à jour les CSS variables
+        document.documentElement.style.setProperty('--guide-primary', primaryColor);
+        document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+        // Extraire les composants RGB
+        const extractRGB = (hex) => {
+          const h = hex.replace('#', '');
+          const r = parseInt(h.substring(0, 2), 16);
+          const g = parseInt(h.substring(2, 4), 16);
+          const b = parseInt(h.substring(4, 6), 16);
+          return `${r}, ${g}, ${b}`;
+        };
+        document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+        document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('guidePrimaryColor', primaryColor);
+        localStorage.setItem('guideSecondaryColor', secondaryColor);
       }
     } catch (error) {
       console.error('Erreur chargement couleur thème:', error);
@@ -123,7 +142,7 @@ const Newsletter = () => {
         <button
           className={styles.btnPrimary}
           onClick={() => setShowEmailForm(!showEmailForm)}
-          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+          style={{ backgroundColor: 'var(--guide-primary)', borderColor: 'var(--guide-primary)' }}
         >
           {showEmailForm ? 'Annuler' : 'Envoyer une newsletter'}
         </button>
@@ -132,15 +151,15 @@ const Newsletter = () => {
       {/* Statistiques */}
       <div className={styles.stats}>
         <div className={styles.statCard}>
-          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.active}</div>
+          <div className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{stats.active}</div>
           <div className={styles.statLabel}>Abonnés actifs</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.total}</div>
+          <div className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{stats.total}</div>
           <div className={styles.statLabel}>Total</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue} style={{ color: primaryColor }}>{stats.inactive}</div>
+          <div className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{stats.inactive}</div>
           <div className={styles.statLabel}>Désabonnés</div>
         </div>
       </div>
@@ -210,21 +229,21 @@ const Newsletter = () => {
           <button
             className={filter === 'active' ? styles.active : ''}
             onClick={() => setFilter('active')}
-            style={filter === 'active' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+            style={filter === 'active' ? { backgroundColor: 'var(--guide-primary)', borderColor: 'var(--guide-primary)' } : {}}
           >
             Actifs ({stats.active})
           </button>
           <button
             className={filter === 'all' ? styles.active : ''}
             onClick={() => setFilter('all')}
-            style={filter === 'all' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+            style={filter === 'all' ? { backgroundColor: 'var(--guide-primary)', borderColor: 'var(--guide-primary)' } : {}}
           >
             Tous ({stats.total})
           </button>
           <button
             className={filter === 'inactive' ? styles.active : ''}
             onClick={() => setFilter('inactive')}
-            style={filter === 'inactive' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+            style={filter === 'inactive' ? { backgroundColor: 'var(--guide-primary)', borderColor: 'var(--guide-primary)' } : {}}
           >
             Désabonnés ({stats.inactive})
           </button>

@@ -88,8 +88,8 @@
 }
 
 .filterBtn.active {
-  background-color: #3498db;
-  border-color: #3498db;
+  background-color: var(--guide-primary);
+  border-color: var(--guide-primary);
 }
 
 .dotGreen {
@@ -126,7 +126,7 @@
 }
 
 .dayColumn.todayColumn {
-  background-color: #3498db;
+  background-color: var(--guide-primary);
 }
 
 .dayName {
@@ -192,7 +192,7 @@
 
 .btnAddSession:hover {
   background-color: #e9ecef;
-  color: #3498db;
+  color: var(--guide-primary);
 }
 
 .emptyDay {

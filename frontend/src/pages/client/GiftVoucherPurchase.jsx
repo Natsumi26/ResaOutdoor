@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stripeAPI, settingsAPI } from '../../services/api';
-import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 import GiftVoucherPreview from '../../components/GiftVoucherPreview';
-
+import modalStyles from '../../components/GiftVoucherModal.module.css';
 
 const GiftVoucherPurchase = () => {
   const { t } = useTranslation();
@@ -15,20 +14,15 @@ const GiftVoucherPurchase = () => {
   });
 
   const [formData, setFormData] = useState({
-    // Informations de l'acheteur
     buyerFirstName: '',
     buyerLastName: '',
     buyerEmail: '',
     buyerPhone: '',
-
-    // Informations du bénéficiaire
     recipientFirstName: '',
     recipientLastName: '',
     recipientEmail: '',
     personalMessage: '',
-
-    // Détails du bon
-    voucherType: 'amount', // 'amount' ou 'activity'
+    voucherType: 'amount',
     amount: '',
     selectedProduct: '',
     quantity: 1
@@ -42,10 +36,10 @@ const GiftVoucherPurchase = () => {
     companyPhone: '',
     companyEmail: '',
     companyWebsite: '',
-    logo: ''
+    logo: '',
+    slogan: ''
   });
 
-  // Options de montants prédéfinis
   const amountOptions = [50, 75, 100, 150, 200];
 
   useEffect(() => {
@@ -54,20 +48,19 @@ const GiftVoucherPurchase = () => {
         const response = await settingsAPI.get();
         const settings = response.data.settings;
 
-        // Charger la couleur client
         if (settings?.clientButtonColor) {
           setClientColor(settings.clientButtonColor);
           localStorage.setItem('clientThemeColor', settings.clientButtonColor);
         }
 
-        // Charger les infos du guide
         if (settings) {
           setGuideSettings({
             companyName: settings.companyName || 'Canyon Life',
             companyPhone: settings.companyPhone || '',
             companyEmail: settings.companyEmail || '',
             companyWebsite: settings.website || '',
-            logo: settings.logo || ''
+            logo: settings.logo || '',
+            slogan: settings.slogan || 'Pour une sortie exceptionnelle'
           });
         }
       } catch (error) {
@@ -81,15 +74,17 @@ const GiftVoucherPurchase = () => {
     setFormData({ ...formData, [field]: value });
   };
 
+  const handleClose = () => {
+    navigate('/client/search');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Calculer le montant total du bon cadeau
       const totalAmount = parseFloat(formData.amount);
 
-      // Préparer les données pour l'API
       const recipientName = formData.recipientFirstName && formData.recipientLastName
         ? `${formData.recipientFirstName} ${formData.recipientLastName}`
         : '';
@@ -102,11 +97,9 @@ const GiftVoucherPurchase = () => {
         message: formData.personalMessage || null
       };
 
-      // Créer la session de paiement Stripe
       const response = await stripeAPI.createGiftVoucherCheckout(paymentData);
 
       if (response.data.success && response.data.url) {
-        // Rediriger vers Stripe pour le paiement
         window.location.href = response.data.url;
       } else {
         throw new Error('Impossible de créer la session de paiement');
@@ -120,173 +113,113 @@ const GiftVoucherPurchase = () => {
   };
 
   return (
-    <div className={styles.clientContainer}>
-      {/* Styles globaux pour les éléments avec effets bleus */}
+    <div className={modalStyles.modalOverlay} onClick={handleClose}>
       <style>
         {`
-          .${styles.voucherTypeCard}:hover {
+          .${modalStyles.modal} input:-webkit-autofill,
+          .${modalStyles.modal} input:-webkit-autofill:hover,
+          .${modalStyles.modal} input:-webkit-autofill:focus,
+          .${modalStyles.modal} input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #495057 !important;
+          }
+          .${modalStyles.modal} input:-webkit-autofill {
+            border-color: ${clientColor} !important;
+          }
+          .amountOption {
+            padding: 1rem !important;
+            background: #f8f9fa !important;
+            border: 2px solid #dee2e6 !important;
+            border-radius: 8px !important;
+            font-size: 1.5rem !important;
+            font-weight: bold !important;
+            color: #2c3e50 !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+          }
+          .amountOption:hover {
             border-color: ${clientColor} !important;
             background: ${clientColor}15 !important;
           }
-          .${styles.voucherTypeCard}.active {
-            border-color: ${clientColor} !important;
-            background: ${clientColor}15 !important;
-          }
-          .${styles.amountOption}:hover {
-            border-color: ${clientColor} !important;
-            background: ${clientColor}15 !important;
-          }
-          .${styles.amountOption}.active {
+          .amountOption.active {
             border-color: ${clientColor} !important;
             background: ${clientColor} !important;
-          }
-          .${styles.formGroup} input:focus,
-          .${styles.formGroup} select:focus {
-            border-color: ${clientColor} !important;
-            box-shadow: 0 0 0 3px ${clientColor}20 !important;
-          }
-          .${styles.radioOption}:hover {
-            background: ${clientColor}15 !important;
-            border-color: ${clientColor} !important;
-          }
-          .${styles.voucherCodeBox} {
-            background: ${clientColor}15 !important;
-            border-color: ${clientColor} !important;
-          }
-          .${styles.loader} {
-            border-top-color: ${clientColor} !important;
+            color: white !important;
           }
         `}
       </style>
-      <button
-        onClick={() => navigate(-1)}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          background: 'white',
-          border: '2px solid #2c3e50',
-          cursor: 'pointer',
-          borderRadius: '50%',
-          width: '50px',
-          height: '50px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          zIndex: 1000,
-          transition: 'all 0.2s',
-          padding: 0
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1)';
-          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-          e.target.style.background = '#f8f9fa';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-          e.target.style.background = 'white';
-        }}
-        title="Retour"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
 
-      <div className={styles.searchHeader}>
-        <h1>🎁 {t('achatGift')}</h1>
-        <p>{t('GiftExp')}</p>
-      </div>
+      <div className={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+        <button className={modalStyles.closeButton} onClick={handleClose} title="Fermer">
+          ✕
+        </button>
 
-      {/* Modal Preview */}
-      <GiftVoucherPreview
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        amount={formData.amount}
-        buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
-        recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
-        personalMessage={formData.personalMessage}
-        companyName={guideSettings.companyName}
-        companyPhone={guideSettings.companyPhone}
-        companyEmail={guideSettings.companyEmail}
-        companyWebsite={guideSettings.companyWebsite}
-        logo={guideSettings.logo}
-        themeColor={clientColor}
-      />
+        <GiftVoucherPreview
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          amount={formData.amount}
+          buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
+          recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
+          personalMessage={formData.personalMessage}
+          companyName={guideSettings.companyName}
+          companyPhone={guideSettings.companyPhone}
+          companyEmail={guideSettings.companyEmail}
+          companyWebsite={guideSettings.companyWebsite}
+          logo={guideSettings.logo}
+          slogan={guideSettings.slogan}
+          themeColor={clientColor}
+        />
 
-      <form onSubmit={handleSubmit}>
-        <div className={styles.giftVoucherForm}>
-
-          {/* Montant ou activité */}
-          <div className={styles.formSection}>
-            {formData.voucherType === 'amount' ? (
-              <>
-                <h2>{t('MontantBon')}</h2>
-                <div className={styles.amountOptions}>
-                  {amountOptions.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      className={`${styles.amountOption} ${formData.amount === amount.toString() ? styles.active : ''}`}
-                      onClick={() => handleChange('amount', amount.toString())}
-                    >
-                      {amount}€
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
-                  <div style={{ maxWidth: '250px', width: '100%' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>{t('MontantPerso')}</label>
-                    <input
-                      type="number"
-                      min="20"
-                      placeholder="Montant en €"
-                      value={formData.amount}
-                      onChange={(e) => handleChange('amount', e.target.value)}
-                      required
-                      style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', width: '100%', padding: '0.5rem' }}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2>{t('ChooseActivity')}</h2>
-                <select
-                  value={formData.selectedProduct}
-                  onChange={(e) => handleChange('selectedProduct', e.target.value)}
-                  required
-                >
-                  <option value="">{t('SelectCanyon')}</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - {product.priceIndividual}€/pers
-                    </option>
-                  ))}
-                </select>
-                <div className={styles.quantitySelector}>
-                  <label>{t('NbrParticipants')}</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.quantity}
-                    onChange={(e) => handleChange('quantity', e.target.value)}
-                    required
-                  />
-                </div>
-              </>
-            )}
+        <div className={modalStyles.modalContent}>
+          <div className={modalStyles.header}>
+            <h1>🎁 {t('achatGift')}</h1>
+            <p>{t('GiftExp')}</p>
           </div>
 
-          {/* Informations de l'acheteur et du bénéficiaire en 2 colonnes */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
-            <div className={styles.formSection}>
-              <h2>{t('yoursInfos')}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div className={styles.formGroup}>
+          <form onSubmit={handleSubmit} className={modalStyles.giftVoucherForm}>
+            {/* Montant */}
+            <div className={modalStyles.formSection}>
+              <h2>{t('MontantBon')}</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                {amountOptions.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    className="amountOption"
+                    onClick={() => handleChange('amount', amount.toString())}
+                    style={formData.amount === amount.toString() ? {
+                      borderColor: clientColor,
+                      backgroundColor: clientColor,
+                      color: 'white'
+                    } : {}}
+                  >
+                    {amount}€
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ maxWidth: '200px', width: '100%' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>
+                    {t('MontantPerso')}
+                  </label>
+                  <input
+                    type="number"
+                    min="20"
+                    placeholder="Montant en €"
+                    value={formData.amount}
+                    onChange={(e) => handleChange('amount', e.target.value)}
+                    required
+                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', width: '100%' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Infos Acheteur & Bénéficiaire */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className={modalStyles.formSection}>
+                <h2>{t('yoursInfos')}</h2>
+                <div className={modalStyles.formGroup}>
                   <label>Prénom *</label>
                   <input
                     type="text"
@@ -295,7 +228,7 @@ const GiftVoucherPurchase = () => {
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
+                <div className={modalStyles.formGroup}>
                   <label>{t('Nom')} *</label>
                   <input
                     type="text"
@@ -304,7 +237,7 @@ const GiftVoucherPurchase = () => {
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
+                <div className={modalStyles.formGroup}>
                   <label>Email *</label>
                   <input
                     type="email"
@@ -313,7 +246,7 @@ const GiftVoucherPurchase = () => {
                     required
                   />
                 </div>
-                <div className={styles.formGroup}>
+                <div className={modalStyles.formGroup}>
                   <label>{t('Téléphone')} *</label>
                   <input
                     type="tel"
@@ -323,12 +256,10 @@ const GiftVoucherPurchase = () => {
                   />
                 </div>
               </div>
-            </div>
 
-            <div className={styles.formSection}>
-              <h2>{t('BeneficiaireGift')}</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div className={styles.formGroup}>
+              <div className={modalStyles.formSection}>
+                <h2>{t('BeneficiaireGift')}</h2>
+                <div className={modalStyles.formGroup}>
                   <label>{t('Prénom')}</label>
                   <input
                     type="text"
@@ -337,7 +268,7 @@ const GiftVoucherPurchase = () => {
                     placeholder="Optionnel"
                   />
                 </div>
-                <div className={styles.formGroup}>
+                <div className={modalStyles.formGroup}>
                   <label>{t('Nom')}</label>
                   <input
                     type="text"
@@ -346,44 +277,35 @@ const GiftVoucherPurchase = () => {
                     placeholder="Optionnel"
                   />
                 </div>
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('MessagePerso')}</label>
-                <textarea
-                  value={formData.personalMessage}
-                  onChange={(e) => handleChange('personalMessage', e.target.value)}
-                  placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
-                  rows="4"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '6px',
-                    fontSize: '1rem',
-                    fontFamily: 'inherit'
-                  }}
-                />
+                <div className={modalStyles.formGroup}>
+                  <label>{t('MessagePerso')}</label>
+                  <textarea
+                    value={formData.personalMessage}
+                    onChange={(e) => handleChange('personalMessage', e.target.value)}
+                    placeholder="Ajoutez un message personnel..."
+                    rows="4"
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Info mémo */}
-          <div className={styles.formSection} style={{ backgroundColor: `${clientColor}15`, borderLeft: `4px solid ${clientColor}` }}>
-            <p style={{ margin: '0', lineHeight: '1.6', color: '#333' }}>
-              <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email contenant le bon cadeau en version imprimable et personnalisé. Le bon peut être utilisé en une ou plusieurs fois directement sur le site.
-            </p>
-          </div>
+            {/* Info Box */}
+            <div className={modalStyles.formSection} style={{ backgroundColor: `${clientColor}08`, borderLeft: `3px solid ${clientColor}` }}>
+              <p style={{ margin: '0', lineHeight: '1.6', fontSize: '0.9rem', color: '#333' }}>
+                <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email avec le bon cadeau imprimable.
+              </p>
+            </div>
 
-          {/* Bouton de soumission */}
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              onClick={() => navigate('/client/search')}
-              className={styles.btnSecondary}
-            >
-              {t('Annuler')}
-            </button>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            {/* Buttons */}
+            <div className={modalStyles.formActions}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className={modalStyles.btnSecondary}
+              >
+                {t('Annuler')}
+              </button>
               <button
                 type="button"
                 onClick={() => setShowPreview(!showPreview)}
@@ -394,18 +316,17 @@ const GiftVoucherPurchase = () => {
                   border: `2px solid ${clientColor}`,
                   padding: '0.75rem 1.5rem',
                   borderRadius: '6px',
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: (!formData.amount || parseFloat(formData.amount) < 20) ? 'not-allowed' : 'pointer',
-                  opacity: (!formData.amount || parseFloat(formData.amount) < 20) ? 0.5 : 1,
-                  transition: 'all 0.2s'
+                  opacity: (!formData.amount || parseFloat(formData.amount) < 20) ? 0.5 : 1
                 }}
               >
                 👁️ {showPreview ? 'Masquer' : 'Aperçu'}
               </button>
               <button
                 type="submit"
-                className={styles.btnPrimary}
+                className={modalStyles.btnPrimary}
                 disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
                 style={{
                   backgroundColor: clientColor,
@@ -416,9 +337,9 @@ const GiftVoucherPurchase = () => {
                 {loading ? t('payment.processing') : `${t('payment.proceed')} - ${formData.amount || '0'}€`}
               </button>
             </div>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

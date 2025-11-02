@@ -15,6 +15,7 @@ const Preferences = () => {
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');
   const [logo, setLogo] = useState('');
+  const [slogan, setSlogan] = useState('');
 
   // Préférences de thème
   const [themeColors, setThemeColors] = useState({
@@ -50,6 +51,7 @@ const Preferences = () => {
         setEmail(settings.companyEmail || '');
         setWebsite(settings.website || '');
         setLogo(settings.logo || '');
+        setSlogan(settings.slogan || '');
 
         if (settings.primaryColor) {
           setThemeColors(prev => ({
@@ -87,14 +89,30 @@ const Preferences = () => {
         companyEmail: email,
         website,
         logo,
+        slogan,
         primaryColor: themeColors.primary,
         secondaryColor: themeColors.secondary,
         clientButtonColor: themeColors.clientButton,
         clientAccentColor: themeColors.clientAccent
       });
 
-      // Sauvegarder la couleur client dans localStorage pour éviter le flash
+      // Sauvegarder les couleurs dans localStorage pour éviter le flash au chargement
       localStorage.setItem('clientThemeColor', themeColors.clientButton);
+      localStorage.setItem('guidePrimaryColor', themeColors.primary);
+      localStorage.setItem('guideSecondaryColor', themeColors.secondary);
+
+      // Mettre à jour les CSS variables pour changement immédiat
+      document.documentElement.style.setProperty('--guide-primary', themeColors.primary);
+      document.documentElement.style.setProperty('--guide-secondary', themeColors.secondary);
+      const extractRGB = (hex) => {
+        const h = hex.replace('#', '');
+        const r = parseInt(h.substring(0, 2), 16);
+        const g = parseInt(h.substring(2, 4), 16);
+        const b = parseInt(h.substring(4, 6), 16);
+        return `${r}, ${g}, ${b}`;
+      };
+      document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(themeColors.primary));
+      document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(themeColors.secondary));
 
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -264,6 +282,30 @@ const Preferences = () => {
               />
             </div>
 
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                Slogan
+              </label>
+              <input
+                type="text"
+                value={slogan}
+                onChange={(e) => setSlogan(e.target.value)}
+                placeholder="Ex: Pour une sortie exceptionnelle"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              />
+              <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Utilisé dans les bons cadeaux (en dessous du logo)
+              </small>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
                 Logo

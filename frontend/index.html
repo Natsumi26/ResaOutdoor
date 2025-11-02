@@ -8,6 +8,29 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Initialiser les couleurs du thème guide AVANT le rendu de React
+      // Cela élimine le flash de couleur de base
+      (function() {
+        const guidePrimaryColor = localStorage.getItem('guidePrimaryColor') || '#667eea';
+        const guideSecondaryColor = localStorage.getItem('guideSecondaryColor') || '#764ba2';
+
+        document.documentElement.style.setProperty('--guide-primary', guidePrimaryColor);
+        document.documentElement.style.setProperty('--guide-secondary', guideSecondaryColor);
+
+        // Extraire les composants RGB pour utiliser dans rgba()
+        const extractRGB = (hex) => {
+          const h = hex.replace('#', '');
+          const r = parseInt(h.substring(0, 2), 16);
+          const g = parseInt(h.substring(2, 4), 16);
+          const b = parseInt(h.substring(4, 6), 16);
+          return `${r}, ${g}, ${b}`;
+        };
+
+        document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(guidePrimaryColor));
+        document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(guideSecondaryColor));
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

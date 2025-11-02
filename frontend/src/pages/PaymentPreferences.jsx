@@ -13,7 +13,6 @@ const PaymentPreferences = () => {
   const [depositType, setDepositType] = useState('percentage');
   const [depositAmount, setDepositAmount] = useState('');
   const [confidentialityPolicy, setConfidentialityPolicy] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#3498db');
 
   console.log(user)
   useEffect(() => {
@@ -26,7 +25,27 @@ const PaymentPreferences = () => {
       const response = await settingsAPI.get();
       const settings = response.data.settings;
       if (settings?.primaryColor) {
-        setPrimaryColor(settings.primaryColor);
+        const primaryColor = settings.primaryColor;
+        const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+        // Mettre à jour les CSS variables
+        document.documentElement.style.setProperty('--guide-primary', primaryColor);
+        document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+        // Extraire les composants RGB
+        const extractRGB = (hex) => {
+          const h = hex.replace('#', '');
+          const r = parseInt(h.substring(0, 2), 16);
+          const g = parseInt(h.substring(2, 4), 16);
+          const b = parseInt(h.substring(4, 6), 16);
+          return `${r}, ${g}, ${b}`;
+        };
+        document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+        document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('guidePrimaryColor', primaryColor);
+        localStorage.setItem('guideSecondaryColor', secondaryColor);
       }
     } catch (error) {
       console.error('Erreur chargement couleur thème:', error);
@@ -163,11 +182,11 @@ const PaymentPreferences = () => {
                   alignItems: 'flex-start',
                   gap: '15px',
                   padding: '20px',
-                  border: paymentMode === option.value ? `2px solid ${primaryColor}` : '2px solid #dee2e6',
+                  border: paymentMode === option.value ? 'var(--guide-primary)' : '2px solid #dee2e6',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  background: paymentMode === option.value ? `${primaryColor}15` : 'white'
+                  background: paymentMode === option.value ? 'rgba(var(--guide-primary-rgb), 0.1)' : 'white'
                 }}
                 onMouseEnter={(e) => {
                   if (paymentMode !== option.value) {
@@ -191,7 +210,7 @@ const PaymentPreferences = () => {
                     width: '20px',
                     height: '20px',
                     cursor: 'pointer',
-                    accentColor: primaryColor
+                    accentColor: 'var(--guide-primary)'
                   }}
                 />
                 <div style={{ flex: 1 }}>

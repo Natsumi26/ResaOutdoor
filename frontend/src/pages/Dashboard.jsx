@@ -13,22 +13,35 @@ const Dashboard = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
-  const [themeColors, setThemeColors] = useState({
-    primary: '#667eea',
-    secondary: '#764ba2'
-  });
 
-  // Charger les couleurs du thème depuis les settings
+  // Charger les couleurs du thème depuis les settings et mettre à jour les CSS variables
   useEffect(() => {
     const loadThemeColors = async () => {
       try {
         const response = await settingsAPI.get();
         const settings = response.data.settings;
         if (settings?.primaryColor) {
-          setThemeColors({
-            primary: settings.primaryColor,
-            secondary: settings.secondaryColor || settings.primaryColor
-          });
+          const primaryColor = settings.primaryColor;
+          const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+          // Mettre à jour les CSS variables
+          document.documentElement.style.setProperty('--guide-primary', primaryColor);
+          document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+          // Extraire les composants RGB
+          const extractRGB = (hex) => {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0, 2), 16);
+            const g = parseInt(h.substring(2, 4), 16);
+            const b = parseInt(h.substring(4, 6), 16);
+            return `${r}, ${g}, ${b}`;
+          };
+          document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+          document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+          // Sauvegarder dans localStorage
+          localStorage.setItem('guidePrimaryColor', primaryColor);
+          localStorage.setItem('guideSecondaryColor', secondaryColor);
         }
       } catch (error) {
         console.error('Erreur chargement couleurs thème:', error);
@@ -74,14 +87,14 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside
         className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}
-        style={{ background: `linear-gradient(180deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}
+        style={{ background: 'linear-gradient(180deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)' }}
       >
         <div className={styles.sidebarHeader}>
           <h2>🏔️ CanyonLife</h2>
           <button
             className={styles.toggleBtn}
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={isMobile ? { background: `linear-gradient(180deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` } : {}}
+            style={isMobile ? { background: 'linear-gradient(180deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)' } : {}}
           >
             {sidebarOpen ? '◀' : '▶'}
           </button>

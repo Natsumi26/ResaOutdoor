@@ -2466,17 +2466,6 @@ input[type="number"] {
   transition: all 0.2s;
 }
 
-.amountOption:hover {
-  border-color: #3498db;
-  background: #e8f4f8;
-}
-
-.amountOption.active {
-  border-color: #3498db;
-  background: #3498db;
-  color: white;
-}
-
 .customAmount {
   display: flex;
   flex-direction: column;
