@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import styles from './SessionForm.module.css';
-import { settingsAPI } from '../services/api';
 
 const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCancel, initialDate }) => {
   const [formData, setFormData] = useState({
@@ -17,23 +16,6 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
   });
 
   const [errors, setErrors] = useState({});
-  const [primaryColor, setPrimaryColor] = useState('#3498db');
-
-  // Charger la couleur primary depuis les settings
-  useEffect(() => {
-    const loadThemeColor = async () => {
-      try {
-        const response = await settingsAPI.get();
-        const settings = response.data.settings;
-        if (settings?.primaryColor) {
-          setPrimaryColor(settings.primaryColor);
-        }
-      } catch (error) {
-        console.error('Erreur chargement couleur thème:', error);
-      }
-    };
-    loadThemeColor();
-  }, []);
 
   useEffect(() => {
     if (session) {
@@ -209,8 +191,8 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               className={formData.timeSlot === 'matin' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('matin')}
               style={formData.timeSlot === 'matin' ? {
-                backgroundColor: primaryColor,
-                borderColor: primaryColor
+                backgroundColor: 'var(--guide-primary)',
+                borderColor: 'var(--guide-primary)'
               } : {}}
             >
               🌅 Matin
@@ -220,8 +202,8 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               className={formData.timeSlot === 'après-midi' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('après-midi')}
               style={formData.timeSlot === 'après-midi' ? {
-                backgroundColor: primaryColor,
-                borderColor: primaryColor
+                backgroundColor: 'var(--guide-primary)',
+                borderColor: 'var(--guide-primary)'
               } : {}}
             >
               ☀️ Après-midi
