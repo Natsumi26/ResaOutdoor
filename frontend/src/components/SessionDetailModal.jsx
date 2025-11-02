@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import WetsuitSummary from './WetsuitSummary';
 import MoveBookingModal from './MoveBookingModal';
-import { bookingsAPI, settingsAPI } from '../services/api';
+import { bookingsAPI } from '../services/api';
 import styles from './SessionDetailModal.module.css';
 
 const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplicate, onDelete, onUpdate }) => {
@@ -15,23 +15,6 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   const [selectedBookings, setSelectedBookings] = useState([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
-  const [primaryColor, setPrimaryColor] = useState('#3498db');
-
-  // Charger la couleur primary depuis les settings
-  useEffect(() => {
-    const loadThemeColor = async () => {
-      try {
-        const response = await settingsAPI.get();
-        const settings = response.data.settings;
-        if (settings?.primaryColor) {
-          setPrimaryColor(settings.primaryColor);
-        }
-      } catch (error) {
-        console.error('Erreur chargement couleur thème:', error);
-      }
-    };
-    loadThemeColor();
-  }, []);
 
   if (!session) return null;
 console.log(session)
@@ -77,7 +60,7 @@ console.log(session)
     if (bookings?.length > 0 && bookings[0]?.product?.color) {
       return bookings[0].product.color;
     }
-    return '#3498db';
+    return 'var(--guide-primary)';
   };
 
   // Grouper les réservations par statut de paiement
@@ -266,8 +249,8 @@ console.log(session)
             className={`${styles.tab} ${activeTab === 'overview' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('overview')}
             style={activeTab === 'overview' ? {
-              color: primaryColor,
-              borderBottomColor: primaryColor
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
             } : {}}
           >
             Vue d'ensemble
@@ -276,8 +259,8 @@ console.log(session)
             className={`${styles.tab} ${activeTab === 'equipment' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('equipment')}
             style={activeTab === 'equipment' ? {
-              color: primaryColor,
-              borderBottomColor: primaryColor
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
             } : {}}
           >
             🧥 Équipements
@@ -286,8 +269,8 @@ console.log(session)
             className={`${styles.tab} ${activeTab === 'communication' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('communication')}
             style={activeTab === 'communication' ? {
-              color: primaryColor,
-              borderBottomColor: primaryColor
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
             } : {}}
           >
             Communication
@@ -349,7 +332,7 @@ console.log(session)
                         className={styles.btnSelect}
                         onClick={toggleSelectionMode}
                         disabled={confirmedBookings.length === 0}
-                        style={{ backgroundColor: primaryColor }}
+                        style={{ backgroundColor: 'var(--guide-primary)' }}
                       >
                         ☑ Sélectionner
                       </button>
