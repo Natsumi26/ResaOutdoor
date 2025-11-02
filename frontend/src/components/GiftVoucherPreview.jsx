@@ -11,7 +11,9 @@ const GiftVoucherPreview = ({
   companyEmail,
   companyWebsite,
   logo,
-  themeColor
+  themeColor,
+  isOpen,
+  onClose
 }) => {
   // Générer un code masqué pour la pré-visualisation
   const generateMaskedCode = () => {
@@ -21,8 +23,15 @@ const GiftVoucherPreview = ({
 
   const maskedCode = generateMaskedCode();
 
+  if (!isOpen) return null;
+
+  const logoUrl = logo ? (logo.startsWith('http') ? logo : `http://localhost:5000${logo}`) : null;
+
   return (
-    <div className={styles.voucherContainer}>
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <button className={styles.closeButton} onClick={onClose}>✕</button>
+        <div className={styles.voucherContainer}>
       <div className={styles.voucherCard} style={{ borderLeftColor: themeColor }}>
         {/* Bande colorée à gauche */}
         <div className={styles.leftBand} style={{ backgroundColor: themeColor }}>
@@ -39,8 +48,8 @@ const GiftVoucherPreview = ({
           {/* Header avec logo et infos */}
           <div className={styles.header}>
             <div className={styles.logoSection}>
-              {logo && (
-                <img src={logo} alt="Logo" className={styles.logo} />
+              {logoUrl && (
+                <img src={logoUrl} alt="Logo" className={styles.logo} onError={(e) => e.target.style.display = 'none'} />
               )}
             </div>
             <div className={styles.companyInfo}>
@@ -91,6 +100,8 @@ const GiftVoucherPreview = ({
               {companyPhone && <p>{companyPhone}</p>}
             </div>
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>

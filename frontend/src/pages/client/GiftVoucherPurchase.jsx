@@ -200,26 +200,24 @@ const GiftVoucherPurchase = () => {
         <p>{t('GiftExp')}</p>
       </div>
 
+      {/* Modal Preview */}
+      <GiftVoucherPreview
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        amount={formData.amount}
+        buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
+        recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
+        personalMessage={formData.personalMessage}
+        companyName={guideSettings.companyName}
+        companyPhone={guideSettings.companyPhone}
+        companyEmail={guideSettings.companyEmail}
+        companyWebsite={guideSettings.companyWebsite}
+        logo={guideSettings.logo}
+        themeColor={clientColor}
+      />
+
       <form onSubmit={handleSubmit}>
         <div className={styles.giftVoucherForm}>
-          {/* Preview du bon cadeau */}
-          {showPreview && formData.amount && (
-            <div style={{ marginBottom: '2rem' }}>
-              <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Aperçu de votre bon cadeau</h2>
-              <GiftVoucherPreview
-                amount={formData.amount}
-                buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
-                recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
-                personalMessage={formData.personalMessage}
-                companyName={guideSettings.companyName}
-                companyPhone={guideSettings.companyPhone}
-                companyEmail={guideSettings.companyEmail}
-                companyWebsite={guideSettings.companyWebsite}
-                logo={guideSettings.logo}
-                themeColor={clientColor}
-              />
-            </div>
-          )}
 
           {/* Montant ou activité */}
           <div className={styles.formSection}>
