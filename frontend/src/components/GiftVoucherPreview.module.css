@@ -56,7 +56,7 @@
 
 .voucherCard {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 160px 1fr;
   width: 100%;
   max-width: 550px;
   background: white;
@@ -67,7 +67,6 @@
 }
 
 .leftBand {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,16 +85,17 @@
 }
 
 .bandLabel {
-  font-size: 1.1rem;
+  font-size: 1.8rem;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   line-height: 1.1;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 
 .bandAmount {
-  font-size: 2.2rem;
+  font-size: 2.8rem;
   font-weight: bold;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   color: white;
@@ -121,8 +121,8 @@
 }
 
 .logo {
-  max-width: 90px;
-  max-height: 90px;
+  max-width: 180px;
+  max-height: 180px;
   object-fit: contain;
   border-radius: 4px;
 }
@@ -269,16 +269,16 @@
   }
 
   .voucherCard {
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 130px 1fr;
     min-height: 340px;
   }
 
   .bandLabel {
-    font-size: 0.95rem;
+    font-size: 1.4rem;
   }
 
   .bandAmount {
-    font-size: 1.8rem;
+    font-size: 2.2rem;
   }
 
   .mainContent {
@@ -291,8 +291,8 @@
   }
 
   .logo {
-    max-width: 70px;
-    max-height: 70px;
+    max-width: 140px;
+    max-height: 140px;
   }
 
   .maskedCode {
