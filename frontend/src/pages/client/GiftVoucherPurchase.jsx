@@ -198,17 +198,19 @@ const GiftVoucherPurchase = () => {
                     </button>
                   ))}
                 </div>
-                <div className={styles.customAmount} style={{ maxWidth: '300px', margin: '1.5rem auto', textAlign: 'center' }}>
-                  <label style={{ display: 'block', marginBottom: '0.75rem' }}>{t('MontantPerso')}</label>
-                  <input
-                    type="number"
-                    min="20"
-                    placeholder="Montant en €"
-                    value={formData.amount}
-                    onChange={(e) => handleChange('amount', e.target.value)}
-                    required
-                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', width: '100%' }}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+                  <div style={{ maxWidth: '250px', width: '100%' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>{t('MontantPerso')}</label>
+                    <input
+                      type="number"
+                      min="20"
+                      placeholder="Montant en €"
+                      value={formData.amount}
+                      onChange={(e) => handleChange('amount', e.target.value)}
+                      required
+                      style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', width: '100%', padding: '0.5rem' }}
+                    />
+                  </div>
                 </div>
               </>
             ) : (
@@ -242,7 +244,7 @@ const GiftVoucherPurchase = () => {
           </div>
 
           {/* Informations de l'acheteur et du bénéficiaire en 2 colonnes */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
             <div className={styles.formSection}>
               <h2>{t('yoursInfos')}</h2>
               <div className={styles.formGroup}>
