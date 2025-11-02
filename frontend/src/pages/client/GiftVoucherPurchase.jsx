@@ -247,63 +247,67 @@ const GiftVoucherPurchase = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
             <div className={styles.formSection}>
               <h2>{t('yoursInfos')}</h2>
-              <div className={styles.formGroup}>
-                <label>Prénom *</label>
-                <input
-                  type="text"
-                  value={formData.buyerFirstName}
-                  onChange={(e) => handleChange('buyerFirstName', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Nom')} *</label>
-                <input
-                  type="text"
-                  value={formData.buyerLastName}
-                  onChange={(e) => handleChange('buyerLastName', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Email *</label>
-                <input
-                  type="email"
-                  value={formData.buyerEmail}
-                  onChange={(e) => handleChange('buyerEmail', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Téléphone')} *</label>
-                <input
-                  type="tel"
-                  value={formData.buyerPhone}
-                  onChange={(e) => handleChange('buyerPhone', e.target.value)}
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className={styles.formGroup}>
+                  <label>Prénom *</label>
+                  <input
+                    type="text"
+                    value={formData.buyerFirstName}
+                    onChange={(e) => handleChange('buyerFirstName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>{t('Nom')} *</label>
+                  <input
+                    type="text"
+                    value={formData.buyerLastName}
+                    onChange={(e) => handleChange('buyerLastName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Email *</label>
+                  <input
+                    type="email"
+                    value={formData.buyerEmail}
+                    onChange={(e) => handleChange('buyerEmail', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>{t('Téléphone')} *</label>
+                  <input
+                    type="tel"
+                    value={formData.buyerPhone}
+                    onChange={(e) => handleChange('buyerPhone', e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             </div>
 
             <div className={styles.formSection}>
               <h2>{t('BeneficiaireGift')}</h2>
-              <div className={styles.formGroup}>
-                <label>{t('Prénom')}</label>
-                <input
-                  type="text"
-                  value={formData.recipientFirstName}
-                  onChange={(e) => handleChange('recipientFirstName', e.target.value)}
-                  placeholder="Optionnel"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Nom')}</label>
-                <input
-                  type="text"
-                  value={formData.recipientLastName}
-                  onChange={(e) => handleChange('recipientLastName', e.target.value)}
-                  placeholder="Optionnel"
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <div className={styles.formGroup}>
+                  <label>{t('Prénom')}</label>
+                  <input
+                    type="text"
+                    value={formData.recipientFirstName}
+                    onChange={(e) => handleChange('recipientFirstName', e.target.value)}
+                    placeholder="Optionnel"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>{t('Nom')}</label>
+                  <input
+                    type="text"
+                    value={formData.recipientLastName}
+                    onChange={(e) => handleChange('recipientLastName', e.target.value)}
+                    placeholder="Optionnel"
+                  />
+                </div>
               </div>
               <div className={styles.formGroup}>
                 <label>{t('MessagePerso')}</label>
