@@ -91,6 +91,20 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     }));
   };
 
+  const handleCategoryToggle = (categoryId) => {
+    setFormData(prev => {
+      const categoryIds = prev.categoryIds || [];
+      const isSelected = categoryIds.includes(categoryId);
+
+      return {
+        ...prev,
+        categoryIds: isSelected
+          ? categoryIds.filter(id => id !== categoryId)
+          : [...categoryIds, categoryId]
+      };
+    });
+  };
+
   const handleColorChange = (color) => {
     setFormData(prev => ({ ...prev, color: color.hex }));
   };
@@ -282,18 +296,27 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
             </div>
           </div>
 
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Région *</label>
-              <select
-                name="region"
-                value={formData.region}
-                onChange={handleChange}
-              >
-                <option value="annecy">Annecy</option>
-                <option value="grenoble">Grenoble</option>
-              </select>
+          <div className={styles.formGroup}>
+            <label>Catégories (sélection multiple possible)</label>
+            <div className={styles.categoriesCheckboxes}>
+              {categories.length === 0 ? (
+                <p className={styles.noCategories}>Aucune catégorie disponible</p>
+              ) : (
+                categories.map(cat => (
+                  <div key={cat.id} className={styles.categoryItem}>
+                    <label className={styles.categoryCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={formData.categoryIds?.includes(cat.id) || false}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                      />
+                      <span>{cat.name}</span>
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
+            <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
           </div>
 
           <div className={styles.formGroup}>
