@@ -4,7 +4,7 @@ import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, parti
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 const BookingForm = () => {
   const { t, i18n } = useTranslation();
@@ -141,11 +141,6 @@ const BookingForm = () => {
   useEffect(() => {
     if (session) {
       const urgent = isLessThan24Hours();
-      console.log('Session chargée - Vérification 24h:', {
-        sessionDate: session.date,
-        startTime: session.startTime,
-        isUrgent: urgent
-      });
       setIsUrgent(urgent);
     }
   }, [session]);
@@ -155,7 +150,7 @@ const BookingForm = () => {
       handleChange(setFormData({ ...formData, paymentMethod: 'online' }));
     }
   }, [modePayment]);
-console.log(formData)
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -296,14 +291,14 @@ console.log(formData)
       );
 
       if (incompleteParticipants.length > 0) {
-        alert('La session étant dans moins de 24h, les informations de tous les participants (prénom, âge, poids, taille) sont obligatoires.');
+        alert(t("alerts.missingParticipantInfo"));
         return;
       }
 
       // Vérifier les pointures pour ceux qui louent des chaussures
       const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
       if (shoeSizeError) {
-        alert('Veuillez renseigner la pointure pour chaque location de chaussures.');
+        alert(t("alerts.missingSize"));
         return;
       }
     }
@@ -573,12 +568,12 @@ console.log(formData)
               <>
                 <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: `1px solid ${clientColor}` }}>
                   <div className={styles.priceItem}>
-                    <span>💳 Acompte à payer maintenant</span>
+                    <span>💳 {t("payment.depositNow")}</span>
                     <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
                   </div>
                   {!formData.payFullAmount && (
                     <div className={styles.priceItem} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
-                      <span>💵 Solde à payer sur place</span>
+                      <span>💵 {t("payment.balanceOnSite")}</span>
                       <span>{((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€</span>
                     </div>
                   )}
@@ -707,14 +702,20 @@ console.log(formData)
               }}>
                 <p style={{ margin: 0, fontWeight: '500' }}>
                   {isUrgent ? (
-                    <>🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.</>
+                    <Trans i18nKey="participantInfo.urgent">
+                      🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.
+                    </Trans>
                   ) : (
-                    <>⚠️ Ces informations sont <strong>obligatoires</strong> pour participer à l'activité.</>
+                    <Trans i18nKey="participantInfo.required">
+                      ⚠️ Ces informations sont <strong>obligatoires</strong> pour participer à l'activité.
+                    </Trans>
                   )}
                 </p>
                 {!isUrgent && (
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+                  <Trans i18nKey="participantInfo.later">
                     Vous pouvez les remplir maintenant ou plus tard. Votre <strong>email de confirmation</strong> contiendra un lien pour <strong>compléter ou modifier</strong> ces informations avant l'activité.
+                  </Trans>
                   </p>
                 )}
               </div>
@@ -816,7 +817,7 @@ console.log(formData)
 
             {/* Bon cadeau */}
             <div className={styles.voucherSection}>
-              <label>Code promo / bon cadeau</label>
+              <label>{t('GiftDiscount')}</label>
               <div className={styles.voucherInput}>
                 <input
                   type="text"
@@ -836,7 +837,11 @@ console.log(formData)
                     ? ` ${voucherInfo.amount}% de réduction`
                     : ` ${voucherInfo.amount}€ de réduction`}
                   {voucherInfo.type === 'promo' && voucherInfo.maxUsages && (
-                    <span> ({voucherInfo.maxUsages - voucherInfo.usageCount} utilisations restantes)</span>
+                  <span>
+                    ({t("voucher.remainingUses", {
+                      count: voucherInfo.maxUsages - voucherInfo.usageCount
+                    })})
+                  </span>
                   )}
                 </p>
               )}
@@ -888,12 +893,12 @@ console.log(formData)
                 <>
                   <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: `1px solid ${clientColor}` }}>
                     <div className={styles.priceItem}>
-                      <span>💳 Acompte à payer maintenant</span>
+                      <span>💳 {t('payment.depositNow')}</span>
                       <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
                     </div>
                     {!formData.payFullAmount && (
                       <div className={styles.priceItem} style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
-                        <span>💵 Solde à payer sur place</span>
+                        <span>💵 {t('payment.balanceOnSite')}</span>
                         <span>{((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€</span>
                       </div>
                     )}
@@ -913,9 +918,12 @@ console.log(formData)
                     style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                   />
                   <div>
-                    <strong>💰 Payer la totalité maintenant</strong>
+                    <strong>💰 {t('payment.PaidTotalNow')}</strong>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
-                      Au lieu de payer l'acompte de {calculateDeposit().toFixed(2)}€, vous pouvez payer la totalité de {(voucherInfo ? finalPrice : total).toFixed(2)}€ dès maintenant par carte bancaire.
+                      {t("payment.fullOption", {
+                        deposit: calculateDeposit().toFixed(2),
+                        total: (voucherInfo ? finalPrice : total).toFixed(2)
+                      })}
                     </p>
                   </div>
                 </label>
@@ -930,12 +938,17 @@ console.log(formData)
                 /* Si acompte requis : toujours passer par Stripe pour l'acompte */
                 <div style={{ padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
                   <p style={{ margin: 0, fontWeight: 'bold', color: '#856404' }}>
-                    💳 Paiement par carte bancaire obligatoire
+                    💳 {t("payment.cardRequired")}
                   </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#856404' }}>
                     {formData.payFullAmount
-                      ? `Vous allez payer la totalité (${calculateAmountToPay().toFixed(2)}€) par carte bancaire.`
-                      : `Vous allez payer l'acompte de ${calculateDeposit().toFixed(2)}€ par carte bancaire. Le solde de ${((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)}€ sera à régler sur place.`
+                      ? t("payment.fullNow", {
+                          amount: calculateAmountToPay().toFixed(2)
+                        })
+                      : t("payment.depositNowLong", {
+                          deposit: calculateDeposit().toFixed(2),
+                          balance: ((voucherInfo ? finalPrice : total) - calculateDeposit()).toFixed(2)
+                        })
                     }
                   </p>
                 </div>
@@ -943,10 +956,12 @@ console.log(formData)
                  // 💳 Paiement total obligatoire
                 <div style={{ padding: '1rem', backgroundColor: '#e2f0d9', borderRadius: '8px', border: '1px solid #a3d9a5' }}>
                   <p style={{ margin: 0, fontWeight: 'bold', color: '#2f6627' }}>
-                    💳 Paiement en ligne requis
+                    💳 {t("payment.onlineRequired")}
                   </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#2f6627' }}>
-                    Vous devez payer la totalité (${calculateAmountToPay().toFixed(2)}€) par carte bancaire.
+                    {t("payment.fullAmountNow", {
+                      amount: calculateAmountToPay().toFixed(2)
+                    })}
                   </p>
                 </div>
               ) : guidePaymentMode === 'full_or_later' ? (
@@ -962,7 +977,7 @@ console.log(formData)
                     />
                     <div>
                       <strong>{t('payOnPlace')}</strong>
-                      <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
+                      <p>{t("payment.onSite")}</p>
                     </div>
                   </label>
 
@@ -992,7 +1007,7 @@ console.log(formData)
                     />
                     <div>
                       <strong>{t('payOnPlace')}</strong>
-                      <p>Payer le jour de l'activité en liquide, chèque ou chèque vacances</p>
+                      <p>{t("payment.onSite")}</p>
                     </div>
                   </label>
                 </div>
@@ -1011,6 +1026,7 @@ console.log(formData)
                 />
                 <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
                   <span>
+                    <Trans i18nKey="consent.newsletter">
                     J'accepte les{' '}
                     <a
                       href={session.guide.confidentialityPolicy}
@@ -1021,6 +1037,7 @@ console.log(formData)
                       conditions de confidentialité
                     </a>{' '}
                     et souhaite recevoir la newsletter avec les actualités et offres spéciales. *
+                  </Trans>
                   </span>
                 </div>
               </label>

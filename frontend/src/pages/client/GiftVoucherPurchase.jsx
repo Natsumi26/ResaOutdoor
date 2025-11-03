@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stripeAPI, settingsAPI } from '../../services/api';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import GiftVoucherPreview from '../../components/GiftVoucherPreview';
 import modalStyles from '../../components/GiftVoucherModal.module.css';
 
@@ -293,7 +293,9 @@ const GiftVoucherPurchase = () => {
             {/* Info Box */}
             <div className={modalStyles.formSection} style={{ backgroundColor: `${clientColor}08`, borderLeft: `3px solid ${clientColor}` }}>
               <p style={{ margin: '0', lineHeight: '1.6', fontSize: '0.9rem', color: '#333' }}>
-                <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email avec le bon cadeau imprimable.
+                <Trans i18nKey="gift.email">
+                  <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous recevez un email avec le bon cadeau imprimable.
+                </Trans>
               </p>
             </div>
 

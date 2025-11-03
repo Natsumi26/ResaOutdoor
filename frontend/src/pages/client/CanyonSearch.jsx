@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { sessionsAPI, settingsAPI } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 import { format, addDays} from 'date-fns';
 import { useLocation } from 'react-router-dom';
@@ -56,7 +56,7 @@ const CanyonSearch = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
+console.log(isMobile)
   // Charger la couleur client depuis les settings
   useEffect(() => {
     const loadClientColor = async () => {
@@ -157,7 +157,6 @@ const CanyonSearch = () => {
 
       // Utiliser la nouvelle API de recherche
       const response = await sessionsAPI.searchAvailable(params);
-      console.log(response)
       const fetchedProducts = response.data.products || [];
       setAllProducts(fetchedProducts);
       setProducts(fetchedProducts);
@@ -192,8 +191,6 @@ const CanyonSearch = () => {
         setNextAvailableDates([]);
       }
 
-      console.log('Filtres actifs:', currentFilters);
-      console.log('Produits trouvés:', response.data.count);
     } catch (error) {
       console.error('Erreur chargement produits:', error);
       setProducts([]);
@@ -315,8 +312,7 @@ const CanyonSearch = () => {
   // Fonction spéciale pour gérer le clic sur le calendrier
   const handleCalendarDateClick = (startDate) => {
     if (!filters.participants) {
-      alert('Veuillez d\'abord indiquer le nombre de participants');
-      return;
+    alert(t("alerts.missingParticipantCount"));      return;
     }
 
     // Sélectionner cette date et lancer la recherche
@@ -469,13 +465,15 @@ const CanyonSearch = () => {
 
         {/* Titre */}
         <h2 style={{ margin: '0 0 1.5rem 0', color: '#2c3e50', fontSize: '1.5rem', fontWeight: 700, textAlign: 'center' }}>
-          Trouvez et réservez votre sortie
+          {t("booking.title")}
         </h2>
 
         {/* Informations de contact */}
         <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#495057', lineHeight: 1.5, textAlign: 'center' }}>
           <p style={{ margin: 0 }}>
+          <Trans i18nKey="booking.groupContact">
             Pour les réservations de groupe : <a href="tel:+33688788186" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>06 88 78 81 86</a> - <a href="mailto:contact@canyonlife.fr" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>contact@canyonlife.fr</a>
+          </Trans>
           </p>
         </div>
 
@@ -595,7 +593,7 @@ const CanyonSearch = () => {
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
-                    {products.length} canyon{products.length > 1 ? 's' : ''} trouvé{products.length > 1 ? 's' : ''}
+                    {products.length} canyon{products.length > 1 ? 's' : ''} {t('Find')}{products.length > 1 ? 's' : ''}
                     {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
                       <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
                         (sur {allProducts.length})
@@ -619,7 +617,7 @@ const CanyonSearch = () => {
                           backgroundColor: 'white'
                         }}
                       >
-                        <option value="">Toutes les catégories</option>
+                        <option value="">{t('allCategories')}</option>
                         {getUniqueCategories().map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -640,7 +638,7 @@ const CanyonSearch = () => {
                           backgroundColor: 'white'
                         }}
                       >
-                        <option value="">Tous les massifs</option>
+                        <option value="">{t('allMassifs')}</option>
                         {getUniqueMassifs().map(massif => (
                           <option key={massif} value={massif}>{massif}</option>
                         ))}
@@ -661,7 +659,7 @@ const CanyonSearch = () => {
                           backgroundColor: 'white'
                         }}
                       >
-                        <option value="">{isMobile ? 'Difficulté' : 'Toutes les difficultés'}</option>
+                        <option value="">{isMobile ? t("filters.difficultyShort") : t("filters.difficultyAll")}</option>
                         {getUniqueDifficulties().map(diff => (
                           <option key={diff} value={diff}>{diff}</option>
                         ))}
@@ -731,7 +729,7 @@ const CanyonSearch = () => {
                                 e.target.style.color = clientColor;
                               }}
                             >
-                              Plus d'infos
+                              {t('MoreInfo')}
                             </button>
                           </div>
                         ) : (
@@ -769,7 +767,7 @@ const CanyonSearch = () => {
                                 e.target.style.color = clientColor;
                               }}
                             >
-                              Plus d'infos
+                              {t('MoreInfo')}
                             </button>
                           </div>
                         )}
@@ -789,7 +787,7 @@ const CanyonSearch = () => {
                               </div>
                               {product.priceGroup && product.priceGroup.min && (
                                 <div style={{ fontSize: '0.7rem', color: '#6c757d', marginTop: '0.25rem' }}>
-                                  Tarif groupe dès {product.priceGroup.min} pers.
+                                  {t("pricing.groupRateFrom", { count: product.priceGroup.min })}
                                 </div>
                               )}
                             </div>
@@ -797,11 +795,11 @@ const CanyonSearch = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#495057', fontSize: '0.9rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <span style={{ width: '14px', height: '14px', background: '#2c3e50', borderRadius: '50%', display: 'inline-block' }}></span>
-                              <span>Durée : {getDurationLabel(product.duration)}</span>
+                              <span>{t('Durée')} : {getDurationLabel(product.duration)}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <span style={{ width: '14px', height: '14px', background: getLevelColor(product.level), borderRadius: '50%', display: 'inline-block' }}></span>
-                              <span>Difficulté : {product.level}</span>
+                              <span>{t('filters.difficultyShort')} : {product.level}</span>
                             </div>
                           </div>
                         </div>
@@ -809,7 +807,7 @@ const CanyonSearch = () => {
                         {/* Lieu de départ */}
                         <div style={{ marginBottom: '1rem' }}>
                           <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.25rem' }}>
-                            Lieu de départ
+                            {t('DepartPlace')}
                           </div>
                           <div style={{ color: clientColor, fontSize: '0.95rem' }}>
                             {product.meetingPoint || (product.region === 'annecy' ? 'Devant la mairie de Thônes' : 'Parking canyon')}
@@ -836,10 +834,15 @@ const CanyonSearch = () => {
                                   <span style={{ fontSize: '1.5rem' }}>📅</span>
                                   <div>
                                     <div style={{ fontWeight: '700', color: clientColor, fontSize: '1.1rem' }}>
-                                      {Object.values(sessionsByDate).flat().length} créneau{Object.values(sessionsByDate).flat().length > 1 ? 'x' : ''} disponible{Object.values(sessionsByDate).flat().length > 1 ? 's' : ''}
+                                      {t("sessions.availableSlots", {
+                                        count: Object.values(sessionsByDate).flat().length
+                                      })}
                                     </div>
                                     <div style={{ fontSize: '0.85rem', color: clientColor, marginTop: '2px', opacity: 0.9 }}>
-                                      Du {new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au {new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                      {t("sessions.dateRange", {
+                                          start: new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+                                          end: new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+                                        })}
                                     </div>
                                   </div>
                                 </div>
@@ -872,7 +875,7 @@ const CanyonSearch = () => {
                                     e.target.style.boxShadow = `0 2px 4px ${clientColor}50`;
                                   }}
                                 >
-                                  Voir les créneaux
+                                  {t('slots.showSlots')}
                                 </button>
                               </div>
                             </div>
@@ -880,7 +883,7 @@ const CanyonSearch = () => {
                             // Période courte (1-2 jours) : Affichage détaillé
                             <div style={{ marginBottom: '1rem', flex: 1 }}>
                               <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
-                                Créneaux disponibles :
+                                {t('slots.AvaibleSlots')}
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {Object.entries(sessionsByDate).map(([date, sessions]) => (
@@ -930,10 +933,10 @@ const CanyonSearch = () => {
                                                 🕐 {session.startTime}
                                               </span>
                                               <span style={{ fontSize: '0.75rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.3' }}>
-                                                Fermé en ligne
+                                                {t('calendarEmbed.closedOnline')}
                                               </span>
                                               <span style={{ fontSize: '0.7rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.2' }}>
-                                                📞 Appelez avant 9h30 ou vers 12h
+                                                📞 {t('calendarEmbed.callGuideToBook')}
                                               </span>
                                               <span style={{ fontSize: '0.75rem', marginTop: '2px', color: '#856404' }}>
                                                 ({session.availablePlaces} {session.availablePlaces > 1 ? 'places' : 'place'})
@@ -985,7 +988,7 @@ const CanyonSearch = () => {
                             fontSize: '0.9rem',
                             marginBottom: '1rem'
                           }}>
-                            ⚠️ Aucun créneau disponible pour cette période
+                            ⚠️ {t('calendarEmbed.noSessionsAvailableForPeriode')}
                           </div>
                         )}
                       </div>
@@ -997,8 +1000,8 @@ const CanyonSearch = () => {
           ) : allProducts.length > 0 ? (
             // Cas où des filtres sont actifs et ne retournent aucun résultat
             <div className={styles.noResults}>
-              <h2>Aucun canyon ne correspond aux filtres sélectionnés</h2>
-              <p>Essayez de modifier ou réinitialiser les filtres ci-dessus.</p>
+              <h2>{t("filters.noResultsTitle")}</h2>
+              <p>{t("filters.noResultsText")}</p>
               <button
                 onClick={() => setResultFilters({ category: '', massif: '', difficulty: '' })}
                 style={{
@@ -1013,7 +1016,7 @@ const CanyonSearch = () => {
                   marginTop: '1rem'
                 }}
               >
-                Réinitialiser les filtres
+                {t("filters.resetButton")}
               </button>
             </div>
           ) : (
@@ -1039,7 +1042,7 @@ const CanyonSearch = () => {
                         color: '#2c3e50',
                         textAlign: 'center'
                       }}>
-                        Vous êtes flexible ?
+                        {t("calendar.flexible")}
                       </h3>
                       <h4 style={{
                         fontSize: '1rem',
@@ -1048,7 +1051,7 @@ const CanyonSearch = () => {
                         textAlign: 'center',
                         fontWeight: '400'
                       }}>
-                        Choisissez une date dans le calendrier
+                        {t("calendar.selectDate")}
                       </h4>
                       <div style={{
                         display: 'flex',
@@ -1072,14 +1075,14 @@ const CanyonSearch = () => {
                         color: '#2c3e50',
                         textAlign: 'center'
                       }}>
-                        Sinon
+                        {t("calendar.otherOption")}
                       </h3>
                       <p style={{
                         textAlign: 'center',
                         color: '#6c757d',
                         marginBottom: '1.5rem'
                       }}>
-                        Téléphonez-nous, il est possible d'ouvrir de nouveaux créneaux sur demande !
+                        {t("calendar.callUs")}
                       </p>
                       <div style={{
                         display: 'flex',
@@ -1108,7 +1111,7 @@ const CanyonSearch = () => {
                           }}
                         >
                           <div>
-                            <strong>📞 Appeler</strong>
+                            <strong>📞 {t('call')}</strong>
                             <p style={{ margin: 0 }}>06 88 78 81 86</p>
                           </div>
                         </a>
@@ -1131,7 +1134,7 @@ const CanyonSearch = () => {
                           }}
                         >
                           <div>
-                            <strong>✉️ Envoyer un email</strong>
+                            <strong>✉️ {t('SendEmail')}</strong>
                             <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
                           </div>
                         </a>

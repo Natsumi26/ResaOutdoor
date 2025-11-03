@@ -11,7 +11,9 @@
     "totalPrice":"Prix total",
     "payMontant":"Montant payé",
     "Reste": "Reste {{amount}}€",
+    "RestePaid": "Reste à payer:",
     "Reduction": "Réduction de {{discountAmount}}€",
+    "Reduc": "Réduction:",
     "yoursInfos":"Vos informations",
     "Prénom":"Prénom",
     "Nom":"Nom",
@@ -40,6 +42,7 @@
     "locaShoes":"location(s) chaussures",
     "BonApply":"Bon cadeau appliqué",
     "Total":"Total",
+    "GiftDiscount": "Code promo / bon cadeau",
     "CodeCadeau":"Code bon cadeau (optionnel)",
     "Vérifier":"Vérifier",
     "ValidBon":"Bon cadeau valide",
@@ -187,16 +190,35 @@
     "ActionIreversible":"Cette action est irréversible. Une fois annulée, vous ne pourrez pas réactiver cette réservation.",
     "ConfirmCancel":"Confirmer l'annulation",
     "CancelChargment":"Annulation en cours...",
+    "SendEmail": "Envoyer un email",
+    "Find": "trouvé",
+    "allCategories":"Toutes les catégories",
+    "allMassifs":"Tous les massifs",
+    "DepartPlace": "Lieu de départ",
     "payment": {
         "processing": "Traitement en cours...",
-        "proceed": "Procéder au paiement"
+        "proceed": "Procéder au paiement",
+        "depositNow": "Acompte à payer maintenant",
+        "balanceOnSite": "Solde à payer sur place",
+        "PaidTotalNow": "Payer la totalité maintenant",
+        "fullOption": "Au lieu de payer l'acompte de {{deposit}}€, vous pouvez payer la totalité de {{total}}€ dès maintenant par carte bancaire.",
+        "cardRequired": "Paiement par carte bancaire obligatoire",
+        "fullNow": "Vous allez payer la totalité ({{amount}}€) par carte bancaire.",
+        "depositNowLong": "Vous allez payer l'acompte de {{deposit}}€ par carte bancaire. Le solde de {{balance}}€ sera à régler sur place.",
+        "onlineRequired": "Paiement en ligne requis",
+        "fullAmountNow": "Vous devez payer la totalité ({{amount}}€) par carte bancaire.",
+        "onSite": "Payer le jour de l'activité en liquide, chèque ou chèque vacances"
     },
+
     "alerts":{
         "champsOblig":"Veuillez remplir tous les champs obligatoires",
+        "missingParticipantCount": "Veuillez d'abord indiquer le nombre de participants",
         "CopyPressPapier":"Code copié dans le presse-papier !",
         "RemplirAllChamps":"Veuillez remplir les informations de tous les participants (y compris les pointures si location de chaussures)",
         "allParticipants":"Veuillez remplir les informations de tous les participants ou ne remplir aucun participant",
-        "ErreurSessionPayment":"Une erreur est survenue lors de la création du paiement. Veuillez réessayer."
+        "ErreurSessionPayment":"Une erreur est survenue lors de la création du paiement. Veuillez réessayer.",
+        "missingSize": "Veuillez renseigner la pointure pour chaque location de chaussures.",
+        "missingParticipantInfo": "La session étant dans moins de 24h, les informations de tous les participants (prénom, âge, poids, taille) sont obligatoires."
     },
 
     "nationalities": {
@@ -221,5 +243,105 @@
         "CN":"Chinoise",
         "BR":"Brésilienne",
         "AR":"Argentine"
+    },
+
+    "calendarEmbed": {
+        "available": "Disponible",
+        "otherCanyon": "Autre canyon",
+        "fullClosed": "Complet/Fermé",
+        "otherCanyonBooked": "Cette date est déjà réservée pour d'autres canyons :",
+        "viewThisCanyon": "Voir ce canyon →",
+        "noSessionsAvailable": "Aucune session disponible pour cette date",
+        "noSessionsAvailableForPeriode": "Aucune session disponible pour cette période",
+        "tryAnotherDate": "Essayez une autre date",
+        "availableSpots": "Places disponibles:",
+        "shoeRental": "Location chaussures:",
+        "closedOnline": "Fermé en ligne",
+        "bookingClosedOnline": "Réservation fermée en ligne",
+        "callGuideToBook": "Appelez le guide pour réserver",
+        "book": "Réserver",
+        "full": "Complet",
+        "closed": "Fermé",
+        "morning": "Matin",
+        "afternoon": "Après-midi",
+        "fullDay": "Journée",
+        "loading": "Chargement...",
+        "productNotFound": "Produit non trouvé"
+    },
+
+    "dateRangePicker": {
+        "singleDate": "📅 Date unique",
+        "period": "📆 Période"
+    },
+
+    "formReminder": {
+        "text": "Si ce n'est pas déjà fait, remplissez le formulaire participants (poids/taille). Le lien du formulaire est dans le mail de confirmation.",
+        "editable": "Modifiable jusqu'à la veille de l'activité."
+    },
+
+    "paymentReminder": {
+        "text": "Il faudra prévoir de payer l'activité ({{amount}}€) le jour même, avant le début de l'activité, en liquide, chèque ou chèque vacances."
+    },
+
+    "arrival": {
+        "title": "Arrivée",
+        "text": "Prévoyez d'arriver 10 minutes en avance avec la bonne humeur !"
+    },
+
+    "languageSpoken": {
+        "title": "Langue parlée :"
+    },
+
+    "participantInfo": {
+        "urgent": "🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.",
+        "required": "⚠️ Ces informations sont <strong>obligatoires</strong> pour participer à l'activité.",
+        "later": "Vous pouvez les remplir maintenant ou plus tard. Votre <strong>email de confirmation</strong> contiendra un lien pour <strong>compléter ou modifier</strong> ces informations avant l'activité."
+    },
+
+    "voucher": {
+        "remainingUses": "{{count}} utilisations restantes"
+    },
+
+    "consent": {
+        "newsletter": "J'accepte les <1>conditions de confidentialité</1> et souhaite recevoir la newsletter avec les actualités et offres spéciales. *"
+    },
+
+    "booking": {
+        "title": "Trouvez et réservez votre sortie",
+        "groupContact": "Pour les réservations de groupe : <1>06 88 78 81 86</1> - <3>contact@canyonlife.fr</3>"
+    },
+
+    "filters": {
+        "difficultyShort": "Difficulté",
+        "difficultyAll": "Toutes les difficultés",
+        "noResultsTitle": "Aucun canyon ne correspond aux filtres sélectionnés",
+        "noResultsText": "Essayez de modifier ou réinitialiser les filtres ci-dessus.",
+        "resetButton": "Réinitialiser les filtres"
+    },
+
+    "pricing": {
+        "groupRateFrom": "Tarif groupe dès {{count}} pers."
+    },
+
+    "sessions": {
+        "availableSlots": "{{count}} créneau{{count > 1 ? 'x' : ''}} disponible{{count > 1 ? 's' : ''}}",
+        "dateRange": "Du {{start}} au {{end}}"
+    },
+
+    "slots": {
+        "showSlots": "Voir les créneaux",
+        "AvailableSlots": "Créneaux disponibles :"
+    },
+
+    "calendar": {
+        "flexible": "Vous êtes flexible ?",
+        "selectDate": "Choisissez une date dans le calendrier",
+        "otherOption": "Sinon",
+        "callUs": "Téléphonez-nous, il est possible d'ouvrir de nouveaux créneaux sur demande !",
+        "call":"Appeler"
+    },
+
+    "gift": {
+        "email": "<1>📧 Bon cadeau par email :</1> Une fois le paiement validé, vous recevez un email avec le bon cadeau imprimable."
     }
 }

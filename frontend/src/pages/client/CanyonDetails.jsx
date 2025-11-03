@@ -4,7 +4,7 @@ import { productsAPI, sessionsAPI, settingsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import DateRangePicker from '../../components/DateRangePicker';
 
@@ -258,9 +258,9 @@ const CanyonDetails = () => {
 
   const getTimeSlotLabel = (timeSlot) => {
     const labels = {
-      'matin': 'Matin',
-      'après-midi': 'Après-midi',
-      'journée': 'Journée'
+      'matin': t('calendarEmbed.morning'),
+      'après-midi': t('calendarEmbed.afternoon'),
+      'journée': t('calendarEmbed.fullDay')
     };
     return labels[timeSlot] || timeSlot;
   };
@@ -530,7 +530,7 @@ const CanyonDetails = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ width: '20px', height: '20px', backgroundColor: 'rgba(220, 53, 69, 0.2)', border: '2px solid #dc3545', borderRadius: '4px' }}></div>
-                <span>Complet/Fermé</span>
+                <span>{t('calendarEmbed.fullClosed')}</span>
               </div>
             </div>
 
@@ -556,7 +556,7 @@ const CanyonDetails = () => {
                 marginBottom: '2rem'
               }}>
                 <p style={{ margin: '0 0 0.75rem 0', fontWeight: '600', color: '#856404' }}>
-                  ℹ️ Cette date est déjà réservée pour d'autres canyons :
+                  ℹ️ {t('calendarEmbed.otherCanyonBooked')}
                 </p>
                 {dateInfo[format(selectedDate, 'yyyy-MM-dd')].sessions.map((session, idx) => (
                   <div key={idx} style={{ marginBottom: '1rem' }}>
@@ -595,7 +595,7 @@ const CanyonDetails = () => {
                             fontWeight: '500'
                           }}
                         >
-                          Voir ce canyon →
+                          {t('calendarEmbed.viewThisCanyon')}
                         </button>
                       </div>
                     ))}
@@ -611,7 +611,7 @@ const CanyonDetails = () => {
             selectedDate && dateInfo[format(selectedDate, 'yyyy-MM-dd')]?.type === 'otherProduct' ? null : (
               <div className={styles.noSessions}>
                 <p>{t('noSessionDispo')}</p>
-                <p className={styles.hint}>Essayer une autre date ou contactez-nous pour ouvrir un créneau</p>
+                <p className={styles.hint}>{t('calendarEmbed.tryAnotherDate')}</p>
 
                 {/* Informations de contact - uniquement si aucune session */}
                 <div className={styles.contactInfo} style={{ marginTop: '1.5rem' }}>
@@ -623,7 +623,7 @@ const CanyonDetails = () => {
                   </a>
                   <a href="mailto:contact@canyonlife.fr" className={styles.contactButton} style={{ textDecoration: 'none', borderColor: clientColor }}>
                     <div>
-                      <strong>✉️ Envoyer un email</strong>
+                      <strong>✉️ {t('SendEmail')}</strong>
                       <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
                     </div>
                   </a>
@@ -675,7 +675,7 @@ const CanyonDetails = () => {
                           marginTop: '0.5rem',
                           fontSize: '0.9rem'
                         }}>
-                          ⚠️ Fermé en ligne
+                          ⚠️ {t('calendarEmbed.closedOnline')}
                         </p>
                       )}
                     </div>
@@ -690,10 +690,10 @@ const CanyonDetails = () => {
                         border: '1px solid #ffc107'
                       }}>
                         <p style={{ margin: '0 0 0.5rem 0', color: '#856404', fontWeight: '600', fontSize: '0.9rem' }}>
-                          Réservation fermée en ligne
+                          {t('calendarEmbed.bookingClosedOnline')}
                         </p>
                         <p style={{ margin: 0, color: '#856404', fontSize: '0.8rem', lineHeight: '1.3' }}>
-                          📞 Appelez le guide avant 9h30 ou vers 12h pour réserver
+                          📞 {t('calendarEmbed.callGuideToBook')}
                         </p>
                       </div>
                     ) : isAvailable ? (

@@ -4,7 +4,7 @@ import { bookingsAPI, settingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { useTranslation } from 'react-i18next';
+import {Trans, useTranslation } from 'react-i18next';
 
 const BookingConfirmation = () => {
   const { t } = useTranslation();
@@ -84,7 +84,10 @@ const BookingConfirmation = () => {
                 <span className={styles.stepIcon}>👕</span>
                 <div>
                   <strong>{t('InfoParts')}</strong>
-                  <p>Si ce n'est pas déjà fait, remplissez le formulaire participants (poids/taille). Le lien du formulaire est dans le mail de confirmation. <strong>Modifiable jusqu'à la veille de l'activité.</strong></p>
+                  <p>
+                    {t("formReminder.text")}{" "}
+                    <strong>{t("formReminder.editable")}</strong>
+                  </p>
                 </div>
               </div>
 
@@ -93,7 +96,11 @@ const BookingConfirmation = () => {
                   <span className={styles.stepIcon}>💳</span>
                   <div>
                     <strong>{t('soldePayment')}</strong>
-                    <p>Il faudra prévoir de payer l'activité ({booking.totalPrice - booking.amountPaid - booking.discountAmount}€) le jour même, avant le début de l'activité, en liquide, chèque ou chèque vacances.</p>
+                    <p>
+                      {t("paymentReminder.text", {
+                        amount: booking.totalPrice - booking.amountPaid - booking.discountAmount
+                      })}
+                    </p>
                   </div>
                 </div>
               )}
@@ -101,8 +108,8 @@ const BookingConfirmation = () => {
               <div className={styles.step}>
                 <span className={styles.stepIcon}>⏰</span>
                 <div>
-                  <strong>Arrivée</strong>
-                  <p>Prévoyez d'arriver 10 minutes en avance avec la bonne humeur !</p>
+                  <strong>{t("arrival.title")}</strong>
+                  <p>{t("arrival.text")}</p>
                 </div>
               </div>
 
@@ -161,12 +168,12 @@ const BookingConfirmation = () => {
                   </span>
                   <span style={{ fontSize: '1.3rem', fontWeight: '700', color: isPaid ? '#28a745' : '#fd7e14' }}>
                     {booking.amountPaid}€
-                    {booking.discountAmount > 0 && <span style={{ fontSize: '0.9rem', marginLeft: '0.5rem' }}>(Réduction: {booking.discountAmount}€)</span>}
+                    {booking.discountAmount > 0 && <span style={{ fontSize: '0.9rem', marginLeft: '0.5rem' }}>({t('Reduc')} {booking.discountAmount}€)</span>}
                   </span>
                 </div>
                 {!isPaid && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#856404', textAlign: 'right' }}>
-                    Reste à payer: <strong>{booking.totalPrice - booking.amountPaid - booking.discountAmount}€</strong>
+                    {t('RestePaid')} <strong>{booking.totalPrice - booking.amountPaid - booking.discountAmount}€</strong>
                   </div>
                 )}
               </div>
@@ -180,7 +187,7 @@ const BookingConfirmation = () => {
               <p><strong>{t('Nom')} :</strong> {booking.clientFirstName} {booking.clientLastName}</p>
               <p><strong>Email :</strong> {booking.clientEmail}</p>
               <p><strong>{t('Téléphone')} :</strong> {booking.clientPhone}</p>
-              <p><strong>Langue parlée : </strong>
+              <p><strong>{t("languageSpoken.title")}</strong>
                 <img
                   src={`https://flagcdn.com/16x12/${booking.clientNationality === 'EN' ? 'gb' : 'fr'}.png`}
                   alt={booking.clientNationality}

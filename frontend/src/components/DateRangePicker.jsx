@@ -202,7 +202,7 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
               transition: 'all 0.2s'
             }}
           >
-            📅 Date unique
+            {t('dateRangePicker.singleDate')}
           </button>
           <button
             onClick={() => handleModeChange('range')}
@@ -218,7 +218,7 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
               transition: 'all 0.2s'
             }}
           >
-            📆 Période
+            {t('dateRangePicker.period')}
           </button>
         </div>
       )}
@@ -261,7 +261,7 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
                 } ${
                   isDateInRange(day) ? styles.inRange : ''
                 }`}
-                style={{ ...availabilityStyle, ...selectedDayStyle, ...inRangeStyle }}
+                style={{ ...availabilityStyle, ...selectedDayStyle, ...inRangeStyle, ...hoverStyle }}
                 onClick={() => handleDateClick(day)}
                 onMouseEnter={() => handleDateHover(day)}
               >

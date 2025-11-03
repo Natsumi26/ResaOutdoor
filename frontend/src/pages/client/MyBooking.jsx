@@ -4,7 +4,7 @@ import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 const MyBooking = () => {
   const { t } = useTranslation();
@@ -92,9 +92,6 @@ const MyBooking = () => {
   const handleSaveParticipants = async () => {
     try {
       setSaving(true);
-    // 🔍 Ajout du log ici
-    console.log('Envoi participants pour bookingId:', bookingId);
-    console.log('Participants:', participants);
 
       // Calculer le nombre de locations de chaussures
       const shoeRentalCount = participants.filter(p => p.shoeRental).length;

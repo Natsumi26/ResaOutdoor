@@ -5,8 +5,10 @@ import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './CalendarEmbed.module.css';
 import DateRangePicker from '../../components/DateRangePicker';
+import { Trans, useTranslation } from 'react-i18next';
 
 const CalendarEmbed = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
@@ -189,9 +191,9 @@ const CalendarEmbed = () => {
 
   const getTimeSlotLabel = (timeSlot) => {
     const labels = {
-      'matin': 'Matin',
-      'après-midi': 'Après-midi',
-      'journée': 'Journée'
+      'matin': t('calendarEmbed.morning'),
+      'après-midi': t('calendarEmbed.afternoon'),
+      'journée': t('calendarEmbed.fullDay')
     };
     return labels[timeSlot] || timeSlot;
   };
@@ -241,11 +243,11 @@ const CalendarEmbed = () => {
   });
 
   if (loading) {
-    return <div className={styles.loading}>Chargement...</div>;
+    return <div className={styles.loading}>{t('calendarEmbed.loading')}</div>;
   }
 
   if (!product) {
-    return <div className={styles.error}>Produit non trouvé</div>;
+    return <div className={styles.error}>{t('calendarEmbed.productNotFound')}</div>;
   }
 
   return (
@@ -273,15 +275,15 @@ const CalendarEmbed = () => {
           <div className={styles.legend}>
             <div className={styles.legendItem}>
               <div className={styles.legendColor} style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', borderColor: '#28a745' }}></div>
-              <span>Disponible</span>
+              <span>{t('calendarEmbed.available')}</span>
             </div>
             <div className={styles.legendItem}>
               <div className={styles.legendColor} style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', borderColor: '#ffc107' }}></div>
-              <span>Autre canyon</span>
+              <span>{t('calendarEmbed.otherCanyon')}</span>
             </div>
             <div className={styles.legendItem}>
               <div className={styles.legendColor} style={{ backgroundColor: 'rgba(220, 53, 69, 0.2)', borderColor: '#dc3545' }}></div>
-              <span>Complet/Fermé</span>
+              <span>{t('calendarEmbed.fullClosed')}</span>
             </div>
           </div>
 
@@ -301,7 +303,7 @@ const CalendarEmbed = () => {
           {selectedDate && dateInfo[format(selectedDate, 'yyyy-MM-dd')]?.type === 'otherProduct' && (
             <div className={styles.otherProductInfo}>
               <p className={styles.otherProductTitle}>
-                ℹ️ Cette date est déjà réservée pour d'autres canyons :
+                ℹ️ {t('calendarEmbed.otherCanyonBooked')}
               </p>
               {dateInfo[format(selectedDate, 'yyyy-MM-dd')].sessions.map((session, idx) => (
                 <div key={idx} className={styles.otherProductSession}>
@@ -315,7 +317,7 @@ const CalendarEmbed = () => {
                         onClick={() => navigate(`/client/canyon/${otherProduct.id}`)}
                         className={styles.otherProductButton}
                       >
-                        Voir ce canyon →
+                        {t('calendarEmbed.viewThisCanyon')}
                       </button>
                     </div>
                   ))}
@@ -329,8 +331,8 @@ const CalendarEmbed = () => {
             {visibleSessions.length === 0 ? (
               selectedDate && dateInfo[format(selectedDate, 'yyyy-MM-dd')]?.type === 'otherProduct' ? null : (
                 <div className={styles.noSessions}>
-                  <p>Aucune session disponible pour cette date</p>
-                  <p className={styles.hint}>Essayez une autre date</p>
+                  <p>{t('calendarEmbed.noSessionsAvailable')}</p>
+                  <p className={styles.hint}>{t('calendarEmbed.tryAnotherDate')}</p>
                 </div>
               )
             ) : (
@@ -355,15 +357,15 @@ const CalendarEmbed = () => {
                         <span className={styles.startTime} style={{ color: clientColor }}>{session.startTime}</span>
                       </div>
                       <div className={styles.sessionDetails}>
-                        <p>Places disponibles: <strong>{availableSpots}</strong></p>
+                        <p>{t('calendarEmbed.availableSpots')} <strong>{availableSpots}</strong></p>
                         {session.shoeRentalAvailable && (
                           <p className={styles.shoeRental}>
-                            Location chaussures: {session.shoeRentalPrice}€
+                            {t('calendarEmbed.shoeRental')} {session.shoeRentalPrice}€
                           </p>
                         )}
                         {isAutoClosed && (
                           <p className={styles.autoClosedWarning}>
-                            ⚠️ Fermé en ligne
+                            ⚠️ {t('calendarEmbed.closedOnline')}
                           </p>
                         )}
                       </div>
@@ -372,10 +374,10 @@ const CalendarEmbed = () => {
                       {isAutoClosed ? (
                         <div className={styles.autoClosedInfo}>
                           <p className={styles.autoClosedTitle}>
-                            Réservation fermée en ligne
+                            {t('calendarEmbed.bookingClosedOnline')}
                           </p>
                           <p className={styles.autoClosedDescription}>
-                            📞 Appelez le guide pour réserver
+                            📞 {t('calendarEmbed.callGuideToBook')}
                           </p>
                         </div>
                       ) : isAvailable ? (
@@ -384,11 +386,11 @@ const CalendarEmbed = () => {
                           className={styles.btnPrimary}
                           style={{ backgroundColor: clientColor, borderColor: clientColor }}
                         >
-                          Réserver
+                          {t('calendarEmbed.book')}
                         </button>
                       ) : (
                         <button className={styles.btnDisabled} disabled>
-                          {session.status === 'full' ? 'Complet' : 'Fermé'}
+                          {session.status === 'full' ? t('calendarEmbed.full') : t('calendarEmbed.closed')}
                         </button>
                       )}
                     </div>
