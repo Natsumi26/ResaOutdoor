@@ -99,12 +99,8 @@ const Users = () => {
       if (editingId) {
         await usersAPI.update(editingId, userData);
       } else {
-        // Pour création : utiliser teamAPI si c'est un membre d'équipe
-        if (formData.role === 'employee' || formData.role === 'trainee') {
-          await teamAPI.addMember(userData);
-        } else {
           await usersAPI.create(userData);
-        }
+          console.log(userData)
       }
 
       loadUsers();
@@ -117,7 +113,6 @@ const Users = () => {
       alert(error.response?.data?.error || 'Erreur');
     }
   };
-
   const handleDelete = async (id) => {
     if (window.confirm('Supprimer cet utilisateur ?')) {
       try {
@@ -155,7 +150,7 @@ const Users = () => {
         role: 'employee',
         confidentialityPolicy: '',
         teamName: '',
-        teamLeaderId: currentUser?.role === 'leader' ? currentUser.userId : ''
+        teamLeaderId:''
       });
     }
     setShowModal(true);
@@ -349,8 +344,6 @@ console.log(users)
                     onChange={(e) => {
                       const selectedOption = e.target.selectedOptions[0];
                       const teamName = selectedOption.dataset.team;
-                      console.log(selectedOption.dataset.team) 
-
                       setFormData({ ...formData, teamLeaderId: e.target.value, teamName: teamName })}}
                     required
                   >

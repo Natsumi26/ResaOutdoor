@@ -108,19 +108,6 @@ const Team = () => {
         depositType: member.depositType || 'percentage',
         depositAmount: member.depositAmount || ''
       });
-    } else {
-      setEditingId(null);
-      setFormData({
-        login: '',
-        password: '',
-        email: '',
-        role: 'employee',
-        stripeAccount: '',
-        confidentialityPolicy: '',
-        paymentMode: 'onsite_only',
-        depositType: 'percentage',
-        depositAmount: ''
-      });
     }
     setShowModal(true);
   };
@@ -179,9 +166,6 @@ const Team = () => {
               Toutes les équipes et leurs membres
             </p>
           </div>
-          <button className={styles.btnPrimary} onClick={() => openModal()} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
-            + Ajouter un membre à mon équipe
-          </button>
         </div>
 
         {teams.length === 0 ? (
@@ -486,9 +470,6 @@ const Team = () => {
             Gérez les membres de votre équipe
           </p>
         </div>
-        <button className={styles.btnPrimary} onClick={() => openModal()} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
-          + Ajouter un membre
-        </button>
       </div>
 
       {/* Mon compte */}

@@ -71,7 +71,7 @@ export const createUser = async (req, res, next) => {
         depositType,
         depositAmount,
         practiceActivities: practiceActivities || [],
-        teamName: (role === 'leader') ? teamName : null, // teamName uniquement pour les leaders
+        teamName,
         teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
       },
       select: {
