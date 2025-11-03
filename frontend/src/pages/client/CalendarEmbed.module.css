@@ -1,0 +1,299 @@
+.embedContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: white;
+  min-height: 100vh;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.1rem;
+  color: #dc3545;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+}
+
+.price {
+  font-size: 1.5rem;
+  color: #28a745;
+  font-weight: 700;
+  margin: 0;
+}
+
+.calendarResultsContainer {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.calendarColumn {
+  position: sticky;
+  top: 20px;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendColor {
+  width: 20px;
+  height: 20px;
+  border: 2px solid;
+  border-radius: 4px;
+}
+
+.resultsColumn {
+  min-height: 400px;
+}
+
+.otherProductInfo {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.otherProductTitle {
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+  color: #856404;
+}
+
+.otherProductSession {
+  margin-bottom: 1rem;
+}
+
+.otherProductTime {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #856404;
+}
+
+.otherProductItem {
+  background-color: white;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.otherProductButton {
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.otherProductButton:hover {
+  background-color: #e0a800;
+}
+
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.noSessions {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
+}
+
+.noSessions p {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+}
+
+.hint {
+  font-size: 0.9rem !important;
+  color: #adb5bd !important;
+  font-style: italic;
+}
+
+.sessionCard {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.sessionCard.disabled {
+  opacity: 0.7;
+  background: #f8f9fa;
+}
+
+.sessionInfo {
+  flex: 1;
+}
+
+.sessionTime {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.timeSlot {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.startTime {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.sessionDetails p {
+  margin: 5px 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.shoeRental {
+  color: #28a745 !important;
+  font-weight: 500;
+}
+
+.autoClosedWarning {
+  color: #856404 !important;
+  font-weight: 600 !important;
+  margin-top: 0.5rem !important;
+  font-size: 0.9rem !important;
+}
+
+.sessionActions {
+  margin-left: 20px;
+}
+
+.autoClosedInfo {
+  text-align: center;
+  padding: 0.5rem;
+  background: #fff3cd;
+  border-radius: 6px;
+  border: 1px solid #ffc107;
+}
+
+.autoClosedTitle {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.autoClosedDescription {
+  margin: 0;
+  color: #856404;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.btnPrimary {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btnDisabled {
+  padding: 12px 30px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6c757d;
+  background: #f8f9fa;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .calendarResultsContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarColumn {
+    position: static;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .price {
+    font-size: 1.2rem;
+  }
+
+  .sessionCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sessionActions {
+    margin-left: 0;
+    margin-top: 15px;
+  }
+
+  .btnPrimary,
+  .btnDisabled {
+    width: 100%;
+  }
+}

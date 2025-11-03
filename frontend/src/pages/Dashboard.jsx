@@ -214,6 +214,16 @@ const Dashboard = () => {
                     {sidebarOpen && <span>Moyens de paiement</span>}
                   </NavLink>
 
+                  <NavLink
+                    to="/settings/site-integration"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>🔗</span>
+                    {sidebarOpen && <span>Intégration à mon site</span>}
+                  </NavLink>
+
                   {(user?.role === 'leader' || isSuperAdmin) && (
                   <NavLink
                     to="/team"

@@ -66,6 +66,63 @@ export const getTeamMembers = async (req, res) => {
 
 
 /**
+ * Ajouter un membre à l'équipe
+ */
+export const addTeamMember = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role;
+    const { login, email, password, role } = req.body;
+
+    // Seuls les leaders et super_admin peuvent ajouter des membres
+    if (userRole !== 'leader' && userRole !== 'super_admin') {
+      return res.status(403).json({ error: 'Accès refusé. Seuls les leaders peuvent ajouter des membres.' });
+    }
+
+    // Vérifier que les données requises sont présentes
+    if (!login || !password) {
+      return res.status(400).json({ error: 'Login et mot de passe requis.' });
+    }
+
+    // Vérifier que le login n'existe pas déjà
+    const existingUser = await prisma.user.findUnique({
+      where: { login }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Ce login existe déjà.' });
+    }
+
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Créer le nouveau membre
+    const newMember = await prisma.user.create({
+      data: {
+        login,
+        email: email || null,
+        password: hashedPassword,
+        role: role || 'employee',
+        teamLeaderId: userId
+      },
+      select: {
+        id: true,
+        login: true,
+        email: true,
+        role: true,
+        teamLeaderId: true,
+        createdAt: true
+      }
+    });
+
+    res.status(201).json({ member: newMember, message: 'Membre ajouté avec succès' });
+  } catch (error) {
+    console.error('Erreur ajout membre:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+/**
  * Modifier un membre de l'équipe
  */
 export const updateTeamMember = async (req, res) => {

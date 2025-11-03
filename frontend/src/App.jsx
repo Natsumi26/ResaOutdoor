@@ -13,6 +13,7 @@ import Emails from './pages/Emails';
 import Resellers from './pages/Resellers';
 import Preferences from './pages/Preferences';
 import PaymentPreferences from './pages/PaymentPreferences';
+import SiteIntegration from './pages/SiteIntegration';
 import Team from './pages/Team';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
@@ -20,6 +21,7 @@ import PaymentCancel from './pages/PaymentCancel';
 // Pages client
 import CanyonSearch from './pages/client/CanyonSearch';
 import CanyonDetails from './pages/client/CanyonDetails';
+import CalendarEmbed from './pages/client/CalendarEmbed';
 import BookingForm from './pages/client/BookingForm';
 import BookingConfirmation from './pages/client/BookingConfirmation';
 import MyBooking from './pages/client/MyBooking';
@@ -53,6 +55,7 @@ const AppRoutes = () => {
       {/* Routes client - accessibles sans authentification (pour iframe WordPress) */}
       <Route path="/client/search" element={<CanyonSearch />} />
       <Route path="/client/canyon/:id" element={<CanyonDetails />} />
+      <Route path="/client/embed/calendar/:id" element={<CalendarEmbed />} />
       <Route path="/client/book/:sessionId" element={<BookingForm />} />
       <Route path="/client/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
       <Route path="/client/my-booking/:bookingId" element={<MyBooking />} />
@@ -80,6 +83,7 @@ const AppRoutes = () => {
         <Route path="settings/newsletter" element={<Navigate to="/settings/emails?tab=newsletter" />} />
         <Route path="settings/preferences/personalization" element={<Preferences />} />
         <Route path="settings/preferences/payment-preferences" element={<PaymentPreferences />} />
+        <Route path="settings/site-integration" element={<SiteIntegration />} />
       </Route>
     </Routes>
   );
