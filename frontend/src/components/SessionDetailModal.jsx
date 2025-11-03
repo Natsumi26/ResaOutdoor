@@ -60,7 +60,7 @@ console.log(session)
     if (bookings?.length > 0 && bookings[0]?.product?.color) {
       return bookings[0].product.color;
     }
-    return '#3498db';
+    return 'var(--guide-primary)';
   };
 
   // Grouper les réservations par statut de paiement
@@ -248,18 +248,30 @@ console.log(session)
           <button
             className={`${styles.tab} ${activeTab === 'overview' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('overview')}
+            style={activeTab === 'overview' ? {
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
+            } : {}}
           >
             Vue d'ensemble
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'equipment' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('equipment')}
+            style={activeTab === 'equipment' ? {
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
+            } : {}}
           >
             🧥 Équipements
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'communication' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('communication')}
+            style={activeTab === 'communication' ? {
+              color: 'var(--guide-primary)',
+              borderBottomColor: 'var(--guide-primary)'
+            } : {}}
           >
             Communication
           </button>
@@ -320,6 +332,7 @@ console.log(session)
                         className={styles.btnSelect}
                         onClick={toggleSelectionMode}
                         disabled={confirmedBookings.length === 0}
+                        style={{ backgroundColor: 'var(--guide-primary)' }}
                       >
                         ☑ Sélectionner
                       </button>

@@ -169,8 +169,10 @@ export const createBooking = async (req, res, next) => {
 
     const product = sessionProduct.product;
 
-    // Vérifier la fermeture automatique
-    if (product.autoCloseHoursBefore) {
+    // Vérifier la fermeture automatique (uniquement pour les clients non authentifiés)
+    const isAuthenticated = req.user && req.user.userId;
+
+    if (product.autoCloseHoursBefore && !isAuthenticated) {
       const now = new Date();
       // Créer une date complète avec l'heure de début
       const sessionDateTime = new Date(session.date);
@@ -181,7 +183,7 @@ export const createBooking = async (req, res, next) => {
       const closeDateTime = new Date(sessionDateTime);
       closeDateTime.setHours(closeDateTime.getHours() - product.autoCloseHoursBefore);
 
-      // Si on est après l'heure limite, empêcher la réservation
+      // Si on est après l'heure limite, empêcher la réservation (seulement pour les clients)
       if (now >= closeDateTime) {
         throw new AppError('Les réservations en ligne sont fermées pour ce créneau. Veuillez contacter le guide directement.', 403);
       }

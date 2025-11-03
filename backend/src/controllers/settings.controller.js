@@ -29,8 +29,11 @@ export const updateSettings = async (req, res) => {
       companyEmail,
       website,
       logo,
+      slogan,
       primaryColor,
-      secondaryColor
+      secondaryColor,
+      clientButtonColor,
+      clientAccentColor
     } = req.body;
 
     // Récupérer ou créer le settings
@@ -45,8 +48,11 @@ export const updateSettings = async (req, res) => {
           companyEmail,
           website,
           logo,
+          slogan,
           primaryColor,
-          secondaryColor
+          secondaryColor,
+          clientButtonColor,
+          clientAccentColor
         }
       });
     } else {
@@ -59,8 +65,11 @@ export const updateSettings = async (req, res) => {
           ...(companyEmail !== undefined && { companyEmail }),
           ...(website !== undefined && { website }),
           ...(logo !== undefined && { logo }),
+          ...(slogan !== undefined && { slogan }),
           ...(primaryColor !== undefined && { primaryColor }),
-          ...(secondaryColor !== undefined && { secondaryColor })
+          ...(secondaryColor !== undefined && { secondaryColor }),
+          ...(clientButtonColor !== undefined && { clientButtonColor }),
+          ...(clientAccentColor !== undefined && { clientAccentColor })
         }
       });
     }

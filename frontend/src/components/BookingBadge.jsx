@@ -3,7 +3,7 @@ import { Draggable } from 'react-beautiful-dnd';
 import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
-  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, participantsFormCompleted, productDetailsSent } = booking;
+  const { numberOfPeople, clientFirstName, clientLastName, status, totalPrice, amountPaid, participantsFormCompleted, clientEmail } = booking;
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -15,12 +15,12 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Déterminer la couleur du badge selon la complétion du formulaire et l'envoi des détails
+  // Déterminer la couleur du badge selon la complétion du formulaire et l'email
   const getBookingColor = () => {
     if (status === 'cancelled') return '#94a3b8'; // Gris
 
-    // Vert si TOUT est complété (formulaire participants ET détails produit envoyés)
-    if (participantsFormCompleted && productDetailsSent) {
+    // Vert si TOUT est complété (formulaire participants ET email présent)
+    if (participantsFormCompleted && clientEmail) {
       return '#72b416'; // Vert
     }
 
@@ -145,9 +145,9 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
                     </span>
                   </div>
                   <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipLabel}>Détails produit :</span>
-                    <span className={styles.tooltipValue} style={{ color: productDetailsSent ? '#10b981' : '#f59e0b' }}>
-                      {productDetailsSent ? '✓ Envoyés' : '○ Non envoyés'}
+                    <span className={styles.tooltipLabel}>Email confirmation :</span>
+                    <span className={styles.tooltipValue} style={{ color: clientEmail ? '#10b981' : '#f59e0b' }}>
+                      {clientEmail ? '✓ Envoyé' : '○ Pas d\'email'}
                     </span>
                   </div>
                 </div>

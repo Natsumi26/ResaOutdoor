@@ -18,7 +18,7 @@
   padding: 0.75rem 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--guide-primary);
 }
 
 .sessionInfo h3 {
@@ -97,8 +97,8 @@
 .formGroup input:focus,
 .formGroup select:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
 }
 
 .formGroup input.error,
@@ -137,7 +137,7 @@
 /* Product Details */
 .productDetails {
   background: white;
-  border: 2px solid #3498db;
+  border: 2px solid var(--guide-primary);
   border-radius: 8px;
   padding: 0.75rem;
   margin-top: 0.5rem;

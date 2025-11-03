@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { sessionsAPI } from '../../services/api';
+import { sessionsAPI, settingsAPI } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,13 @@ const CanyonSearch = () => {
     endDate: searchParams.get('endDate') || ''
   });
   const [showCalendar, setShowCalendar] = useState(false);
+  const [clientColor, setClientColor] = useState(() => {
+    // Essayer de récupérer depuis localStorage d'abord
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
+
+  // État pour le calendrier
+  const [calendarAvailability, setCalendarAvailability] = useState({});
 
   // Filtres supplémentaires pour les résultats
   const [resultFilters, setResultFilters] = useState({
@@ -48,6 +55,25 @@ const CanyonSearch = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Charger la couleur client depuis les settings
+  useEffect(() => {
+    const loadClientColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.clientButtonColor) {
+          setClientColor(settings.clientButtonColor);
+          // Sauvegarder dans localStorage pour éviter le flash au prochain chargement
+          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur client:', error);
+      }
+    };
+    loadClientColor();
+    loadCalendarAvailability();
   }, []);
 
   // Retirer le chargement automatique au démarrage
@@ -136,11 +162,28 @@ const CanyonSearch = () => {
       setAllProducts(fetchedProducts);
       setProducts(fetchedProducts);
 
-      // Si aucun produit trouvé, chercher les 2 prochaines dates disponibles
+      // Si aucun produit trouvé, chercher les prochaines dates disponibles
       if (!fetchedProducts || fetchedProducts.length === 0) {
         try {
           const nextDatesResponse = await sessionsAPI.getNextAvailableDates(currentFilters.participants);
-          setNextAvailableDates(nextDatesResponse.data.dates || []);
+          const dates = nextDatesResponse.data.dates || [];
+
+          // Filtrer pour ne garder que les dates avec au moins une session future
+          const now = new Date();
+          const futureDates = dates.filter(dateInfo => {
+            const dateObj = new Date(dateInfo.date);
+            // Pour être sûr qu'il y a au moins une session future ce jour-là,
+            // on considère que si la date est aujourd'hui, il faut vérifier l'heure
+            // Sinon, on garde toutes les dates futures
+            if (dateObj.toDateString() === now.toDateString()) {
+              // Pour aujourd'hui, on garde seulement si c'est encore tôt dans la journée
+              // (on suppose qu'il peut y avoir des sessions l'après-midi)
+              return now.getHours() < 14; // Garder si avant 14h
+            }
+            return dateObj > now;
+          });
+
+          setNextAvailableDates(futureDates);
         } catch (err) {
           console.error('Erreur récupération prochaines dates:', err);
           setNextAvailableDates([]);
@@ -157,6 +200,72 @@ const CanyonSearch = () => {
       setNextAvailableDates([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Charger les disponibilités pour le calendrier
+  const loadCalendarAvailability = async () => {
+    try {
+      // Charger les sessions des 60 prochains jours
+      const today = new Date();
+      const endDate = addDays(today, 60);
+
+      const response = await sessionsAPI.getAll({
+        startDate: format(today, 'yyyy-MM-dd'),
+        endDate: format(endDate, 'yyyy-MM-dd')
+      });
+
+      const allSessions = response.data.sessions || [];
+      const availability = {};
+      const now = new Date();
+
+      // Analyser chaque session pour déterminer la disponibilité
+      allSessions.forEach(session => {
+        const dateKey = format(new Date(session.date), 'yyyy-MM-dd');
+
+        // Vérifier si la session est passée
+        const sessionDate = new Date(session.date);
+        const [hours, minutes] = session.startTime.split(':').map(Number);
+        sessionDate.setHours(hours, minutes, 0, 0);
+        const isSessionPast = sessionDate <= now;
+
+        // Ignorer les sessions passées
+        if (isSessionPast) return;
+
+        // Calculer la disponibilité pour cette session
+        if (session.status === 'open' && session.products && session.products.length > 0) {
+          // Vérifier s'il y a au moins un produit avec des places disponibles
+          const hasAvailability = session.products.some(sp => {
+            const maxCapacity = sp.product.maxCapacity;
+            const booked = session.bookings
+              .filter(b => String(b.productId) === String(sp.product.id) && b.status !== 'cancelled')
+              .reduce((sum, b) => sum + b.numberOfPeople, 0);
+            return maxCapacity > booked;
+          });
+
+          if (hasAvailability) {
+            availability[dateKey] = 'available';
+          } else if (!availability[dateKey]) {
+            // Si pas encore marqué comme disponible, marquer comme complet
+            availability[dateKey] = 'full';
+          }
+        }
+      });
+
+      // Marquer les dates futures sans session comme fermées
+      for (let i = 0; i < 60; i++) {
+        const date = addDays(today, i);
+        const dateKey = format(date, 'yyyy-MM-dd');
+
+        if (!availability[dateKey]) {
+          availability[dateKey] = 'closed';
+        }
+      }
+
+      setCalendarAvailability(availability);
+    } catch (error) {
+      console.error('Erreur chargement disponibilités calendrier:', error);
+      setCalendarAvailability({});
     }
   };
 
@@ -201,6 +310,35 @@ const CanyonSearch = () => {
       setHasSearched(false);
       setNextAvailableDates([]);
     }
+  };
+
+  // Fonction spéciale pour gérer le clic sur le calendrier
+  const handleCalendarDateClick = (startDate) => {
+    if (!filters.participants) {
+      alert('Veuillez d\'abord indiquer le nombre de participants');
+      return;
+    }
+
+    // Sélectionner cette date et lancer la recherche
+    const newFilters = {
+      ...filters,
+      date: startDate,
+      startDate: '',
+      endDate: ''
+    };
+
+    setFilters(newFilters);
+    setSelectedDate(new Date(startDate));
+
+    // Mettre à jour l'URL
+    const params = new URLSearchParams();
+    Object.keys(newFilters).forEach(key => {
+      if (newFilters[key]) params.set(key, newFilters[key]);
+    });
+    setSearchParams(params);
+
+    // Lancer la recherche
+    loadProducts(newFilters);
   };
 
   const handleParticipantsChange = (value) => {
@@ -313,6 +451,16 @@ const CanyonSearch = () => {
   // Afficher l'interface de recherche (toujours visible maintenant)
   return (
     <div className={styles.searchPageContainer}>
+      {/* Styles globaux pour les focus des inputs */}
+      <style>
+        {`
+          .${styles.filterGroup} select:focus,
+          .${styles.filterGroup} input[type="date"]:focus {
+            border-color: ${clientColor} !important;
+            box-shadow: 0 0 0 3px ${clientColor}20 !important;
+          }
+        `}
+      </style>
       <div className={styles.searchBox} style={{ marginTop: '2rem', position: 'relative' }}>
         {/* Sélecteur de langue à cheval dans le coin */}
         <div style={{ position: 'absolute', top: '-8px', right: '-8px', zIndex: 10, transform: 'scale(1.2)' }}>
@@ -327,7 +475,7 @@ const CanyonSearch = () => {
         {/* Informations de contact */}
         <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#495057', lineHeight: 1.5, textAlign: 'center' }}>
           <p style={{ margin: 0 }}>
-            Pour les réservations de groupe : <a href="tel:+33688788186" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 600 }}>06 88 78 81 86</a> - <a href="mailto:contact@canyonlife.fr" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 600 }}>contact@canyonlife.fr</a>
+            Pour les réservations de groupe : <a href="tel:+33688788186" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>06 88 78 81 86</a> - <a href="mailto:contact@canyonlife.fr" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>contact@canyonlife.fr</a>
           </p>
         </div>
 
@@ -368,6 +516,7 @@ const CanyonSearch = () => {
                   }}
                   initialStartDate={filters.startDate || filters.date}
                   initialEndDate={filters.endDate}
+                  accentColor={clientColor}
                 />
               </div>
             )}
@@ -401,7 +550,7 @@ const CanyonSearch = () => {
             onClick={handleSearch}
             className={styles.searchButton}
             disabled={!canSearch || loading}
-            style={{ width: '100%' }}
+            style={{ width: '100%', backgroundColor: clientColor, borderColor: clientColor }}
           >
             {loading ? t('RechercheLoading') || 'Recherche en cours...' : t('Rechercher')}
           </button>
@@ -448,7 +597,7 @@ const CanyonSearch = () => {
                   <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
                     {products.length} canyon{products.length > 1 ? 's' : ''} trouvé{products.length > 1 ? 's' : ''}
                     {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
-                      <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: '#3498db' }}>
+                      <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
                         (sur {allProducts.length})
                       </span>
                     )}
@@ -563,7 +712,7 @@ const CanyonSearch = () => {
                                 top: '15px',
                                 right: '15px',
                                 background: 'white',
-                                color: '#3498db',
+                                color: clientColor,
                                 padding: '8px 16px',
                                 border: 'none',
                                 borderRadius: '6px',
@@ -574,12 +723,12 @@ const CanyonSearch = () => {
                                 transition: 'all 0.2s'
                               }}
                               onMouseEnter={(e) => {
-                                e.target.style.background = '#3498db';
+                                e.target.style.background = clientColor;
                                 e.target.style.color = 'white';
                               }}
                               onMouseLeave={(e) => {
                                 e.target.style.background = 'white';
-                                e.target.style.color = '#3498db';
+                                e.target.style.color = clientColor;
                               }}
                             >
                               Plus d'infos
@@ -601,14 +750,23 @@ const CanyonSearch = () => {
                                 top: '15px',
                                 right: '15px',
                                 background: 'white',
-                                color: '#3498db',
+                                color: clientColor,
                                 padding: '8px 16px',
                                 border: 'none',
                                 borderRadius: '6px',
                                 fontSize: '0.85rem',
                                 fontWeight: '600',
                                 cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = clientColor;
+                                e.target.style.color = 'white';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'white';
+                                e.target.style.color = clientColor;
                               }}
                             >
                               Plus d'infos
@@ -653,7 +811,7 @@ const CanyonSearch = () => {
                           <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.25rem' }}>
                             Lieu de départ
                           </div>
-                          <div style={{ color: '#3498db', fontSize: '0.95rem' }}>
+                          <div style={{ color: clientColor, fontSize: '0.95rem' }}>
                             {product.meetingPoint || (product.region === 'annecy' ? 'Devant la mairie de Thônes' : 'Parking canyon')}
                           </div>
                         </div>
@@ -664,10 +822,10 @@ const CanyonSearch = () => {
                             // Période longue (> 2 jours) : Affichage résumé
                             <div style={{ marginBottom: '1rem' }}>
                               <div style={{
-                                background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                                background: `linear-gradient(135deg, ${clientColor}20 0%, ${clientColor}40 100%)`,
                                 padding: '0.75rem 1rem',
                                 borderRadius: '8px',
-                                border: '2px solid #2196F3',
+                                border: `2px solid ${clientColor}`,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -677,10 +835,10 @@ const CanyonSearch = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <span style={{ fontSize: '1.5rem' }}>📅</span>
                                   <div>
-                                    <div style={{ fontWeight: '700', color: '#1976d2', fontSize: '1.1rem' }}>
+                                    <div style={{ fontWeight: '700', color: clientColor, fontSize: '1.1rem' }}>
                                       {Object.values(sessionsByDate).flat().length} créneau{Object.values(sessionsByDate).flat().length > 1 ? 'x' : ''} disponible{Object.values(sessionsByDate).flat().length > 1 ? 's' : ''}
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', color: '#1565c0', marginTop: '2px' }}>
+                                    <div style={{ fontSize: '0.85rem', color: clientColor, marginTop: '2px', opacity: 0.9 }}>
                                       Du {new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au {new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                                     </div>
                                   </div>
@@ -692,7 +850,7 @@ const CanyonSearch = () => {
                                     navigate(`/client/canyon/${product.id}?participants=${filters.participants}`);
                                   }}
                                   style={{
-                                    background: '#2196F3',
+                                    background: clientColor,
                                     color: 'white',
                                     border: 'none',
                                     padding: '0.6rem 1.2rem',
@@ -701,17 +859,17 @@ const CanyonSearch = () => {
                                     cursor: 'pointer',
                                     fontSize: '0.9rem',
                                     transition: 'all 0.2s',
-                                    boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)'
+                                    boxShadow: `0 2px 4px ${clientColor}50`
                                   }}
                                   onMouseEnter={(e) => {
-                                    e.target.style.background = '#1976d2';
+                                    e.target.style.opacity = '0.85';
                                     e.target.style.transform = 'translateY(-1px)';
-                                    e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+                                    e.target.style.boxShadow = `0 4px 8px ${clientColor}70`;
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.target.style.background = '#2196F3';
+                                    e.target.style.opacity = '1';
                                     e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+                                    e.target.style.boxShadow = `0 2px 4px ${clientColor}50`;
                                   }}
                                 >
                                   Voir les créneaux
@@ -795,6 +953,15 @@ const CanyonSearch = () => {
                                               const sessionId = session.sessionId || session.id;
                                               navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}`);
                                             }}
+                                            style={{ borderColor: clientColor }}
+                                            onMouseEnter={(e) => {
+                                              e.target.style.backgroundColor = clientColor;
+                                              e.target.style.color = 'white';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.target.style.backgroundColor = 'white';
+                                              e.target.style.color = '#2c3e50';
+                                            }}
                                           >
                                             <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
                                             <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
@@ -836,7 +1003,7 @@ const CanyonSearch = () => {
                 onClick={() => setResultFilters({ category: '', massif: '', difficulty: '' })}
                 style={{
                   padding: '0.75rem 1.5rem',
-                  background: '#3498db',
+                  background: clientColor,
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -854,67 +1021,125 @@ const CanyonSearch = () => {
               <h2>{t('Désolé')} !</h2>
               <p>{t('NoResult')}</p>
 
-              {/* Afficher les 2 prochaines dates disponibles */}
+              {/* Afficher les prochaines dates disponibles */}
               {nextAvailableDates.length > 0 && (
                 <div className={styles.alternativeDatesSection}>
-                  <h3>{t('Flexible')}</h3>
-                  <p>{t('dateDispo')}</p>
-                  <div className={styles.alternativeDateButtons}>
-                    {nextAvailableDates.slice(0, 2).map((dateInfo, index) => (
-                      <button
-                        key={index}
-                        className={styles.alternativeDateButton}
-                        onClick={() => {
-                          // Mettre à jour les filtres avec cette date et rechercher
-                          const newFilters = {
-                            ...filters,
-                            date: dateInfo.date,
-                            startDate: '',
-                            endDate: ''
-                          };
-                          setFilters(newFilters);
+                  {/* Mise en page 2 colonnes */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                    gap: '2rem',
+                    marginTop: '2rem'
+                  }}>
+                    {/* Colonne gauche - Calendrier */}
+                    <div>
+                      <h3 style={{
+                        fontSize: '1.3rem',
+                        marginBottom: '1rem',
+                        color: '#2c3e50',
+                        textAlign: 'center'
+                      }}>
+                        Vous êtes flexible ?
+                      </h3>
+                      <h4 style={{
+                        fontSize: '1rem',
+                        marginBottom: '1rem',
+                        color: '#6c757d',
+                        textAlign: 'center',
+                        fontWeight: '400'
+                      }}>
+                        Choisissez une date dans le calendrier
+                      </h4>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: '1rem'
+                      }}>
+                        <DateRangePicker
+                          onDateChange={handleCalendarDateClick}
+                          hideRangeMode={true}
+                          dateAvailability={calendarAvailability}
+                          accentColor={clientColor}
+                        />
+                      </div>
+                    </div>
 
-                          // Mettre à jour l'URL
-                          const params = new URLSearchParams();
-                          Object.keys(newFilters).forEach(key => {
-                            if (newFilters[key]) params.set(key, newFilters[key]);
-                          });
-                          setSearchParams(params);
-
-                          // Lancer la recherche immédiatement avec les nouveaux filtres
-                          loadProducts(newFilters);
-                        }}
-                      >
-                        {new Date(dateInfo.date).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </button>
-                    ))}
+                    {/* Colonne droite - Contact */}
+                    <div>
+                      <h3 style={{
+                        fontSize: '1.3rem',
+                        marginBottom: '1rem',
+                        color: '#2c3e50',
+                        textAlign: 'center'
+                      }}>
+                        Sinon
+                      </h3>
+                      <p style={{
+                        textAlign: 'center',
+                        color: '#6c757d',
+                        marginBottom: '1.5rem'
+                      }}>
+                        Téléphonez-nous, il est possible d'ouvrir de nouveaux créneaux sur demande !
+                      </p>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1rem',
+                        flexWrap: 'wrap'
+                      }}>
+                        <a
+                          href="tel:+33688788186"
+                          className={styles.contactButton}
+                          style={{
+                            textDecoration: 'none',
+                            borderColor: clientColor
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = clientColor;
+                            e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.boxShadow = `0 4px 12px ${clientColor}50`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.color = '#2c3e50';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }}
+                        >
+                          <div>
+                            <strong>📞 Appeler</strong>
+                            <p style={{ margin: 0 }}>06 88 78 81 86</p>
+                          </div>
+                        </a>
+                        <a
+                          href="mailto:contact@canyonlife.fr"
+                          className={styles.contactButton}
+                          style={{
+                            textDecoration: 'none',
+                            borderColor: clientColor
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = clientColor;
+                            e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.boxShadow = `0 4px 12px ${clientColor}50`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.color = '#2c3e50';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }}
+                        >
+                          <div>
+                            <strong>✉️ Envoyer un email</strong>
+                            <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-
-              {/* Informations de contact */}
-              <div className={styles.contactCard}>
-                <h3>Sinon</h3>
-                <p>Téléphonez-nous, il est possible d'ouvrir de nouveaux créneaux sur demande !</p>
-                <div className={styles.contactInfo}>
-                  <a href="tel:+33688788186" className={styles.contactButton} style={{ textDecoration: 'none' }}>
-                    <div>
-                      <strong>📞 Appeler</strong>
-                      <p style={{ margin: 0 }}>06 88 78 81 86</p>
-                    </div>
-                  </a>
-                  <a href="mailto:contact@canyonlife.fr" className={styles.contactButton} style={{ textDecoration: 'none' }}>
-                    <div>
-                      <strong>✉️ Envoyer un email</strong>
-                      <p style={{ margin: 0 }}>contact@canyonlife.fr</p>
-                    </div>
-                  </a>
-                </div>
-              </div>
 
             </div>
           )}

@@ -123,8 +123,8 @@
 }
 
 .tabActive {
-  color: #3498db;
-  border-bottom-color: #3498db;
+  color: var(--guide-primary);
+  border-bottom-color: var(--guide-primary);
   background-color: white;
 }
 
@@ -210,14 +210,14 @@
 }
 
 .btnPrimary {
-  background-color: #3498db;
+  background-color: var(--guide-primary);
   color: white;
 }
 
 .btnPrimary:hover {
-  background-color: #2980b9;
+  background-color: var(--guide-secondary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--guide-primary-rgb), 0.3);
 }
 
 .btnPrimary:disabled {
@@ -234,8 +234,8 @@
 
 .btnSecondary:hover {
   background-color: #f8f9fa;
-  border-color: #3498db;
-  color: #3498db;
+  border-color: var(--guide-primary);
+  color: var(--guide-primary);
 }
 
 .btnDanger {
@@ -282,8 +282,8 @@
 }
 
 .bookingPreviewCard:hover {
-  border-color: #3498db;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 2px 8px rgba(var(--guide-primary-rgb), 0.1);
   transform: translateY(-1px);
 }
 
@@ -371,8 +371,8 @@
 }
 
 .clientCard:hover {
-  border-color: #3498db;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 2px 8px rgba(var(--guide-primary-rgb), 0.1);
 }
 
 .clientCardHeader {
@@ -429,7 +429,7 @@
 
 .btnEditClient {
   padding: 0.5rem 1rem;
-  background-color: #3498db;
+  background-color: var(--guide-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -444,9 +444,9 @@
 }
 
 .btnEditClient:hover {
-  background-color: #2980b9;
+  background-color: var(--guide-secondary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--guide-primary-rgb), 0.3);
 }
 
 .clientCardBody {
@@ -520,7 +520,7 @@
 
 .select:hover,
 .select:focus {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   outline: none;
 }
 
@@ -547,7 +547,7 @@
 
 .input:hover,
 .input:focus {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   outline: none;
 }
 
@@ -565,7 +565,7 @@
 
 .textarea:hover,
 .textarea:focus {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   outline: none;
 }
 
@@ -646,7 +646,7 @@
 .statDetailValue {
   font-size: 2rem;
   font-weight: 700;
-  color: #3498db;
+  color: var(--guide-primary);
   margin-bottom: 1rem;
 }
 
@@ -786,12 +786,12 @@
 }
 
 .btnSelect {
-  background-color: #3498db;
+  background-color: var(--guide-primary);
   color: white;
 }
 
 .btnSelect:hover:not(:disabled) {
-  background-color: #2980b9;
+  background-color: var(--guide-secondary);
 }
 
 .btnSelect:disabled {
@@ -826,8 +826,8 @@
 
 .bookingPreviewCardSelected {
   background-color: #ebf5fb !important;
-  border-color: #3498db !important;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2) !important;
+  border-color: var(--guide-primary) !important;
+  box-shadow: 0 2px 8px rgba(var(--guide-primary-rgb), 0.2) !important;
 }
 
 .bookingCheckbox {
@@ -841,19 +841,19 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #3498db;
+  accent-color: var(--guide-primary);
 }
 
 /* Bulk Actions Bar */
 .bulkActionsBar {
   margin-top: 1rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(135deg, var(--guide-primary) 0%, var(--guide-secondary) 100%);
   border-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--guide-primary-rgb), 0.3);
 }
 
 .bulkActionsInfo {
@@ -883,7 +883,7 @@
 
 .btnBulkMove {
   background-color: white;
-  color: #3498db;
+  color: var(--guide-primary);
 }
 
 .btnBulkMove:hover {
@@ -939,7 +939,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(135deg, var(--guide-primary) 0%, var(--guide-secondary) 100%);
   color: white;
 }
 
@@ -960,7 +960,7 @@
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1.5rem;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--guide-primary);
 }
 
 .bulkMoveInfo p {
@@ -1055,7 +1055,7 @@
 }
 
 .textLink {
-  color: #3498db;
+  color: var(--guide-primary);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -1065,7 +1065,7 @@
 }
 
 .textLink:hover {
-  color: #2980b9;
+  color: var(--guide-secondary);
   text-decoration: underline;
 }
 

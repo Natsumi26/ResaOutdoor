@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI } from '../../services/api';
+import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI, settingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -19,6 +19,10 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [modePayment, setModePayment] = useState('')
+  const [clientColor, setClientColor] = useState(() => {
+    // Essayer de récupérer depuis localStorage d'abord
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
 
   // Déterminer la langue initiale basée sur la langue de l'interface
   const initialLanguage = i18n.language?.startsWith('en') ? 'EN' : 'FR';
@@ -107,13 +111,21 @@ const BookingForm = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [sessionRes, productRes] = await Promise.all([
+        const [sessionRes, productRes, settingsRes] = await Promise.all([
           sessionsAPI.getById(sessionId),
-          productsAPI.getById(productId)
+          productsAPI.getById(productId),
+          settingsAPI.get()
         ]);
         setSession(sessionRes.data.session);
         setModePayment(sessionRes.data.session.guide.paymentMode);
         setProduct(productRes.data.product);
+
+        // Charger la couleur client
+        const settings = settingsRes.data.settings;
+        if (settings?.clientButtonColor) {
+          setClientColor(settings.clientButtonColor);
+          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+        }
       } catch (error) {
         console.error('Erreur chargement données:', error);
         navigate('/client/search');
@@ -421,6 +433,42 @@ console.log(formData)
 
   return (
     <div className={styles.clientContainer}>
+      {/* Styles globaux pour les focus et hover des éléments */}
+      <style>
+        {`
+          .${styles.bookingForm} .${styles.formGroup} input:focus,
+          .${styles.bookingForm} .${styles.formGroup} select:focus,
+          .${styles.participantFields} .${styles.formGroup} input:focus,
+          .${styles.compactFieldsGrid} .${styles.formGroup} input:focus,
+          .${styles.shoeSizeInline} input:focus {
+            border-color: ${clientColor} !important;
+            box-shadow: 0 0 0 3px ${clientColor}20 !important;
+          }
+          .${styles.counterBtn}:hover:not(:disabled) {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+            color: ${clientColor} !important;
+          }
+          .${styles.paymentOption}:hover {
+            background: ${clientColor}15 !important;
+            border-color: ${clientColor} !important;
+          }
+          .${styles.participantsForm} .${styles.participantCard}:hover {
+            border-color: ${clientColor} !important;
+          }
+          .${styles.compactInfoBox} {
+            background: ${clientColor}15 !important;
+            border-left-color: ${clientColor} !important;
+          }
+          .${styles.infoBox} {
+            background: ${clientColor}15 !important;
+            border-left-color: ${clientColor} !important;
+          }
+          .${styles.loader} {
+            border-top-color: ${clientColor} !important;
+          }
+        `}
+      </style>
       {/* Bouton retour */}
       <button
         onClick={() => navigate(-1)}
@@ -463,7 +511,7 @@ console.log(formData)
         {/* Résumé de la session */}
         <div className={styles.bookingSummary}>
           <div className={styles.summaryCard}>
-            <h3>{product.name}</h3>
+            <h3 style={{ borderBottom: `2px solid ${clientColor}` }}>{product.name}</h3>
             <div className={styles.summaryDetails}>
               <p><strong>📅 Date:</strong> {format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: fr })}</p>
               <p style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
@@ -483,8 +531,8 @@ console.log(formData)
           </div>
 
           {/* Calcul du prix */}
-          <div className={styles.priceBreakdown} data-desktop-price="true">
-            <h3>{t('priceDetail')}</h3>
+          <div className={styles.priceBreakdown} data-desktop-price="true" style={{ border: `1px solid ${clientColor}20` }}>
+            <h3 style={{ borderBottom: `2px solid ${clientColor}` }}>{t('priceDetail')}</h3>
             <div className={styles.priceItem}>
               <span>{formData.numberOfPeople} personne(s) × {
                 // Afficher le prix individuel si voucher actif, sinon le prix de groupe si applicable
@@ -515,7 +563,7 @@ console.log(formData)
               </div>
             )}
 
-            <div className={`${styles.priceItem} ${styles.total}`}>
+            <div className={`${styles.priceItem} ${styles.total}`} style={{ borderTop: `3px solid ${clientColor}` }}>
               <strong>{t('Total')}</strong>
               <strong>{voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)}€</strong>
             </div>
@@ -523,7 +571,7 @@ console.log(formData)
             {/* Affichage de l'acompte si requis */}
             {isDepositRequired() && (
               <>
-                <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
+                <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: `1px solid ${clientColor}` }}>
                   <div className={styles.priceItem}>
                     <span>💳 Acompte à payer maintenant</span>
                     <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
@@ -621,10 +669,10 @@ console.log(formData)
                       style={{
                         flex: 1,
                         padding: '0.75rem',
-                        border: formData.clientNationality === lang.code ? '2px solid #3498db' : '2px solid #dee2e6',
+                        border: formData.clientNationality === lang.code ? `2px solid ${clientColor}` : '2px solid #dee2e6',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        backgroundColor: formData.clientNationality === lang.code ? '#e3f2fd' : 'white',
+                        backgroundColor: formData.clientNationality === lang.code ? `${clientColor}15` : 'white',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
@@ -671,7 +719,7 @@ console.log(formData)
                 )}
               </div>
               {session.shoeRentalAvailable && (
-                <small className={styles.infoNote}>ℹ️ {t('AskLaterShoesLoc')}</small>
+                <small className={styles.infoNote} style={{ backgroundColor: `${clientColor}15`, borderLeft: `3px solid ${clientColor}` }}>ℹ️ {t('AskLaterShoesLoc')}</small>
               )}
 
               {/* Bouton pour basculer l'affichage du formulaire - caché si moins de 24h */}
@@ -734,7 +782,7 @@ console.log(formData)
 
                     {/* Location de chaussures */}
                     {session.shoeRentalAvailable && (
-                      <div className={styles.shoeRentalSection}>
+                      <div className={styles.shoeRentalSection} style={{ backgroundColor: participant.shoeRental ? `${clientColor}10` : 'white', borderColor: participant.shoeRental ? clientColor : '#dee2e6' }}>
                         <label className={styles.checkboxLabel}>
                           <input
                             type="checkbox"
@@ -795,8 +843,8 @@ console.log(formData)
             </div>
 
             {/* Calcul du prix - Version mobile uniquement */}
-            <div className={styles.priceBreakdown} data-mobile-price="true">
-              <h3>{t('priceDetail')}</h3>
+            <div className={styles.priceBreakdown} data-mobile-price="true" style={{ border: `1px solid ${clientColor}20` }}>
+              <h3 style={{ borderBottom: `2px solid ${clientColor}` }}>{t('priceDetail')}</h3>
               <div className={styles.priceItem}>
                 <span>{formData.numberOfPeople} personne(s) × {
                   product.priceGroup && formData.numberOfPeople >= product.priceGroup.min
@@ -821,7 +869,7 @@ console.log(formData)
                     <span>{t('BonApply')} ({voucherInfo.code})</span>
                     <span>-{discount.toFixed(2)}€</span>
                   </div>
-                  <div className={`${styles.priceItem} ${styles.total}`}>
+                  <div className={`${styles.priceItem} ${styles.total}`} style={{ borderTop: `3px solid ${clientColor}` }}>
                     <strong>{t('Total')}</strong>
                     <strong>{finalPrice.toFixed(2)}€</strong>
                   </div>
@@ -829,7 +877,7 @@ console.log(formData)
               )}
 
               {!voucherInfo && (
-                <div className={`${styles.priceItem} ${styles.total}`}>
+                <div className={`${styles.priceItem} ${styles.total}`} style={{ borderTop: `3px solid ${clientColor}` }}>
                   <strong>{t('Total')}</strong>
                   <strong>{total.toFixed(2)}€</strong>
                 </div>
@@ -838,7 +886,7 @@ console.log(formData)
               {/* Affichage de l'acompte si requis */}
               {isDepositRequired() && (
                 <>
-                  <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: '1px solid #2196F3' }}>
+                  <div className={styles.depositInfo} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f0f8ff', borderRadius: '8px', border: `1px solid ${clientColor}` }}>
                     <div className={styles.priceItem}>
                       <span>💳 Acompte à payer maintenant</span>
                       <strong>{formData.payFullAmount ? (voucherInfo ? finalPrice.toFixed(2) : total.toFixed(2)) : calculateDeposit().toFixed(2)}€</strong>
@@ -968,7 +1016,7 @@ console.log(formData)
                       href={session.guide.confidentialityPolicy}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#007bff', textDecoration: 'underline' }}
+                      style={{ color: clientColor, textDecoration: 'underline' }}
                     >
                       conditions de confidentialité
                     </a>{' '}
@@ -991,6 +1039,7 @@ console.log(formData)
               <button
                 type="submit"
                 className={styles.btnPrimary}
+                style={{ backgroundColor: clientColor, borderColor: clientColor }}
                 disabled={submitting}
               >
                 {submitting ? t('Traitement...') : (

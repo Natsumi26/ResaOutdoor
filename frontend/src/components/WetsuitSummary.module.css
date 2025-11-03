@@ -204,7 +204,7 @@
   padding: 0.75rem 1rem;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--guide-primary);
   margin-bottom: 1rem;
 }
 
@@ -215,7 +215,7 @@
 }
 
 .productCount {
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -289,7 +289,7 @@
 }
 
 .participantsTable tr:hover {
-  background: rgba(52, 152, 219, 0.05);
+  background: rgba(var(--guide-primary-rgb), 0.05);
 }
 
 .sizeBadge {

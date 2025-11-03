@@ -10,12 +10,10 @@ import Products from './pages/Products';
 import GiftVouchers from './pages/GiftVouchers';
 import Reservations from './pages/Reservations';
 import Emails from './pages/Emails';
-import OnlineSales from './pages/OnlineSales';
 import Resellers from './pages/Resellers';
 import Preferences from './pages/Preferences';
 import PaymentPreferences from './pages/PaymentPreferences';
 import Team from './pages/Team';
-import Newsletter from './pages/Newsletter';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 
@@ -77,9 +75,9 @@ const AppRoutes = () => {
         <Route path="reservations" element={<Reservations />} />
         <Route path="gift-vouchers" element={<GiftVouchers />} />
         <Route path="settings/emails" element={<Emails />} />
-        <Route path="settings/online-sales" element={<OnlineSales />} />
+        <Route path="settings/online-sales" element={<Navigate to="/settings/preferences/payment-preferences?tab=online-sales" />} />
         <Route path="settings/resellers" element={<Resellers />} />
-        <Route path="settings/newsletter" element={<Newsletter />} />
+        <Route path="settings/newsletter" element={<Navigate to="/settings/emails?tab=newsletter" />} />
         <Route path="settings/preferences/personalization" element={<Preferences />} />
         <Route path="settings/preferences/payment-preferences" element={<PaymentPreferences />} />
       </Route>

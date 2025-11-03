@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { settingsAPI, uploadAPI } from '../services/api';
+import { usersAPI, settingsAPI, uploadAPI, categoriesAPI } from '../services/api';
 import styles from './Common.module.css';
 
 const Preferences = () => {
@@ -15,11 +15,14 @@ const Preferences = () => {
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState('');
   const [logo, setLogo] = useState('');
+  const [slogan, setSlogan] = useState('');
 
   // Préférences de thème
   const [themeColors, setThemeColors] = useState({
     primary: '#3498db',
     secondary: '#2c3e50',
+    clientButton: '#3498db',
+    clientAccent: '#3498db',
     success: '#28a745',
     danger: '#dc3545',
     warning: '#ffc107',
@@ -29,6 +32,16 @@ const Preferences = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [bookingReminders, setBookingReminders] = useState(true);
+
+  // Activités pratiquées par le guide (pré-définies)
+  const predefinedActivities = [
+    { id: 'canyoning', name: 'Canyoning', description: 'Descente de canyons en eau' },
+    { id: 'via-ferrata', name: 'Via Ferrata', description: 'Escalade équipée en montagne' },
+    { id: 'escalade', name: 'Escalade', description: 'Escalade de bloc et falaise' },
+    { id: 'speleologie', name: 'Spéléologie', description: 'Exploration de grottes' }
+  ];
+
+  const [practiceActivities, setPracticeActivities] = useState([]);
 
   useEffect(() => {
     loadPreferences();
@@ -48,12 +61,15 @@ const Preferences = () => {
         setEmail(settings.companyEmail || '');
         setWebsite(settings.website || '');
         setLogo(settings.logo || '');
+        setSlogan(settings.slogan || '');
 
         if (settings.primaryColor) {
           setThemeColors(prev => ({
             ...prev,
             primary: settings.primaryColor,
-            secondary: settings.secondaryColor || prev.secondary
+            secondary: settings.secondaryColor || prev.secondary,
+            clientButton: settings.clientButtonColor || prev.clientButton,
+            clientAccent: settings.clientAccentColor || prev.clientAccent
           }));
         }
       }
@@ -71,6 +87,23 @@ const Preferences = () => {
     }
   };
 
+  // Charger les activités pratiquées du user
+  useEffect(() => {
+    if (user?.practiceActivities) {
+      setPracticeActivities(user.practiceActivities);
+    }
+  }, [user]);
+
+  const handleActivityToggle = (categoryId) => {
+    setPracticeActivities(prev => {
+      if (prev.includes(categoryId)) {
+        return prev.filter(id => id !== categoryId);
+      } else {
+        return [...prev, categoryId];
+      }
+    });
+  };
+
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -83,9 +116,37 @@ const Preferences = () => {
         companyEmail: email,
         website,
         logo,
+        slogan,
         primaryColor: themeColors.primary,
-        secondaryColor: themeColors.secondary
+        secondaryColor: themeColors.secondary,
+        clientButtonColor: themeColors.clientButton,
+        clientAccentColor: themeColors.clientAccent
       });
+
+      // Sauvegarder les activités pratiquées du guide
+      if (user?.id) {
+        await usersAPI.update(user.id, {
+          practiceActivities
+        });
+      }
+
+      // Sauvegarder les couleurs dans localStorage pour éviter le flash au chargement
+      localStorage.setItem('clientThemeColor', themeColors.clientButton);
+      localStorage.setItem('guidePrimaryColor', themeColors.primary);
+      localStorage.setItem('guideSecondaryColor', themeColors.secondary);
+
+      // Mettre à jour les CSS variables pour changement immédiat
+      document.documentElement.style.setProperty('--guide-primary', themeColors.primary);
+      document.documentElement.style.setProperty('--guide-secondary', themeColors.secondary);
+      const extractRGB = (hex) => {
+        const h = hex.replace('#', '');
+        const r = parseInt(h.substring(0, 2), 16);
+        const g = parseInt(h.substring(2, 4), 16);
+        const b = parseInt(h.substring(4, 6), 16);
+        return `${r}, ${g}, ${b}`;
+      };
+      document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(themeColors.primary));
+      document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(themeColors.secondary));
 
       setSaveMessage('✅ Préférences sauvegardées avec succès !');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -140,6 +201,8 @@ const Preferences = () => {
     setThemeColors({
       primary: '#3498db',
       secondary: '#2c3e50',
+      clientButton: '#3498db',
+      clientAccent: '#3498db',
       success: '#28a745',
       danger: '#dc3545',
       warning: '#ffc107',
@@ -182,7 +245,7 @@ const Preferences = () => {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Canyon Life"
+              placeholder="Votre entreprise"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -242,7 +305,7 @@ const Preferences = () => {
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://www.canyon-life.com"
+                placeholder="https://www.example.com"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -253,6 +316,30 @@ const Preferences = () => {
               />
             </div>
 
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                Slogan
+              </label>
+              <input
+                type="text"
+                value={slogan}
+                onChange={(e) => setSlogan(e.target.value)}
+                placeholder="Ex: Votre slogan ou accroche"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              />
+              <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Utilisé dans les bons cadeaux (en dessous du logo)
+              </small>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
                 Logo
@@ -342,7 +429,77 @@ const Preferences = () => {
           </div>
         </div>
 
-        {/* Thème et couleurs */}
+        {/* Activités pratiquées */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
+            🏃 Activités pratiquées
+          </h2>
+          <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+            Sélectionnez les activités que vous pratiquez. Cela permettra de filtrer le type d'activité lors de la création de produits.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+            {predefinedActivities.map((activity) => (
+              <label
+                key={activity.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 15px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  background: practiceActivities.includes(activity.id) ? 'rgba(52, 152, 219, 0.1)' : 'white',
+                  borderColor: practiceActivities.includes(activity.id) ? '#3498db' : '#e5e7eb',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (!practiceActivities.includes(activity.id)) {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!practiceActivities.includes(activity.id)) {
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                  }
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={practiceActivities.includes(activity.id)}
+                  onChange={() => handleActivityToggle(activity.id)}
+                  style={{
+                    marginRight: '10px',
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: '#3498db'
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                    {activity.name}
+                  </div>
+                  {activity.description && (
+                    <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '2px' }}>
+                      {activity.description}
+                    </div>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Thème Guide */}
         <div className={styles.section} style={{
           background: 'white',
           padding: '30px',
@@ -351,16 +508,16 @@ const Preferences = () => {
           marginBottom: '30px'
         }}>
           <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            🎨 Personnalisation du thème
+            👨‍💼 Thème Guide
           </h2>
           <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Personnalisez les couleurs de votre interface
+            Personnalisez le dégradé de l'interface guide (sidebar et bouton Session)
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur principale
+                Dégradé - Début
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
@@ -380,7 +537,7 @@ const Preferences = () => {
 
             <div>
               <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur secondaire
+                Dégradé - Fin
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
@@ -393,101 +550,100 @@ const Preferences = () => {
                   type="text"
                   value={themeColors.secondary}
                   onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Succès
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.success}
-                  onChange={(e) => setThemeColors({ ...themeColors, success: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.success}
-                  onChange={(e) => setThemeColors({ ...themeColors, success: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Danger
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.danger}
-                  onChange={(e) => setThemeColors({ ...themeColors, danger: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.danger}
-                  onChange={(e) => setThemeColors({ ...themeColors, danger: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Avertissement
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="color"
-                  value={themeColors.warning}
-                  onChange={(e) => setThemeColors({ ...themeColors, warning: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={themeColors.warning}
-                  onChange={(e) => setThemeColors({ ...themeColors, warning: e.target.value })}
                   style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button
-              onClick={handleResetTheme}
-              style={{
-                padding: '10px 20px',
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                fontWeight: '500'
-              }}
-            >
-              🔄 Réinitialiser les couleurs
-            </button>
+          <div style={{
+            padding: '12px 16px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            color: '#6c757d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            ℹ️ Ces couleurs s'appliquent uniquement à l'interface guide (sidebar et bouton Session)
+          </div>
+        </div>
 
-            <div style={{
-              padding: '10px 20px',
-              background: '#f8f9fa',
+        {/* Thème Client */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            👥 Thème Client
+          </h2>
+          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
+            Personnalisez la couleur de l'interface client
+          </p>
+
+          <div style={{ marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                Couleur du thème
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '400px' }}>
+                <input
+                  type="color"
+                  value={themeColors.clientButton}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
+                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={themeColors.clientButton}
+                  onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
+                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: '12px 16px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            color: '#6c757d',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            ℹ️ Cette couleur s'applique à tous les éléments de l'interface client
+          </div>
+        </div>
+
+        {/* Bouton Reset */}
+        <div className={styles.section} style={{
+          background: 'white',
+          padding: '20px 30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px'
+        }}>
+          <button
+            onClick={handleResetTheme}
+            style={{
+              padding: '12px 24px',
+              background: '#6c757d',
+              color: 'white',
+              border: 'none',
               borderRadius: '6px',
-              fontSize: '0.9rem',
-              color: '#6c757d',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              ℹ️ Les couleurs seront appliquées à l'ensemble de l'interface
-            </div>
-          </div>
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '500'
+            }}
+          >
+            🔄 Réinitialiser toutes les couleurs
+          </button>
         </div>
 
         {/* Notifications */}

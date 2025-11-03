@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { resellersAPI } from '../services/api';
+import { resellersAPI, settingsAPI } from '../services/api';
 import styles from './ResellerManagement.module.css';
 
 const ResellerManagement = () => {
@@ -18,9 +18,30 @@ const ResellerManagement = () => {
     notes: ''
   });
 
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
+
   useEffect(() => {
     loadResellers();
+    loadThemeColors();
   }, []);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadResellers = async () => {
     try {
@@ -111,6 +132,7 @@ const ResellerManagement = () => {
           <button
             className={styles.addBtn}
             onClick={() => setShowForm(true)}
+            style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}
           >
             + Ajouter un revendeur
           </button>

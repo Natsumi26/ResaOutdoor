@@ -22,7 +22,7 @@
 }
 
 .navButton {
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
   border: none;
   border-radius: 50%;
@@ -37,7 +37,7 @@
 }
 
 .navButton:hover {
-  background: #2980b9;
+  background: var(--guide-secondary);
   transform: scale(1.1);
 }
 
@@ -94,14 +94,11 @@
 }
 
 .selectedDay {
-  background: #3498db !important;
-  color: white !important;
   font-weight: bold;
   transform: scale(1.1);
 }
 
 .inRange {
-  background: #cce5ff !important;
   color: #2c3e50;
 }
 
@@ -123,7 +120,7 @@
 }
 
 .selectedDates strong {
-  color: #3498db;
+  color: var(--guide-primary);
 }
 
 .selectedDates em {

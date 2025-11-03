@@ -179,14 +179,22 @@ export const searchAvailableProducts = async (req, res, next) => {
         // Places disponibles pour ce produit
         const availableCapacity = product.maxCapacity - bookedForProduct;
 
+        // Créer une date complète avec l'heure de début de la session
+        const sessionDateTime = new Date(session.date);
+        const [hours, minutes] = session.startTime.split(':');
+        sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+        // Vérifier si l'heure de début de la session est déjà passée
+        const isSessionStarted = now >= sessionDateTime;
+
+        // Si la session a déjà commencé, ne pas l'afficher aux clients
+        if (isSessionStarted) {
+          return; // Skip cette session
+        }
+
         // Vérifier la fermeture automatique
         let isAutoClosed = false;
         if (product.autoCloseHoursBefore) {
-          // Créer une date complète avec l'heure de début
-          const sessionDateTime = new Date(session.date);
-          const [hours, minutes] = session.startTime.split(':');
-          sessionDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
           // Calculer l'heure limite de réservation
           const closeDateTime = new Date(sessionDateTime);
           closeDateTime.setHours(closeDateTime.getHours() - product.autoCloseHoursBefore);
@@ -225,7 +233,14 @@ export const searchAvailableProducts = async (req, res, next) => {
       .filter(item => item.availableSessions.length > 0)
       .map(item => ({
         ...item.product,
-        availableSessions: item.availableSessions
+        availableSessions: item.availableSessions.sort((a, b) => {
+          // Trier par date d'abord
+          const dateCompare = new Date(a.date) - new Date(b.date);
+          if (dateCompare !== 0) return dateCompare;
+
+          // Si même date, trier par heure de début
+          return a.startTime.localeCompare(b.startTime);
+        })
       }));
 
     res.json({

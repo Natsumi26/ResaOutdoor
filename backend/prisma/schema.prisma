@@ -24,6 +24,9 @@ model User {
   depositType           String?   // "percentage" ou "fixed"
   depositAmount         Float?    // Montant de l'acompte (pourcentage ou montant fixe)
 
+  // Activités pratiquées par le guide
+  practiceActivities    String[]  // Tableau des IDs de catégories que le guide pratique
+
   // Hiérarchie de team
   teamName              String?   // Nom de l'équipe (uniquement pour les leaders)
   teamLeaderId          String?   // Leader de l'équipe (null si l'utilisateur est lui-même leader ou super_admin)
@@ -43,7 +46,7 @@ model User {
   @@map("users")
 }
 
-// Catégories d'activités
+// Catégories d'activités (personnalisées, créées par les guides)
 model Category {
   id          String    @id @default(uuid())
   name        String
@@ -75,6 +78,8 @@ model Product {
   googleMapsLink        String?
   websiteLink           String?  // Lien vers la page internet du produit
   images                String[] // URLs des images
+
+  activityTypeId        String   // Type d'activité (canyoning, via-ferrata, escalade, speleologie)
 
   guideId               String
   guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)
@@ -355,17 +360,20 @@ model EmailTemplate {
 
 // Paramètres globaux de l'application
 model Settings {
-  id              String   @id @default(uuid())
-  companyName     String?  // Nom de l'entreprise
-  companyPhone    String?  // Téléphone de l'entreprise
-  companyEmail    String?  // Email de l'entreprise
-  website         String?  // Site internet de l'entreprise
-  logo            String?  // URL du logo
-  primaryColor    String?  // Couleur principale
-  secondaryColor  String?  // Couleur secondaire
+  id                String   @id @default(uuid())
+  companyName       String?  // Nom de l'entreprise
+  companyPhone      String?  // Téléphone de l'entreprise
+  companyEmail      String?  // Email de l'entreprise
+  website           String?  // Site internet de l'entreprise
+  logo              String?  // URL du logo
+  slogan            String?  // Slogan utilisé dans les bons cadeaux
+  primaryColor      String?  // Couleur principale (sidebar guide)
+  secondaryColor    String?  // Couleur secondaire (session button guide)
+  clientButtonColor String?  // Couleur des boutons côté client
+  clientAccentColor String?  // Couleur des textes/accents côté client
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@map("settings")
 }

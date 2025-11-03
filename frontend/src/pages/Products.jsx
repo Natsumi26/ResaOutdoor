@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI, categoriesAPI, usersAPI, authAPI } from '../services/api';
+import { productsAPI, categoriesAPI, usersAPI, authAPI, settingsAPI } from '../services/api';
 import ProductForm from '../components/ProductForm';
 import styles from './Common.module.css';
 import modalStyles from '../components/ProductForm.module.css';
 
 const Products = () => {
+  // Activités pré-définies
+  const predefinedActivities = [
+    { id: 'canyoning', name: 'Canyoning', description: 'Descente de canyons en eau' },
+    { id: 'via-ferrata', name: 'Via Ferrata', description: 'Escalade équipée en montagne' },
+    { id: 'escalade', name: 'Escalade', description: 'Escalade de bloc et falaise' },
+    { id: 'speleologie', name: 'Spéléologie', description: 'Exploration de grottes' }
+  ];
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
@@ -12,11 +20,31 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [regionFilter, setRegionFilter] = useState('all');
+  const [activityFilter, setActivityFilter] = useState('all');
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadData();
+    loadThemeColors();
   }, []);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -95,33 +123,61 @@ const Products = () => {
 
   if (loading) return <div className={styles.loading}>Chargement...</div>;
 
-const uniqueRegions = Array.from(
-  new Set(products.map(p => p.region).filter(Boolean))
-);
+// Déterminer les activités pratiquées par le guide actuel
+const guidePracticeActivities = currentUser?.practiceActivities || [];
 
-// Filtrer les produits par région
-const filteredProducts = regionFilter === 'all'
+// Filtrer les produits par type d'activité si un filtre est sélectionné
+const filteredProducts = activityFilter === 'all'
   ? products
-  : products.filter(p => p.region === regionFilter);
+  : products.filter(p => p.activityTypeId === activityFilter);
 
-const productsByRegion = uniqueRegions.map(regionName => {
-  const regionProducts = filteredProducts.filter(p => p.region === regionName);
-  return {
-    label: regionName,
-    products: regionProducts
-  };
-});
-console.log(products)
+// Regrouper les produits par type d'activité
+const productsByActivity = predefinedActivities
+  .filter(activity => guidePracticeActivities.includes(activity.id))
+  .map(activity => {
+    const activityProducts = filteredProducts.filter(p => p.activityTypeId === activity.id);
+    return {
+      id: activity.id,
+      label: activity.name,
+      products: activityProducts
+    };
+  });
 
 return (
   <div className={styles.container}>
     <div className={styles.header}>
       <h1>🏞️ Gestion des Produits</h1>
-      {!showForm && (
-        <button className={styles.btnPrimary} onClick={handleCreate}>
-          + Nouveau Produit
-        </button>
-      )}
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        {/* Afficher le filtre par activité si le guide a plusieurs activités */}
+        {guidePracticeActivities.length > 1 && (
+          <select
+            value={activityFilter}
+            onChange={(e) => setActivityFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '4px',
+              border: '1px solid #ddd',
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            <option value="all">Toutes les activités</option>
+            {predefinedActivities
+              .filter(activity => guidePracticeActivities.includes(activity.id))
+              .map(activity => (
+                <option key={activity.id} value={activity.id}>
+                  {activity.name}
+                </option>
+              ))}
+          </select>
+        )}
+        {!showForm && (
+          <button className={styles.btnPrimary} onClick={handleCreate} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
+            + Nouveau Produit
+          </button>
+        )}
+      </div>
     </div>
 
     {showForm ? (
@@ -137,9 +193,9 @@ return (
       </div>
     ) : (
       <div className={styles.groupGrid}>
-        {productsByRegion.map(({ label, products }) => (
-          <div key={label} className={styles.groupRow}>
-            <h2 className={styles.groupTitle}>📍 {label.charAt(0).toUpperCase() + label.slice(1)}</h2>
+        {productsByActivity.map(({ id, label, products }) => (
+          <div key={id} className={styles.groupRow}>
+            <h2 className={styles.groupTitle}>🎯 {label}</h2>
             <hr/>
 
             {products.length > 0 ? (

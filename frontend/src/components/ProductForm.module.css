@@ -57,8 +57,8 @@
 .formGroup select:focus,
 .formGroup textarea:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
 }
 
 .formGroup input.error,
@@ -270,7 +270,7 @@
 
 .uploading {
   margin-top: 0.5rem;
-  color: #3498db;
+  color: var(--guide-primary);
   font-size: 0.9rem;
   font-style: italic;
 }
@@ -349,14 +349,14 @@
 }
 
 .btnSubmit {
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
 }
 
 .btnSubmit:hover {
-  background: #2980b9;
+  background: var(--guide-secondary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 8px rgba(var(--guide-primary-rgb), 0.3);
 }
 
 /* Form Wrapper */

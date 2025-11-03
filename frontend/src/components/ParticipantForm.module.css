@@ -49,8 +49,8 @@
 }
 
 .participantCard:hover {
-  border-color: #3498db;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+  border-color: var(--guide-primary);
+  box-shadow: 0 4px 12px rgba(var(--guide-primary-rgb), 0.15);
 }
 
 .participantHeader {
@@ -108,8 +108,8 @@
 
 .formGroup input:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
 }
 
 .shoeRentalSection {
@@ -143,7 +143,7 @@
 
 .rentalSummary {
   background: #e7f3ff;
-  border: 2px solid #3498db;
+  border: 2px solid var(--guide-primary);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;

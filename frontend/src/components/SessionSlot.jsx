@@ -39,7 +39,7 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
     if (bookings?.length > 0 && bookings[0]?.product?.color) {
       return bookings[0].product.color;
     }
-    return '#3498db';
+    return 'var(--guide-primary)';
   };
 
   const handleSessionClick = (e) => {
@@ -103,6 +103,7 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
             onCreateBooking(session);
           }}
           title="Ajouter une réservation"
+          style={{ backgroundColor: 'var(--guide-primary)' }}
         >
           +
         </button>

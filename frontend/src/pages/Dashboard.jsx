@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { settingsAPI } from '../services/api';
 import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
 import SuperAdminBanner from '../components/SuperAdminBanner';
@@ -12,7 +13,42 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
+
+  // Charger les couleurs du thème depuis les settings et mettre à jour les CSS variables
+  useEffect(() => {
+    const loadThemeColors = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          const primaryColor = settings.primaryColor;
+          const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+          // Mettre à jour les CSS variables
+          document.documentElement.style.setProperty('--guide-primary', primaryColor);
+          document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+          // Extraire les composants RGB
+          const extractRGB = (hex) => {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0, 2), 16);
+            const g = parseInt(h.substring(2, 4), 16);
+            const b = parseInt(h.substring(4, 6), 16);
+            return `${r}, ${g}, ${b}`;
+          };
+          document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+          document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+          // Sauvegarder dans localStorage
+          localStorage.setItem('guidePrimaryColor', primaryColor);
+          localStorage.setItem('guideSecondaryColor', secondaryColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleurs thème:', error);
+      }
+    };
+    loadThemeColors();
+  }, []);
 
   // Détecter si on est sur mobile et gérer l'état du sidebar
   useEffect(() => {
@@ -49,12 +85,16 @@ const Dashboard = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}>
+      <aside
+        className={`${styles.sidebar} ${!sidebarOpen ? styles.closed : ''} ${isMobile ? styles.mobile : ''}`}
+        style={{ background: 'linear-gradient(180deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)' }}
+      >
         <div className={styles.sidebarHeader}>
           <h2>🏔️ CanyonLife</h2>
           <button
             className={styles.toggleBtn}
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={isMobile ? { background: 'linear-gradient(180deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)' } : {}}
           >
             {sidebarOpen ? '◀' : '▶'}
           </button>
@@ -145,16 +185,6 @@ const Dashboard = () => {
                   </NavLink>
 
                   <NavLink
-                    to="/settings/online-sales"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>💳</span>
-                    <span>Vente en ligne</span>
-                  </NavLink>
-
-                  <NavLink
                     to="/settings/resellers"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
@@ -165,37 +195,13 @@ const Dashboard = () => {
                   </NavLink>
 
                   <NavLink
-                    to="/settings/newsletter"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>📧</span>
-                    <span>Newsletter</span>
-                  </NavLink>
-
-                {/* Menu déroulant Préférences */}
-              <div
-                className={`${styles.subMenuItem} ${styles.navDropdownToggle}`}
-                onClick={() => setPreferencesOpen(!preferencesOpen)}
-              >
-                <span className={styles.icon}>⚙️</span>
-                    <span>Préférences</span>
-                    <span className={`${styles.dropdownArrow} ${preferencesOpen ? styles.open : ''}`}>
-                      ▼
-                    </span>
-              </div>
-
-              {preferencesOpen && (
-                <div className={styles.subSubMenu}>
-                  <NavLink
                     to="/settings/preferences/personalization"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
                   >
-                    <span className={styles.icon}>⚙️</span>
-                    <span>Personnalisation</span>
+                    <span className={styles.icon}>🎨</span>
+                    {sidebarOpen && <span>Personnalisation</span>}
                   </NavLink>
 
                   <NavLink
@@ -205,7 +211,7 @@ const Dashboard = () => {
                     }
                   >
                     <span className={styles.icon}>💳</span>
-                    <span>Moyens de paiement</span>
+                    {sidebarOpen && <span>Moyens de paiement</span>}
                   </NavLink>
 
                   {(user?.role === 'leader' || isSuperAdmin) && (
@@ -218,8 +224,6 @@ const Dashboard = () => {
                     <span className={styles.icon}>🌟</span>
                     {sidebarOpen && <span>Mon Équipe</span>}
                   </NavLink>
-                )}
-                </div>
                 )}
             </div>
           )}

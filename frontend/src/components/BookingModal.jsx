@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI, emailAPI, stripeAPI, participantsAPI, giftVouchersAPI } from '../services/api';
+import { bookingsAPI, emailAPI, stripeAPI, participantsAPI, giftVouchersAPI, settingsAPI } from '../services/api';
 import ParticipantForm from './ParticipantForm';
 import MoveBookingModal from './MoveBookingModal';
 import styles from './BookingModal.module.css';
@@ -47,6 +47,23 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     numberOfPeople: 0,
     totalPrice: 0
   });
+  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
+
+  // Charger la couleur primary depuis les settings
+  useEffect(() => {
+    const loadThemeColor = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+        if (settings?.primaryColor) {
+          setPrimaryColor(settings.primaryColor);
+        }
+      } catch (error) {
+        console.error('Erreur chargement couleur thème:', error);
+      }
+    };
+    loadThemeColor();
+  }, []);
 
   useEffect(() => {
     loadBooking();
@@ -612,7 +629,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
   const remainingAmount = booking.totalPrice - booking.amountPaid;
 
   // Vérifier s'il reste des tâches à faire
-  const hasPendingTasks = !booking.participantsFormCompleted || !booking.productDetailsSent;
+  const hasPendingTasks = !booking.participantsFormCompleted || !booking.clientEmail;
 
   // Fonction pour formater le numéro de téléphone
   const formatPhoneNumber = (phone) => {
@@ -747,6 +764,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 <button
                   className={styles.btnBlue}
                   onClick={() => setShowParticipantForm(true)}
+                  style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                 >
                   📋 {booking.participantsFormCompleted ? 'Voir le formulaire' : 'Saisir à la main'}
                 </button>
@@ -803,38 +821,29 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
           {/* Bloc 3 - Détails de l'activité - Tableau 2 lignes */}
           <div className={styles.blockActivityTable}>
-            {/* Ligne 1 : Header coloré (jaune ou vert) */}
-            <div className={`${styles.activityHeader} ${booking.productDetailsSent ? styles.activityComplete : styles.activityIncomplete}`}>
-              <span className={styles.blockIcon}>{booking.productDetailsSent ? '✓' : '○'}</span>
-              <span className={styles.blockTitle}>Détails de l'activité {booking.productDetailsSent ? 'envoyés' : 'non envoyés'}</span>
-              {!booking.productDetailsSent && (
-                <span
-                  className={styles.quickValidateIcon}
-                  onClick={handleMarkProductDetailsSent}
-                  title="Marquer comme envoyé"
-                >
-                  ✅
-                </span>
-              )}
+            {/* Ligne 1 : Header coloré (vert si email présent, jaune sinon) */}
+            <div className={`${styles.activityHeader} ${booking.clientEmail ? styles.activityComplete : styles.activityIncomplete}`}>
+              <span className={styles.blockIcon}>{booking.clientEmail ? '✓' : '○'}</span>
+              <span className={styles.blockTitle}>
+                {booking.clientEmail
+                  ? 'Email de confirmation envoyé'
+                  : 'Email non envoyé (pas d\'adresse email)'}
+              </span>
             </div>
 
             {/* Ligne 2 : Contenu blanc/grisé - 2 colonnes */}
             <div className={styles.activityContent}>
               <div className={styles.activityText}>
-                <p>Envoyez un email récapitulatif de l'activité au client. Vous pouvez y ajouter un message personnalisé.</p>
+                <p>Envoyez un email de confirmation avec les détails de l'activité au client.</p>
               </div>
               <div className={styles.activityButtons}>
                 <button
                   className={styles.btnBlue}
-                  onClick={() => {
-                    setActivityEmailText(generateActivityEmailTemplate());
-                    setShowActivityEmail(!showActivityEmail);
-                  }}
+                  onClick={handleSendEmail}
+                  disabled={!booking.clientEmail}
+                  style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                 >
                   📧 Envoyer par email
-                </button>
-                <button className={styles.btnText} onClick={() => setShowActivityEmail(!showActivityEmail)}>
-                  Ajouter un message
                 </button>
               </div>
             </div>
@@ -946,23 +955,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                           : `${booking.discountAmount.toFixed(2)} €`}
                       </td>
                     </tr>
-                  )}
-                  {(booking.discountAmount > 0 || (participants && participants.length > 0 && participants.some(p => p.shoeRental)) ) && (
-                  <tr>
-                    <td>Par personne</td>
-                    <td>{(() => {
-                      const discount = booking.discountAmount ?? 0;
-                      const activityPrice = booking.totalPrice - discount ;
-                      const pricePerPerson = activityPrice / booking.numberOfPeople;
-                      return pricePerPerson.toFixed(2);
-                    })()} €</td>
-                    <td>{booking.numberOfPeople}</td>
-                    <td>{(() => {
-                      const discount = booking.discountAmount ?? 0;
-                      const activityPrice = booking.totalPrice - discount;
-                      return activityPrice.toFixed(2);
-                    })()} €</td>
-                  </tr>
                   )}
                 </tbody>
               </table>
@@ -1263,7 +1255,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               <div className={styles.blockNotesCompact}>
                 <span className={styles.blockIcon}>📝</span>
                 <span className={styles.blockTitle}>Note</span>
-                <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
+                <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)} style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
                   Ajouter
                 </button>
               </div>
@@ -1272,7 +1264,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 <div className={styles.blockHeader}>
                   <span className={styles.blockIcon}>📝</span>
                   <span className={styles.blockTitle}>Notes ({notes.length})</span>
-                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
+                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)} style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
                     + Ajouter
                   </button>
                 </div>

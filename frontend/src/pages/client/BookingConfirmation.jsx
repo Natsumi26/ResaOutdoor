@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { bookingsAPI } from '../../services/api';
+import { bookingsAPI, settingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -12,6 +12,10 @@ const BookingConfirmation = () => {
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [clientColor, setClientColor] = useState(() => {
+    // Essayer de récupérer depuis localStorage d'abord
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
 
   useEffect(() => {
     loadBooking();
@@ -20,8 +24,18 @@ const BookingConfirmation = () => {
   const loadBooking = async () => {
     try {
       setLoading(true);
-      const response = await bookingsAPI.getById(bookingId);
-      setBooking(response.data.booking);
+      const [bookingRes, settingsRes] = await Promise.all([
+        bookingsAPI.getById(bookingId),
+        settingsAPI.get()
+      ]);
+      setBooking(bookingRes.data.booking);
+
+      // Charger la couleur client
+      const settings = settingsRes.data.settings;
+      if (settings?.clientButtonColor) {
+        setClientColor(settings.clientButtonColor);
+        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+      }
     } catch (error) {
       console.error('Erreur chargement réservation:', error);
     } finally {
@@ -56,7 +70,7 @@ const BookingConfirmation = () => {
         <div className={styles.confirmationCard}>
           {/* Prochaines étapes - EN PREMIER */}
           <div className={styles.confirmationSection}>
-            <h3 style={{ fontSize: '1.5rem', color: '#3498db', marginBottom: '1.5rem', textAlign: 'center' }}>{t('nextstep')}</h3>
+            <h3 style={{ fontSize: '1.5rem', color: clientColor, marginBottom: '1.5rem', textAlign: 'center' }}>{t('nextstep')}</h3>
             <div className={styles.nextSteps}>
               <div className={styles.step}>
                 <span className={styles.stepIcon}>📧</span>
@@ -210,6 +224,7 @@ const BookingConfirmation = () => {
             <Link
               to={`/client/my-booking/${booking.id}`}
               className={styles.btnPrimary}
+              style={{ backgroundColor: clientColor, borderColor: clientColor }}
             >
               {t('InfosPart')}
             </Link>

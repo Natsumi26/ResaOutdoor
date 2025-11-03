@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { teamAPI, usersAPI } from '../services/api';
+import { teamAPI, usersAPI, settingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import styles from './Common.module.css';
 
@@ -22,10 +22,30 @@ const Team = () => {
     depositAmount: ''
   });
   const [editingId, setEditingId] = useState(null);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadData();
+    loadThemeColors();
   }, [currentUser]);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -159,7 +179,7 @@ const Team = () => {
               Toutes les équipes et leurs membres
             </p>
           </div>
-          <button className={styles.btnPrimary} onClick={() => openModal()}>
+          <button className={styles.btnPrimary} onClick={() => openModal()} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
             + Ajouter un membre à mon équipe
           </button>
         </div>
@@ -466,7 +486,7 @@ const Team = () => {
             Gérez les membres de votre équipe
           </p>
         </div>
-        <button className={styles.btnPrimary} onClick={() => openModal()}>
+        <button className={styles.btnPrimary} onClick={() => openModal()} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
           + Ajouter un membre
         </button>
       </div>

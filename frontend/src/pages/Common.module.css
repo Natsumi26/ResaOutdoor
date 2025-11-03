@@ -49,6 +49,23 @@
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
 }
 
+/* Bouton primaire avec couleur thème */
+.btnPrimaryThemed {
+  background: var(--guide-primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btnPrimaryThemed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
 .btnSecondary {
   background: white;
   color: var(--gray-700);

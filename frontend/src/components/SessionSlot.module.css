@@ -24,8 +24,12 @@
   flex-direction: column;
   gap: 0.125rem;
   min-width: 90px;
-  padding-left: 0.5rem;
-  border-left: 4px solid #3498db;
+  padding-left: 0.75rem;
+  border-left: 8px solid var(--guide-primary);
+  border-radius: 6px 0 0 6px;
+  margin-left: -4px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .sessionTime {
@@ -67,7 +71,7 @@
 
 .draggingOver {
   background-color: #d5e8f7;
-  box-shadow: inset 0 0 0 2px #3498db;
+  box-shadow: inset 0 0 0 2px var(--guide-primary);
 }
 
 /* Wrapper pour chaque badge (taille proportionnelle) */
@@ -108,7 +112,7 @@
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background-color: #3498db;
+  background-color: var(--guide-primary);
   color: white;
   border: none;
   font-size: 1.5rem;
@@ -135,7 +139,7 @@
 }
 
 .addBookingButton:hover {
-  background-color: #2980b9;
+  background-color: var(--guide-secondary);
   transform: scale(1.05);
 }
 

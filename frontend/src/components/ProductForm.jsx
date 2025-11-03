@@ -5,6 +5,14 @@ import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
 const ProductForm = ({ product, categories: initialCategories, users, currentUser, onSubmit, onCancel }) => {
+  // Activités pré-définies
+  const predefinedActivities = [
+    { id: 'canyoning', name: 'Canyoning', description: 'Descente de canyons en eau' },
+    { id: 'via-ferrata', name: 'Via Ferrata', description: 'Escalade équipée en montagne' },
+    { id: 'escalade', name: 'Escalade', description: 'Escalade de bloc et falaise' },
+    { id: 'speleologie', name: 'Spéléologie', description: 'Exploration de grottes' }
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
     shortDescription: '',
@@ -13,13 +21,13 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     duration: '',
     color: '#3498db',
     level: 'découverte',
-    region: 'annecy',
     maxCapacity: '',
     autoCloseHoursBefore: '',
     postBookingMessage: '',
     websiteLink: '',
     wazeLink: '',
     googleMapsLink: '',
+    activityTypeId: '', // Type d'activité (catégorie principale)
     categoryIds: [],
     guideId: '',
     images: [],
@@ -30,15 +38,31 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState(initialCategories || []);
+  const [guidePracticeActivities, setGuidePracticeActivities] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
-  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   useEffect(() => {
     if (initialCategories) {
       setCategories(initialCategories);
     }
   }, [initialCategories]);
+
+  useEffect(() => {
+    // Initialiser les activités pratiquées du guide actuel
+    if (currentUser?.practiceActivities) {
+      setGuidePracticeActivities(currentUser.practiceActivities);
+
+      // Si le guide n'a qu'une activité, la pré-sélectionner
+      if (currentUser.practiceActivities.length === 1 && !formData.activityTypeId) {
+        setFormData(prev => ({
+          ...prev,
+          activityTypeId: currentUser.practiceActivities[0]
+        }));
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (product) {
@@ -59,65 +83,6 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
       setFormData(prev => ({ ...prev, guideId: users[0].id }));
     }
   }, [product, users]);
-
-  // Fonctions de gestion des catégories
-  const loadCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data.categories);
-    } catch (error) {
-      console.error('Erreur lors du chargement des catégories:', error);
-    }
-  };
-
-  const openCategoryModal = (category = null) => {
-    if (category) {
-      setEditingCategoryId(category.id);
-      setCategoryFormData({ name: category.name, description: category.description || '' });
-    } else {
-      setEditingCategoryId(null);
-      setCategoryFormData({ name: '', description: '' });
-    }
-    setShowCategoryModal(true);
-  };
-
-  const closeCategoryModal = () => {
-    setShowCategoryModal(false);
-    setEditingCategoryId(null);
-    setCategoryFormData({ name: '', description: '' });
-  };
-
-  const handleCategorySubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingCategoryId) {
-        await categoriesAPI.update(editingCategoryId, categoryFormData);
-      } else {
-        await categoriesAPI.create(categoryFormData);
-      }
-      await loadCategories();
-      closeCategoryModal();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Erreur lors de la sauvegarde de la catégorie');
-    }
-  };
-
-  const handleCategoryDelete = async (categoryId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      return;
-    }
-    try {
-      await categoriesAPI.delete(categoryId);
-      await loadCategories();
-      // Retirer la catégorie des sélections si elle était sélectionnée
-      setFormData(prev => ({
-        ...prev,
-        categoryIds: prev.categoryIds.filter(id => id !== categoryId)
-      }));
-    } catch (error) {
-      alert(error.response?.data?.error || 'Erreur lors de la suppression de la catégorie');
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -149,6 +114,38 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           : [...categoryIds, categoryId]
       };
     });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Veuillez entrer un nom de catégorie');
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      const response = await categoriesAPI.create({
+        name: newCategoryName,
+        description: ''
+      });
+
+      // Ajouter la nouvelle catégorie à la liste
+      const newCategory = response.data.category;
+      setCategories(prev => [...prev, newCategory]);
+
+      // Pré-sélectionner la nouvelle catégorie
+      setFormData(prev => ({
+        ...prev,
+        categoryIds: [...(prev.categoryIds || []), newCategory.id]
+      }));
+
+      setNewCategoryName('');
+      setShowCategoryModal(false);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erreur lors de la création de la catégorie');
+    } finally {
+      setCreatingCategory(false);
+    }
   };
 
   const handleColorChange = (color) => {
@@ -216,6 +213,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const validate = () => {
     const newErrors = {};
 
+    if (!formData.activityTypeId.trim()) newErrors.activityTypeId = 'Type d\'activité requis';
     if (!formData.name.trim()) newErrors.name = 'Nom requis';
     if (!formData.priceIndividual || formData.priceIndividual <= 0)
       newErrors.priceIndividual = 'Prix individuel requis';
@@ -306,55 +304,27 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label>Catégories (sélection multiple possible)</label>
-            <div className={styles.categoriesCheckboxes}>
-              {categories.length === 0 ? (
-                <p className={styles.noCategories}>Aucune catégorie disponible</p>
-              ) : (
-                categories.map(cat => (
-                  <div key={cat.id} className={styles.categoryItem}>
-                    <label className={styles.categoryCheckbox}>
-                      <input
-                        type="checkbox"
-                        checked={formData.categoryIds?.includes(cat.id) || false}
-                        onChange={() => handleCategoryToggle(cat.id)}
-                      />
-                      <span>{cat.name}</span>
-                    </label>
-                    <div className={styles.categoryActions}>
-                      <button
-                        type="button"
-                        className={styles.btnCategoryEdit}
-                        onClick={() => openCategoryModal(cat)}
-                        title="Modifier la catégorie"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.btnCategoryDelete}
-                        onClick={() => handleCategoryDelete(cat.id)}
-                        title="Supprimer la catégorie"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <button
-              type="button"
-              className={styles.btnAddCategory}
-              onClick={() => openCategoryModal()}
-            >
-              + Ajouter une catégorie
-            </button>
-            <small>Vous pouvez sélectionner plusieurs catégories ou aucune</small>
-          </div>
-
           <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Type d'activité *</label>
+              <select
+                name="activityTypeId"
+                value={formData.activityTypeId}
+                onChange={handleChange}
+                className={errors.activityTypeId ? styles.error : ''}
+              >
+                <option value="">-- Sélectionner --</option>
+                {predefinedActivities
+                  .filter(activity => guidePracticeActivities.includes(activity.id))
+                  .map(activity => (
+                    <option key={activity.id} value={activity.id}>
+                      {activity.name}
+                    </option>
+                  ))}
+              </select>
+              {errors.activityTypeId && <span className={styles.errorMsg}>{errors.activityTypeId}</span>}
+            </div>
+
             <div className={styles.formGroup}>
               <label>Niveau *</label>
               <select
@@ -367,18 +337,36 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
                 <option value="sportif">Sportif</option>
               </select>
             </div>
+          </div>
 
-            <div className={styles.formGroup}>
-              <label>Région *</label>
-              <select
-                name="region"
-                value={formData.region}
-                onChange={handleChange}
-              >
-                <option value="annecy">Annecy</option>
-                <option value="grenoble">Grenoble</option>
-              </select>
+          <div className={styles.formGroup}>
+            <label>Catégories personnalisées</label>
+            <div className={styles.categoriesCheckboxes}>
+              {categories.length === 0 ? (
+                <p className={styles.noCategories}>Aucune catégorie personnalisée pour le moment</p>
+              ) : (
+                categories.map(cat => (
+                  <div key={cat.id} className={styles.categoryItem}>
+                    <label className={styles.categoryCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={formData.categoryIds?.includes(cat.id) || false}
+                        onChange={() => handleCategoryToggle(cat.id)}
+                      />
+                      <span>{cat.name}</span>
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
+            <button
+              type="button"
+              className={styles.btnAddCategory}
+              onClick={() => setShowCategoryModal(true)}
+            >
+              + Ajouter une catégorie
+            </button>
+            <small>Créez vos propres catégories pour organiser vos produits</small>
           </div>
 
           <div className={styles.formGroup}>
@@ -604,40 +592,37 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         </button>
       </div>
 
-      {/* Modal de gestion des catégories */}
+      {/* Modal de création de catégorie personnalisée */}
       {showCategoryModal && (
-        <div className={styles.modal} onClick={closeCategoryModal}>
+        <div className={styles.modal} onClick={() => setShowCategoryModal(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2>{editingCategoryId ? 'Modifier' : 'Créer'} une catégorie</h2>
-            <div onSubmit={handleCategorySubmit}>
-              <div className={styles.formGroup}>
-                <label>Nom *</label>
-                <input
-                  type="text"
-                  value={categoryFormData.name}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Description</label>
-                <textarea
-                  value={categoryFormData.description}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                  rows="3"
-                />
-              </div>
-
-              <div className={styles.modalActions}>
-                <button type="button" className={styles.btnCancel} onClick={closeCategoryModal}>
-                  Annuler
-                </button>
-                <button type="submit" className={styles.btnSubmit} onClick={handleCategorySubmit}>
-                  {editingCategoryId ? 'Modifier' : 'Créer'}
-                </button>
-              </div>
+            <h2>Créer une catégorie personnalisée</h2>
+            <div className={styles.formGroup}>
+              <label>Nom de la catégorie *</label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Ex: Progression, Initiation, Expérience..."
+                autoFocus
+              />
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnCancel}
+                onClick={() => setShowCategoryModal(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className={styles.btnSubmit}
+                onClick={handleCreateCategory}
+                disabled={creatingCategory}
+              >
+                {creatingCategory ? 'Création...' : 'Créer'}
+              </button>
             </div>
           </div>
         </div>

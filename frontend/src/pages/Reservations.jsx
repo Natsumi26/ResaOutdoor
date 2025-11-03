@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI } from '../services/api';
+import { bookingsAPI, settingsAPI } from '../services/api';
 import BookingModal from '../components/BookingModal';
 import styles from './Reservations.module.css';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +20,40 @@ const Reservations = () => {
 
   useEffect(() => {
     loadBookings();
+    loadThemeColor();
   }, []);
+
+  const loadThemeColor = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        const primaryColor = settings.primaryColor;
+        const secondaryColor = settings.secondaryColor || settings.primaryColor;
+
+        // Mettre à jour les CSS variables
+        document.documentElement.style.setProperty('--guide-primary', primaryColor);
+        document.documentElement.style.setProperty('--guide-secondary', secondaryColor);
+
+        // Extraire les composants RGB
+        const extractRGB = (hex) => {
+          const h = hex.replace('#', '');
+          const r = parseInt(h.substring(0, 2), 16);
+          const g = parseInt(h.substring(2, 4), 16);
+          const b = parseInt(h.substring(4, 6), 16);
+          return `${r}, ${g}, ${b}`;
+        };
+        document.documentElement.style.setProperty('--guide-primary-rgb', extractRGB(primaryColor));
+        document.documentElement.style.setProperty('--guide-secondary-rgb', extractRGB(secondaryColor));
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('guidePrimaryColor', primaryColor);
+        localStorage.setItem('guideSecondaryColor', secondaryColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleur thème:', error);
+    }
+  };
 
   useEffect(() => {
     filterBookings();
@@ -128,17 +161,17 @@ console.log(user)
         <h1>📋 Réservations</h1>
         <div className={styles.stats}>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>{bookings.length}</span>
+            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{bookings.length}</span>
             <span className={styles.statLabel}>Total</span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>
+            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>
               {bookings.filter(b => b.status === 'confirmed').length}
             </span>
             <span className={styles.statLabel}>Confirmées</span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statValue}>
+            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>
               {bookings.filter(b => b.status === 'pending').length}
             </span>
             <span className={styles.statLabel}>En attente</span>

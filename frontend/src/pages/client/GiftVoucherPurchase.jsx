@@ -1,46 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { stripeAPI } from '../../services/api';
-import styles from './ClientPages.module.css';
+import { stripeAPI, settingsAPI } from '../../services/api';
 import { useTranslation } from 'react-i18next';
-
+import GiftVoucherPreview from '../../components/GiftVoucherPreview';
+import modalStyles from '../../components/GiftVoucherModal.module.css';
 
 const GiftVoucherPurchase = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const [clientColor, setClientColor] = useState(() => {
+    return localStorage.getItem('clientThemeColor') || '#3498db';
+  });
+
   const [formData, setFormData] = useState({
-    // Informations de l'acheteur
     buyerFirstName: '',
     buyerLastName: '',
     buyerEmail: '',
     buyerPhone: '',
-
-    // Informations du bénéficiaire
     recipientFirstName: '',
     recipientLastName: '',
     recipientEmail: '',
     personalMessage: '',
-
-    // Détails du bon
-    voucherType: 'amount', // 'amount' ou 'activity'
+    voucherType: 'amount',
     amount: '',
     selectedProduct: '',
-    quantity: 1,
-
-    // Livraison
-    deliveryMethod: 'email', // 'email' ou 'postal'
-    deliveryDate: '',
+    quantity: 1
   });
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [guideSettings, setGuideSettings] = useState({
+    companyName: '',
+    companyPhone: '',
+    companyEmail: '',
+    companyWebsite: '',
+    logo: '',
+    slogan: ''
+  });
 
-  // Options de montants prédéfinis
   const amountOptions = [50, 75, 100, 150, 200];
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await settingsAPI.get();
+        const settings = response.data.settings;
+
+        if (settings?.clientButtonColor) {
+          setClientColor(settings.clientButtonColor);
+          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+        }
+
+        if (settings) {
+          setGuideSettings({
+            companyName: settings.companyName || 'Canyon Life',
+            companyPhone: settings.companyPhone || '',
+            companyEmail: settings.companyEmail || '',
+            companyWebsite: settings.website || '',
+            logo: settings.logo || '',
+            slogan: settings.slogan || 'Pour une sortie exceptionnelle'
+          });
+        }
+      } catch (error) {
+        console.error('Erreur chargement settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const handleClose = () => {
+    navigate('/client/search');
   };
 
   const handleSubmit = async (e) => {
@@ -48,12 +83,8 @@ const GiftVoucherPurchase = () => {
     setLoading(true);
 
     try {
-      // Calculer le montant total (bon cadeau + frais de livraison si applicable)
-      const voucherAmount = parseFloat(formData.amount);
-      const deliveryFee = formData.deliveryMethod === 'postal' ? 5 : 0;
-      const totalAmount = voucherAmount + deliveryFee;
+      const totalAmount = parseFloat(formData.amount);
 
-      // Préparer les données pour l'API
       const recipientName = formData.recipientFirstName && formData.recipientLastName
         ? `${formData.recipientFirstName} ${formData.recipientLastName}`
         : '';
@@ -66,11 +97,9 @@ const GiftVoucherPurchase = () => {
         message: formData.personalMessage || null
       };
 
-      // Créer la session de paiement Stripe
       const response = await stripeAPI.createGiftVoucherCheckout(paymentData);
 
       if (response.data.success && response.data.url) {
-        // Rediriger vers Stripe pour le paiement
         window.location.href = response.data.url;
       } else {
         throw new Error('Impossible de créer la session de paiement');
@@ -84,41 +113,95 @@ const GiftVoucherPurchase = () => {
   };
 
   return (
-    <div className={styles.clientContainer}>
-      <div className={styles.searchHeader}>
-        <button
-          onClick={() => navigate('/client/search')}
-          className={styles.btnSecondary}
-          style={{ marginBottom: '1rem' }}
-        >
-          ← {t('RetourSearch')}
+    <div className={modalStyles.modalOverlay} onClick={handleClose}>
+      <style>
+        {`
+          .${modalStyles.modal} input:-webkit-autofill,
+          .${modalStyles.modal} input:-webkit-autofill:hover,
+          .${modalStyles.modal} input:-webkit-autofill:focus,
+          .${modalStyles.modal} input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #495057 !important;
+          }
+          .${modalStyles.modal} input:-webkit-autofill {
+            border-color: ${clientColor} !important;
+          }
+          .amountOption {
+            padding: 1rem !important;
+            background: #f8f9fa !important;
+            border: 2px solid #dee2e6 !important;
+            border-radius: 8px !important;
+            font-size: 1.5rem !important;
+            font-weight: bold !important;
+            color: #2c3e50 !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+          }
+          .amountOption:hover {
+            border-color: ${clientColor} !important;
+            background: ${clientColor}15 !important;
+          }
+          .amountOption.active {
+            border-color: ${clientColor} !important;
+            background: ${clientColor} !important;
+            color: white !important;
+          }
+        `}
+      </style>
+
+      <div className={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+        <button className={modalStyles.closeButton} onClick={handleClose} title="Fermer">
+          ✕
         </button>
-        <h1>🎁 {t('achatGift')}</h1>
-        <p>{t('GiftExp')}</p>
-      </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className={styles.giftVoucherForm}>
+        <GiftVoucherPreview
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          amount={formData.amount}
+          buyerName={formData.buyerFirstName && formData.buyerLastName ? `${formData.buyerFirstName} ${formData.buyerLastName}` : ''}
+          recipientName={formData.recipientFirstName && formData.recipientLastName ? `${formData.recipientFirstName} ${formData.recipientLastName}` : ''}
+          personalMessage={formData.personalMessage}
+          companyName={guideSettings.companyName}
+          companyPhone={guideSettings.companyPhone}
+          companyEmail={guideSettings.companyEmail}
+          companyWebsite={guideSettings.companyWebsite}
+          logo={guideSettings.logo}
+          slogan={guideSettings.slogan}
+          themeColor={clientColor}
+        />
 
-          {/* Montant ou activité */}
-          <div className={styles.formSection}>
-            {formData.voucherType === 'amount' ? (
-              <>
-                <h2>{t('MontantBon')}</h2>
-                <div className={styles.amountOptions}>
-                  {amountOptions.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      className={`${styles.amountOption} ${formData.amount === amount.toString() ? styles.active : ''}`}
-                      onClick={() => handleChange('amount', amount.toString())}
-                    >
-                      {amount}€
-                    </button>
-                  ))}
-                </div>
-                <div className={styles.customAmount}>
-                  <label>{t('MontantPerso')}</label>
+        <div className={modalStyles.modalContent}>
+          <div className={modalStyles.header}>
+            <h1>🎁 {t('achatGift')}</h1>
+            <p>{t('GiftExp')}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className={modalStyles.giftVoucherForm}>
+            {/* Montant */}
+            <div className={modalStyles.formSection}>
+              <h2>{t('MontantBon')}</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                {amountOptions.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    className="amountOption"
+                    onClick={() => handleChange('amount', amount.toString())}
+                    style={formData.amount === amount.toString() ? {
+                      borderColor: clientColor,
+                      backgroundColor: clientColor,
+                      color: 'white'
+                    } : {}}
+                  >
+                    {amount}€
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ maxWidth: '200px', width: '100%' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>
+                    {t('MontantPerso')}
+                  </label>
                   <input
                     type="number"
                     min="20"
@@ -126,224 +209,137 @@ const GiftVoucherPurchase = () => {
                     value={formData.amount}
                     onChange={(e) => handleChange('amount', e.target.value)}
                     required
+                    style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', width: '100%' }}
                   />
                 </div>
-              </>
-            ) : (
-              <>
-                <h2>{t('ChooseActivity')}</h2>
-                <select
-                  value={formData.selectedProduct}
-                  onChange={(e) => handleChange('selectedProduct', e.target.value)}
-                  required
-                >
-                  <option value="">{t('SelectCanyon')}</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - {product.priceIndividual}€/pers
-                    </option>
-                  ))}
-                </select>
-                <div className={styles.quantitySelector}>
-                  <label>{t('NbrParticipants')}</label>
+              </div>
+            </div>
+
+            {/* Infos Acheteur & Bénéficiaire */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className={modalStyles.formSection}>
+                <h2>{t('yoursInfos')}</h2>
+                <div className={modalStyles.formGroup}>
+                  <label>Prénom *</label>
                   <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.quantity}
-                    onChange={(e) => handleChange('quantity', e.target.value)}
+                    type="text"
+                    value={formData.buyerFirstName}
+                    onChange={(e) => handleChange('buyerFirstName', e.target.value)}
                     required
                   />
                 </div>
-              </>
-            )}
-          </div>
+                <div className={modalStyles.formGroup}>
+                  <label>{t('Nom')} *</label>
+                  <input
+                    type="text"
+                    value={formData.buyerLastName}
+                    onChange={(e) => handleChange('buyerLastName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={modalStyles.formGroup}>
+                  <label>Email *</label>
+                  <input
+                    type="email"
+                    value={formData.buyerEmail}
+                    onChange={(e) => handleChange('buyerEmail', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={modalStyles.formGroup}>
+                  <label>{t('Téléphone')} *</label>
+                  <input
+                    type="tel"
+                    value={formData.buyerPhone}
+                    onChange={(e) => handleChange('buyerPhone', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
 
-          {/* Informations de l'acheteur */}
-          <div className={styles.formSection}>
-            <h2>{t('yoursInfos')}</h2>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Prénom *</label>
-                <input
-                  type="text"
-                  value={formData.buyerFirstName}
-                  onChange={(e) => handleChange('buyerFirstName', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Nom')} *</label>
-                <input
-                  type="text"
-                  value={formData.buyerLastName}
-                  onChange={(e) => handleChange('buyerLastName', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Email *</label>
-                <input
-                  type="email"
-                  value={formData.buyerEmail}
-                  onChange={(e) => handleChange('buyerEmail', e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Téléphone')} *</label>
-                <input
-                  type="tel"
-                  value={formData.buyerPhone}
-                  onChange={(e) => handleChange('buyerPhone', e.target.value)}
-                  required
-                />
+              <div className={modalStyles.formSection}>
+                <h2>{t('BeneficiaireGift')}</h2>
+                <div className={modalStyles.formGroup}>
+                  <label>{t('Prénom')}</label>
+                  <input
+                    type="text"
+                    value={formData.recipientFirstName}
+                    onChange={(e) => handleChange('recipientFirstName', e.target.value)}
+                    placeholder="Optionnel"
+                  />
+                </div>
+                <div className={modalStyles.formGroup}>
+                  <label>{t('Nom')}</label>
+                  <input
+                    type="text"
+                    value={formData.recipientLastName}
+                    onChange={(e) => handleChange('recipientLastName', e.target.value)}
+                    placeholder="Optionnel"
+                  />
+                </div>
+                <div className={modalStyles.formGroup}>
+                  <label>{t('MessagePerso')}</label>
+                  <textarea
+                    value={formData.personalMessage}
+                    onChange={(e) => handleChange('personalMessage', e.target.value)}
+                    placeholder="Ajoutez un message personnel..."
+                    rows="4"
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Informations du bénéficiaire */}
-          <div className={styles.formSection}>
-            <h2>{t('BeneficiaireGift')}</h2>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>{t('Prénom')}</label>
-                <input
-                  type="text"
-                  value={formData.recipientFirstName}
-                  onChange={(e) => handleChange('recipientFirstName', e.target.value)}
-                  placeholder="Optionnel"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>{t('Nom')}</label>
-                <input
-                  type="text"
-                  value={formData.recipientLastName}
-                  onChange={(e) => handleChange('recipientLastName', e.target.value)}
-                  placeholder="Optionnel"
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.recipientEmail}
-                  onChange={(e) => handleChange('recipientEmail', e.target.value)}
-                  placeholder="Optionnel"
-                />
-              </div>
+            {/* Info Box */}
+            <div className={modalStyles.formSection} style={{ backgroundColor: `${clientColor}08`, borderLeft: `3px solid ${clientColor}` }}>
+              <p style={{ margin: '0', lineHeight: '1.6', fontSize: '0.9rem', color: '#333' }}>
+                <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous reçevez un email avec le bon cadeau imprimable.
+              </p>
             </div>
-            <div className={styles.formGroup}>
-              <label>{t('MessagePerso')}</label>
-              <textarea
-                value={formData.personalMessage}
-                onChange={(e) => handleChange('personalMessage', e.target.value)}
-                placeholder="Ajoutez un message personnel pour accompagner votre cadeau..."
-                rows="4"
+
+            {/* Buttons */}
+            <div className={modalStyles.formActions}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className={modalStyles.btnSecondary}
+              >
+                {t('Annuler')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                disabled={!formData.amount || parseFloat(formData.amount) < 20}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #dee2e6',
+                  backgroundColor: 'white',
+                  color: clientColor,
+                  border: `2px solid ${clientColor}`,
+                  padding: '0.75rem 1.5rem',
                   borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit'
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: (!formData.amount || parseFloat(formData.amount) < 20) ? 'not-allowed' : 'pointer',
+                  opacity: (!formData.amount || parseFloat(formData.amount) < 20) ? 0.5 : 1
                 }}
-              />
+              >
+                👁️ {showPreview ? 'Masquer' : 'Aperçu'}
+              </button>
+              <button
+                type="submit"
+                className={modalStyles.btnPrimary}
+                disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
+                style={{
+                  backgroundColor: clientColor,
+                  opacity: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 1 : 0.5,
+                  cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {loading ? t('payment.processing') : `${t('payment.proceed')} - ${formData.amount || '0'}€`}
+              </button>
             </div>
-          </div>
-
-          {/* Options de livraison */}
-          <div className={styles.formSection}>
-            <h2>{t('ModeLivraison')}</h2>
-            <div className={styles.deliveryOptions}>
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="email"
-                  checked={formData.deliveryMethod === 'email'}
-                  onChange={(e) => handleChange('deliveryMethod', e.target.value)}
-                />
-                <div>
-                  <strong>{t('emailFree')}</strong>
-                  <p>{t('LivraisonImmediate')}</p>
-                </div>
-              </label>
-
-              <label className={styles.radioOption}>
-                <input
-                  type="radio"
-                  name="deliveryMethod"
-                  value="postal"
-                  checked={formData.deliveryMethod === 'postal'}
-                  onChange={(e) => handleChange('deliveryMethod', e.target.value)}
-                />
-                <div>
-                  <strong>{t('Courrier')} (+5€)</strong>
-                  <p>{t('CartePhysique')}</p>
-                </div>
-              </label>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>{t('DateSend')}</label>
-              <input
-                type="date"
-                value={formData.deliveryDate}
-                onChange={(e) => handleChange('deliveryDate', e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-              <small>{t('BonEnvoyerDate')}</small>
-            </div>
-          </div>
-
-          {/* Résumé et paiement */}
-          <div className={styles.formSection}>
-            <div className={styles.orderSummary}>
-              <h2>{t('Récapitulatif')}</h2>
-              <div className={styles.summaryItem}>
-                <span>{t('MontantBon')}</span>
-                <strong>{formData.amount || '0'}€</strong>
-              </div>
-              {formData.deliveryMethod === 'postal' && (
-                <div className={styles.summaryItem}>
-                  <span>{t('FraisLivraison')}</span>
-                  <strong>5€</strong>
-                </div>
-              )}
-              <div className={styles.summaryTotal}>
-                <span>{t('Total')}</span>
-                <strong>
-                  {(parseFloat(formData.amount || 0) + (formData.deliveryMethod === 'postal' ? 5 : 0)).toFixed(2)}€
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          {/* Bouton de soumission */}
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              onClick={() => navigate('/client/search')}
-              className={styles.btnSecondary}
-            >
-              {t('Annuler')}
-            </button>
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={loading || !formData.amount || parseFloat(formData.amount) < 20}
-              style={{
-                opacity: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 1 : 0.5,
-                cursor: (!loading && formData.amount && parseFloat(formData.amount) >= 20) ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {loading ? t('payment.processing') : t('payment.proceed')}
-            </button>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

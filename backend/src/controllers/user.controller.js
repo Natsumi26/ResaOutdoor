@@ -18,6 +18,7 @@ export const getAllUsers = async (req, res, next) => {
         paymentMode: true,
         depositType: true,
         depositAmount: true,
+        practiceActivities: true,
         createdAt: true,
         updatedAt: true
       },
@@ -38,7 +39,7 @@ export const createUser = async (req, res, next) => {
   try {
     const {
       login, password, email, stripeAccount, role, confidentialityPolicy,
-      teamName, teamLeaderId, paymentMode, depositType, depositAmount
+      teamName, teamLeaderId, paymentMode, depositType, depositAmount, practiceActivities
     } = req.body;
 
     if (!login || !password) {
@@ -69,6 +70,7 @@ export const createUser = async (req, res, next) => {
         paymentMode: paymentMode || 'onsite_only',
         depositType,
         depositAmount,
+        practiceActivities: practiceActivities || [],
         teamName: (role === 'leader') ? teamName : null, // teamName uniquement pour les leaders
         teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
       },
@@ -82,6 +84,7 @@ export const createUser = async (req, res, next) => {
         paymentMode: true,
         depositType: true,
         depositAmount: true,
+        practiceActivities: true,
         teamName: true,
         teamLeaderId: true,
         createdAt: true
@@ -101,7 +104,7 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId, paymentMode, depositType, depositAmount } = req.body;
+    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId, paymentMode, depositType, depositAmount, practiceActivities } = req.body;
 
     const updateData = {
       ...(login && { login }),
@@ -113,7 +116,8 @@ export const updateUser = async (req, res, next) => {
       ...(teamLeaderId !== undefined && { teamLeaderId }),
       ...(paymentMode && { paymentMode }),
       ...(depositType !== undefined && { depositType }),
-      ...(depositAmount !== undefined && { depositAmount })
+      ...(depositAmount !== undefined && { depositAmount }),
+      ...(practiceActivities !== undefined && { practiceActivities })
     };
 
     // Si un nouveau mot de passe est fourni
@@ -136,6 +140,7 @@ export const updateUser = async (req, res, next) => {
         paymentMode: true,
         depositType: true,
         depositAmount: true,
+        practiceActivities: true,
         updatedAt: true
       }
     });

@@ -55,7 +55,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
     }
   };
   const getTimeSlotFromTime = (time) => time >= '13:00' ? 'après-midi' : 'matin';
-  const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '14:00' : '09:00';
+  const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '13:00' : '09:00';
 
   const handleTimeSlotChange = (slot) => {
     const defaultTime = getDefaultTimeFromSlot(slot);
@@ -88,13 +88,12 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
             : [...prev.productIds, productId]
         };
       } else {
-        // Mode normal: sélection unique ou multiple (selon votre besoin)
-        // Pour l'instant, on autorise quand même le multi-sélection en mode normal
+        // Mode normal: sélection unique uniquement
         return {
           ...prev,
           productIds: isSelected
-            ? prev.productIds.filter(id => id !== productId)
-            : [...prev.productIds, productId]
+            ? [] // Désélectionner si déjà sélectionné
+            : [productId] // Sélectionner uniquement celui-ci (remplace les autres)
         };
       }
     });
@@ -191,6 +190,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               type="button"
               className={formData.timeSlot === 'matin' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('matin')}
+              style={formData.timeSlot === 'matin' ? {
+                backgroundColor: 'var(--guide-primary)',
+                borderColor: 'var(--guide-primary)'
+              } : {}}
             >
               🌅 Matin
             </button>
@@ -198,6 +201,10 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
               type="button"
               className={formData.timeSlot === 'après-midi' ? styles.active : ''}
               onClick={() => handleTimeSlotChange('après-midi')}
+              style={formData.timeSlot === 'après-midi' ? {
+                backgroundColor: 'var(--guide-primary)',
+                borderColor: 'var(--guide-primary)'
+              } : {}}
             >
               ☀️ Après-midi
             </button>
@@ -266,8 +273,8 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
         ) : (
           <div className={styles.normalModeInfo}>
             <p className={styles.infoBox}>
-              ℹ️ Mode standard : Vous pouvez proposer plusieurs canyons sur ce créneau.
-              Chaque canyon peut être réservé indépendamment jusqu'à sa capacité maximale.
+              ℹ️ Mode standard : Sélectionnez un seul canyon pour ce créneau.
+              Le canyon peut être réservé jusqu'à sa capacité maximale.
             </p>
           </div>
         )}

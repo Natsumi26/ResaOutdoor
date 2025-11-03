@@ -60,8 +60,8 @@
 .formGroup input:focus,
 .formGroup select:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: var(--guide-primary);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
 }
 
 .formGroup input.error,
@@ -101,13 +101,13 @@
 }
 
 .timeSlotButtons button:hover {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   background: #f8f9fa;
 }
 
 .timeSlotButtons button.active {
-  border-color: #3498db;
-  background: #3498db;
+  border-color: var(--guide-primary);
+  background: var(--guide-primary);
   color: white;
 }
 
@@ -126,7 +126,7 @@
 }
 
 .checkboxLabel:hover {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
 }
 
 .checkboxLabel input[type="checkbox"] {
@@ -163,9 +163,9 @@
 }
 
 .magicRotationInfo .infoBox {
-  background: #f3e5f5;
-  border-left-color: #9c27b0;
-  color: #6a1b9a;
+  background: rgba(var(--guide-primary-rgb), 0.1);
+  border-left-color: var(--guide-primary);
+  color: var(--guide-primary);
 }
 
 .normalModeInfo .infoBox {
@@ -193,15 +193,15 @@
 }
 
 .productCard:hover {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .productCard.selected {
-  border-color: #3498db;
+  border-color: var(--guide-primary);
   background: #f0f8ff;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.2);
 }
 
 .productColorBar {
@@ -247,7 +247,7 @@
   right: 0.5rem;
   width: 30px;
   height: 30px;
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -298,14 +298,14 @@
 }
 
 .btnSubmit {
-  background: #3498db;
+  background: var(--guide-primary);
   color: white;
 }
 
 .btnSubmit:hover {
-  background: #2980b9;
+  background: var(--guide-secondary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 8px rgba(var(--guide-primary-rgb), 0.3);
 }
 
 /* Responsive */

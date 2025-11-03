@@ -20,6 +20,12 @@
   --gray-700: #374151;
   --gray-800: #1f2937;
   --gray-900: #111827;
+
+  /* Guide theme colors (personalized by user) */
+  --guide-primary: #667eea;
+  --guide-secondary: #764ba2;
+  --guide-primary-rgb: 102, 126, 234;
+  --guide-secondary-rgb: 118, 75, 162;
 }
 
 body {

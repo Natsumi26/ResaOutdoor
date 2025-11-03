@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from './DateRangePicker.module.css';
 import { useTranslation } from 'react-i18next';
 
-const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideRangeMode = false, dateAvailability = {} }) => {
+const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideRangeMode = false, dateAvailability = {}, accentColor = '#3498db' }) => {
   const { t } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectionMode, setSelectionMode] = useState('single'); // 'single' ou 'range' - par défaut 'single'
@@ -48,6 +48,11 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
 
     // Ne pas permettre de sélectionner des dates passées
     if (clickedDate < today) return;
+
+    // Ne pas permettre de sélectionner des dates avec statut 'past', 'closed' ou 'full'
+    const dateKey = formatDateISO(clickedDate);
+    const status = dateAvailability[dateKey];
+    if (status === 'past' || status === 'closed' || status === 'full') return;
 
     if (selectionMode === 'single') {
       // Mode date unique - un seul clic suffit
@@ -168,11 +173,11 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
     if (!status) return {};
 
     if (status === 'available') {
-      return { backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '2px solid #28a745' };
+      return { backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '2px solid #28a745', cursor: 'pointer' };
     } else if (status === 'otherProduct') {
       return { backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '2px solid #ffc107' };
-    } else if (status === 'full' || status === 'closed') {
-      return { backgroundColor: 'rgba(220, 53, 69, 0.2)', border: '2px solid #dc3545' };
+    } else if (status === 'past' || status === 'full' || status === 'closed') {
+      return { backgroundColor: '#e9ecef', border: '2px solid #adb5bd', opacity: 0.5, cursor: 'not-allowed' };
     }
 
     return {};
@@ -187,8 +192,8 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
             onClick={() => handleModeChange('single')}
             style={{
               padding: '0.5rem 1rem',
-              border: selectionMode === 'single' ? '2px solid #3498db' : '2px solid #dee2e6',
-              background: selectionMode === 'single' ? '#3498db' : 'white',
+              border: selectionMode === 'single' ? `2px solid ${accentColor}` : '2px solid #dee2e6',
+              background: selectionMode === 'single' ? accentColor : 'white',
               color: selectionMode === 'single' ? 'white' : '#495057',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -203,8 +208,8 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
             onClick={() => handleModeChange('range')}
             style={{
               padding: '0.5rem 1rem',
-              border: selectionMode === 'range' ? '2px solid #3498db' : '2px solid #dee2e6',
-              background: selectionMode === 'range' ? '#3498db' : 'white',
+              border: selectionMode === 'range' ? `2px solid ${accentColor}` : '2px solid #dee2e6',
+              background: selectionMode === 'range' ? accentColor : 'white',
               color: selectionMode === 'range' ? 'white' : '#495057',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -219,11 +224,11 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
       )}
 
       <div className={styles.calendarHeader}>
-        <button onClick={handlePrevMonth} className={styles.navButton}>
+        <button onClick={handlePrevMonth} className={styles.navButton} style={{ backgroundColor: accentColor }}>
           ←
         </button>
         <h3>{months[currentMonth.getMonth()]} {currentMonth.getFullYear()}</h3>
-        <button onClick={handleNextMonth} className={styles.navButton}>
+        <button onClick={handleNextMonth} className={styles.navButton} style={{ backgroundColor: accentColor }}>
           →
         </button>
       </div>
@@ -240,35 +245,42 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
             <div key={`empty-${i}`} className={styles.emptyDay}></div>
           ))}
 
-          {days.map(day => (
-            <div
-              key={day}
-              className={`${styles.day} ${
-                isDatePast(day) ? styles.pastDay : ''
-              } ${
-                isDateSelected(day) ? styles.selectedDay : ''
-              } ${
-                isDateInRange(day) ? styles.inRange : ''
-              }`}
-              style={getDateAvailabilityStyle(day)}
-              onClick={() => handleDateClick(day)}
-              onMouseEnter={() => handleDateHover(day)}
-            >
-              {day}
-            </div>
-          ))}
+          {days.map(day => {
+            const availabilityStyle = getDateAvailabilityStyle(day);
+            const selectedDayStyle = isDateSelected(day) ? { backgroundColor: accentColor, color: 'white' } : {};
+            const inRangeStyle = isDateInRange(day) && !isDateSelected(day) ? { backgroundColor: `${accentColor}30`, color: '#2c3e50' } : {};
+            const hoverStyle = !isDatePast(day) && !isDateSelected(day) && !isDateInRange(day) ? { '&:hover': { backgroundColor: `${accentColor}20` } } : {};
+
+            return (
+              <div
+                key={day}
+                className={`${styles.day} ${
+                  isDatePast(day) ? styles.pastDay : ''
+                } ${
+                  isDateSelected(day) ? styles.selectedDay : ''
+                } ${
+                  isDateInRange(day) ? styles.inRange : ''
+                }`}
+                style={{ ...availabilityStyle, ...selectedDayStyle, ...inRangeStyle }}
+                onClick={() => handleDateClick(day)}
+                onMouseEnter={() => handleDateHover(day)}
+              >
+                {day}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       <div className={styles.selectionInfo}>
         {startDate && (
-          <div className={styles.selectedDates}>
+          <div className={styles.selectedDates} style={{ backgroundColor: `${accentColor}15` }}>
             {selectionMode === 'single' ? (
-              <p><strong>{t('SelectedDate')}</strong> {formatDate(startDate)}</p>
+              <p><strong style={{ color: accentColor }}>{t('SelectedDate')}</strong> {formatDate(startDate)}</p>
             ) : selectionMode === 'range' && endDate ? (
-              <p><strong>{t('SelectedPeriode')}</strong> {formatDate(startDate)} - {formatDate(endDate)}</p>
+              <p><strong style={{ color: accentColor }}>{t('SelectedPeriode')}</strong> {formatDate(startDate)} - {formatDate(endDate)}</p>
             ) : selectionMode === 'pending' ? (
-              <p><strong>{t('Debut')}</strong> {formatDate(startDate)} <em>({t('DoubleClick')})</em></p>
+              <p><strong style={{ color: accentColor }}>{t('Debut')}</strong> {formatDate(startDate)} <em>({t('DoubleClick')})</em></p>
             ) : null}
           </div>
         )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usersAPI, teamAPI } from '../services/api';
+import { usersAPI, teamAPI, settingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import styles from './Common.module.css';
 
@@ -20,13 +20,33 @@ const Users = () => {
     teamLeaderId: '' // Pour les employees/trainees : ID du leader
   });
   const [editingId, setEditingId] = useState(null);
+  const [themeColors, setThemeColors] = useState({
+    primary: '#667eea',
+    secondary: '#764ba2'
+  });
 
   useEffect(() => {
     loadUsers();
+    loadThemeColors();
     if (currentUser?.role === 'super_admin' || currentUser?.role === 'leader') {
       loadTeamMembers();
     }
   }, [currentUser]);
+
+  const loadThemeColors = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.primaryColor) {
+        setThemeColors({
+          primary: settings.primaryColor,
+          secondary: settings.secondaryColor || settings.primaryColor
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement couleurs thème:', error);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -174,7 +194,7 @@ console.log(users)
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>👥 Gestion des Utilisateurs</h1>
-        <button className={styles.btnPrimary} onClick={() => openModal()}>
+        <button className={styles.btnPrimary} onClick={() => openModal()} style={{ background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.secondary} 100%)` }}>
           + Nouvel Utilisateur
         </button>
       </div>
