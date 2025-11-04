@@ -29,14 +29,16 @@ const storage = multer.diskStorage({
   }
 });
 
-// Configuration de multer pour le logo (nom fixe pour toujours remplacer l'ancien)
+// Configuration de multer pour le logo (nom unique par utilisateur)
 const logoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
+    // Le userId sera disponible via req.user (ajouté par authMiddleware)
+    const userId = req.user?.userId || req.user?.id;
     const ext = path.extname(file.originalname);
-    cb(null, 'logo' + ext);
+    cb(null, `logo-${userId}${ext}`);
   }
 });
 
@@ -123,20 +125,22 @@ router.delete('/images', authMiddleware, (req, res) => {
   }
 });
 
-// Route pour upload du logo
+// Route pour upload du logo (spécifique à l'utilisateur connecté)
 router.post('/logo', authMiddleware, logoUpload.single('logo'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Aucun logo fourni' });
     }
 
-    // Supprimer l'ancien logo s'il existe (avec une extension différente)
+    const userId = req.user?.userId || req.user?.id;
+
+    // Supprimer l'ancien logo de cet utilisateur s'il existe (avec une extension différente)
     const extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     const currentExt = path.extname(req.file.filename).toLowerCase().replace('.', '');
 
     extensions.forEach(ext => {
       if (ext !== currentExt) {
-        const oldLogoPath = path.join(uploadsDir, `logo.${ext}`);
+        const oldLogoPath = path.join(uploadsDir, `logo-${userId}.${ext}`);
         if (fs.existsSync(oldLogoPath)) {
           fs.unlinkSync(oldLogoPath);
         }
