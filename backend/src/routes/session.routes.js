@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllSessions, getSessionById, createSession, updateSession, deleteSession, searchAvailableProducts, getNextAvailableDates } from '../controllers/session.controller.js';
+import { getAllSessions, getSessionById, createSession, updateSession, deleteSession, searchAvailableProducts, getNextAvailableDates, getAlternativeSessions } from '../controllers/session.controller.js';
 import { authMiddleware, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -12,6 +12,7 @@ router.get('/:id',optionalAuth, getSessionById);
 
 // Routes protégées
 router.use(authMiddleware);
+router.get('/:id/alternatives', getAlternativeSessions); // Obtenir les sessions alternatives pour déplacer les réservations
 router.post('/', createSession);
 router.put('/:id', updateSession);
 router.delete('/:id', deleteSession);

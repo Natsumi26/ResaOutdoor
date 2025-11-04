@@ -27,6 +27,7 @@ const GiftVoucherSuccess = () => {
 
     const verifyPayment = async () => {
       try {
+        console.log(sessionId)
         const response = await stripeAPI.verifyGiftVoucherPayment(sessionId);
 
         if (response.data.paid && response.data.voucher) {

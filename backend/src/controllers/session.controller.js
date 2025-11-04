@@ -545,6 +545,7 @@ export const updateSession = async (req, res, next) => {
     const { id } = req.params;
     const {
       date,
+      guideId,
       timeSlot,
       startTime,
       isMagicRotation,
@@ -566,6 +567,7 @@ export const updateSession = async (req, res, next) => {
     const updateData = {};
 
     if (date) updateData.date = new Date(date);
+    if (guideId) updateData.guideId = guideId;
     if (timeSlot) updateData.timeSlot = timeSlot;
     if (startTime) updateData.startTime = startTime;
     if (typeof isMagicRotation === 'boolean') updateData.isMagicRotation = isMagicRotation;
@@ -652,26 +654,248 @@ export const updateSession = async (req, res, next) => {
   }
 };
 
+// Obtenir les sessions alternatives pour déplacer des réservations
+export const getAlternativeSessions = async (req, res, next) => {
+  try {
+    const { id } = req.params; // ID de la session à supprimer
+
+    // Récupérer la session actuelle avec ses produits
+    const currentSession = await prisma.session.findUnique({
+      where: { id },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!currentSession) {
+      throw new AppError('Session non trouvée', 404);
+    }
+
+    // Récupérer les IDs des produits de la session actuelle
+    const currentProductIds = currentSession.products.map(sp => sp.productId);
+
+    // Chercher d'autres sessions du même guide qui contiennent au moins un des mêmes produits
+    const alternativeSessions = await prisma.session.findMany({
+      where: {
+        id: { not: id }, // Exclure la session actuelle
+        guideId: currentSession.guideId, // Même guide
+        date: { gte: new Date() }, // Sessions futures uniquement
+        status: { in: ['open', 'full'] }, // Sessions ouvertes ou complètes
+        products: {
+          some: {
+            productId: { in: currentProductIds } // Au moins un produit en commun
+          }
+        }
+      },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          include: {
+            product: true
+          }
+        }
+      },
+      orderBy: [
+        { date: 'asc' },
+        { startTime: 'asc' }
+      ],
+      take: 20 // Limiter à 20 résultats
+    });
+
+    // Enrichir les sessions alternatives avec les infos de compatibilité
+    const enrichedSessions = alternativeSessions
+      .map(session => {
+        const sessionProductIds = session.products.map(sp => sp.productId);
+        const compatibleProducts = currentProductIds.filter(pid => sessionProductIds.includes(pid));
+        const allProductsCompatible = currentProductIds.every(pid => sessionProductIds.includes(pid));
+
+        // Vérifier la disponibilité des produits réservés
+        const availableProducts = compatibleProducts.filter(pid => {
+          const productInSession = session.products.find(sp => sp.productId === pid);
+          const capacity = productInSession?.product?.maxCapacity || 0;
+
+          const bookingsForProduct = session.bookings.filter(b => b.productId === pid);
+          return bookingsForProduct.length < capacity;
+        });
+
+      const hasAvailableProduct = availableProducts.length > 0;
+
+      return hasAvailableProduct
+      ? {
+          ...session,
+          compatibilityInfo: {
+            allProductsCompatible,
+            compatibleProductsCount: availableProducts.length,
+            totalProductsNeeded: currentProductIds.length
+          }
+        }
+      : null;
+    })
+    .filter(Boolean); // Supprimer les sessions null (non compatibles)
+
+    res.json({
+      success: true,
+      currentSession: {
+        id: currentSession.id,
+        date: currentSession.date,
+        timeSlot: currentSession.timeSlot,
+        startTime: currentSession.startTime,
+        bookingsCount: currentSession.bookings.length,
+        products: currentSession.products.map(sp => sp.product)
+      },
+      alternativeSessions: enrichedSessions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Supprimer une session
 export const deleteSession = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { action, targetSessionId } = req.body; // "delete" ou "move", et targetSessionId si move
 
     // Vérifier s'il y a des réservations
     const session = await prisma.session.findUnique({
       where: { id },
       include: {
-        _count: {
-          select: { bookings: true }
+        bookings: {
+          include: {
+            product: true,
+            payments: true,
+            participants: true,
+            history: true,
+            notes: true
+          }
         }
       }
     });
 
-    if (session && session._count.bookings > 0) {
-      throw new AppError('Impossible de supprimer une session avec des réservations', 409);
+    if (!session) {
+      throw new AppError('Session non trouvée', 404);
     }
 
-    // Supprimer la session (cascade supprime les SessionProduct)
+    // S'il y a des réservations
+    if (session.bookings.length > 0) {
+      // Si aucune action spécifiée, retourner une erreur avec le nombre de réservations
+      if (!action) {
+        return res.status(409).json({
+          success: false,
+          error: 'Cette session contient des réservations',
+          bookingsCount: session.bookings.length,
+          bookings: session.bookings.map(b => ({
+            id: b.id,
+            clientName: `${b.clientFirstName} ${b.clientLastName}`,
+            clientEmail: b.clientEmail,
+            numberOfPeople: b.numberOfPeople,
+            productName: b.product.name
+          })),
+          message: 'Veuillez spécifier si vous souhaitez déplacer ou supprimer les réservations'
+        });
+      }
+
+      // Action: SUPPRIMER les réservations
+      if (action === 'delete') {
+        await prisma.$transaction(async (tx) => {
+          // Supprimer toutes les réservations associées (cascade supprime participants, payments, history, notes)
+          await tx.booking.deleteMany({
+            where: { sessionId: id }
+          });
+
+          // Supprimer la session
+          await tx.session.delete({
+            where: { id }
+          });
+        });
+
+        return res.json({
+          success: true,
+          message: `Session et ${session.bookings.length} réservation(s) supprimée(s) avec succès`
+        });
+      }
+
+      // Action: DÉPLACER les réservations
+      if (action === 'move') {
+        if (!targetSessionId) {
+          throw new AppError('ID de la session cible requis pour déplacer les réservations', 400);
+        }
+
+        // Vérifier que la session cible existe
+        const targetSession = await prisma.session.findUnique({
+          where: { id: targetSessionId },
+          include: {
+            products: {
+              include: {
+                product: true
+              }
+            },
+            bookings: true
+          }
+        });
+
+        if (!targetSession) {
+          throw new AppError('Session cible non trouvée', 404);
+        }
+
+        // Vérifier que tous les produits des réservations existent dans la session cible
+        const targetProductIds = targetSession.products.map(sp => sp.productId);
+        const bookingProductIds = [...new Set(session.bookings.map(b => b.productId))];
+
+        const missingProducts = bookingProductIds.filter(pid => !targetProductIds.includes(pid));
+        if (missingProducts.length > 0) {
+          throw new AppError('Certains produits des réservations ne sont pas disponibles dans la session cible', 400);
+        }
+
+        // Déplacer les réservations en transaction
+        await prisma.$transaction(async (tx) => {
+          // Mettre à jour toutes les réservations pour pointer vers la nouvelle session
+          await tx.booking.updateMany({
+            where: { sessionId: id },
+            data: { sessionId: targetSessionId }
+          });
+
+          // Ajouter une entrée dans l'historique pour chaque réservation
+          for (const booking of session.bookings) {
+            await tx.bookingHistory.create({
+              data: {
+                bookingId: booking.id,
+                action: 'modified',
+                details: `Réservation déplacée de la session du ${new Date(session.date).toLocaleDateString()} à ${session.startTime} vers la session du ${new Date(targetSession.date).toLocaleDateString()} à ${targetSession.startTime}`
+              }
+            });
+          }
+
+          // Supprimer la session
+          await tx.session.delete({
+            where: { id }
+          });
+        });
+
+        return res.json({
+          success: true,
+          message: `Session supprimée et ${session.bookings.length} réservation(s) déplacée(s) avec succès`,
+          movedBookingsCount: session.bookings.length
+        });
+      }
+
+      throw new AppError('Action invalide. Utilisez "delete" ou "move"', 400);
+    }
+
+    // Pas de réservations : suppression simple
     await prisma.session.delete({
       where: { id }
     });

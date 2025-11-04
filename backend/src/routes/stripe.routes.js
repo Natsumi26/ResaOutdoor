@@ -432,6 +432,9 @@ router.post('/', async (req, res) => {
               const paymentIntentId = stripeSession.payment_intent;
               const buyerEmail = stripeSession.metadata?.buyerEmail;
               const amount = parseFloat(stripeSession.metadata?.amount);
+              const recipientEmail = stripeSession.metadata?.recipientEmail;
+              const recipientName = stripeSession.metadata?.recipientName;
+              const message = stripeSession.metadata?.message;
 
               if (!buyerEmail || !amount || !paymentIntentId) {
                 console.warn('Données manquantes pour le bon cadeau');
@@ -447,6 +450,7 @@ router.post('/', async (req, res) => {
                 console.log('🎁 Bon cadeau déjà généré pour ce paiement');
                 return;
               }
+
               // Générer un code unique
               const generateCode = () => {
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -462,7 +466,32 @@ router.post('/', async (req, res) => {
                 if (!existing) isUnique = true;
               }
 
-              console.log('✅ Bon cadeau créé :', code, 'pour', amount, '€');
+              // Récupérer le premier super_admin pour associer le bon cadeau
+              // (les bons cadeaux achetés publiquement sont associés au super_admin)
+              const superAdmin = await prisma.user.findFirst({
+                where: { role: 'super_admin' },
+                orderBy: { createdAt: 'asc' }
+              });
+
+              if (!superAdmin) {
+                console.error('❌ Aucun super_admin trouvé pour associer le bon cadeau');
+                return;
+              }
+
+              // Créer le bon cadeau dans la base de données
+              const voucher = await prisma.giftVoucher.create({
+                data: {
+                  code,
+                  amount,
+                  discountType: 'fixed',
+                  type: 'voucher',
+                  notes: paymentIntentId, // Stocker le payment_intent pour éviter les doublons
+                  userId: superAdmin.id, // Associer au super_admin
+                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // Expire dans 1 an
+                }
+              });
+
+              console.log('✅ Bon cadeau créé en BDD:', code, 'pour', amount, '€');
 
               // Envoyer l'email
               await sendGiftVoucherEmail(buyerEmail, code, amount, stripeSession.metadata);

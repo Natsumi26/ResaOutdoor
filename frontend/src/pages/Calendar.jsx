@@ -313,24 +313,46 @@ const Calendar = () => {
   const handleDeleteConfirm = async (selectedSessions) => {
     if (selectedSessions.length === 0) return;
 
-    // Vérifier si des sessions ont des réservations
-    const sessionsWithBookings = selectedSessions.filter(s => s.bookings && s.bookings.length > 0);
-
-    if (sessionsWithBookings.length > 0) {
-      alert(`Impossible de supprimer ${sessionsWithBookings.length} session(s) car elles contiennent des réservations.`);
-      return;
-    }
-
-    if (!window.confirm(`Supprimer ${selectedSessions.length} session(s) ?`)) return;
-
     try {
+      let deletedCount = 0;
+      let movedCount = 0;
+
       for (const session of selectedSessions) {
-        await sessionsAPI.delete(session.id);
+        // Si la session a une action spécifiée (delete ou move)
+        if (session.action === 'delete') {
+          // Supprimer avec les réservations
+          await sessionsAPI.delete(session.id, { action: 'delete' });
+          deletedCount++;
+        } else if (session.action === 'move') {
+          // Déplacer les réservations vers la session cible
+          await sessionsAPI.delete(session.id, {
+            action: 'move',
+            targetSessionId: session.targetSessionId
+          });
+          movedCount++;
+        } else {
+          // Session sans réservation - suppression simple
+          await sessionsAPI.delete(session.id);
+          deletedCount++;
+        }
       }
 
       await loadSessions();
       setShowDeleteDialog(false);
-      alert(`${selectedSessions.length} session(s) supprimée(s) avec succès !`);
+
+      // Message de succès personnalisé
+      let message = '';
+      if (deletedCount > 0 && movedCount > 0) {
+        message = `${deletedCount} session(s) supprimée(s) et ${movedCount} session(s) supprimée(s) avec réservations déplacées !`;
+      } else if (deletedCount > 0) {
+        message = `${deletedCount} session(s) supprimée(s) avec succès !`;
+      } else if (movedCount > 0) {
+        message = `${movedCount} session(s) supprimée(s) avec réservations déplacées !`;
+      }
+
+      if (message) {
+        alert(message);
+      }
     } catch (err) {
       console.error('Erreur suppression sessions:', err);
       alert('Erreur lors de la suppression: ' + (err.response?.data?.message || err.message));

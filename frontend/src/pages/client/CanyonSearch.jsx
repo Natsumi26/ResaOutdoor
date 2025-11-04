@@ -883,7 +883,7 @@ console.log(isMobile)
                             // Période courte (1-2 jours) : Affichage détaillé
                             <div style={{ marginBottom: '1rem', flex: 1 }}>
                               <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
-                                {t('slots.AvaibleSlots')}
+                                {t('slots.AvailableSlots')}
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {Object.entries(sessionsByDate).map(([date, sessions]) => (

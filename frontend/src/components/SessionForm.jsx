@@ -42,18 +42,12 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    if (name === 'isMagicRotation') {
-      setFormData(prev => ({
-        ...prev,
-        isMagicRotation: checked
-      }));
-    } else {
       setFormData(prev => ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       }));
     }
-  };
+
   const getTimeSlotFromTime = (time) => time >= '13:00' ? 'après-midi' : 'matin';
   const getDefaultTimeFromSlot = (slot) => slot === 'après-midi' ? '13:00' : '09:00';
 
@@ -145,6 +139,7 @@ const SessionForm = ({ session, products, guides, currentUser, onSubmit, onCance
       shoeRentalAvailable: formData.shoeRentalAvailable,
       shoeRentalPrice: formData.shoeRentalAvailable ? parseFloat(formData.shoeRentalPrice) : null
     };
+    console.log(formData.guideId)
     console.log(submitData)
     onSubmit(submitData);
   };

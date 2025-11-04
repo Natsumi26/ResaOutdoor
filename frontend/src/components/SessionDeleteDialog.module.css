@@ -112,6 +112,17 @@
   background-color: #fafafa;
 }
 
+.sessionItem.hasBookings {
+  border-color: #fbbf24;
+  background-color: #fffbeb;
+  cursor: pointer;
+}
+
+.sessionItem.hasBookings:hover {
+  border-color: #f59e0b;
+  background-color: #fef3c7;
+}
+
 .sessionCheckbox {
   display: flex;
   align-items: center;
@@ -177,6 +188,204 @@
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 0.5rem;
+}
+
+.bookingsInfo {
+  color: #f59e0b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* Nouveaux styles pour le modal de gestion des réservations */
+.bookingInfo {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.bookingsDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bookingCard {
+  background-color: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.bookingName {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.bookingDetail {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.actionChoice {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.actionBtn {
+  flex: 1;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.actionBtn:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.actionBtn.active {
+  border-color: #667eea;
+  background-color: #f0f4ff;
+  color: #667eea;
+}
+
+.actionBtn.dangerBtn.active {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.targetSessionSelection {
+  margin-bottom: 1.5rem;
+}
+
+.targetSessionSelection h3 {
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.noAlternatives {
+  background-color: #eff6ff;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #1e40af;
+  text-align: center;
+}
+
+.alternativesList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.alternativeSession {
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.alternativeSession:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.alternativeSession.selectedTarget {
+  border-color: #667eea;
+  background-color: #f0f4ff;
+}
+
+.altSessionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.altDate {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.altTime {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.altProducts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.altProductTag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: #f8fafc;
+  border: 2px solid;
+  color: #475569;
+  font-weight: 500;
+}
+
+.altBookingsCount {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.compatibilityWarning {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.deleteWarning {
+  background-color: #fef2f2;
+  border: 2px solid #dc2626;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.deleteWarning p {
+  color: #991b1b;
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .emptyState {

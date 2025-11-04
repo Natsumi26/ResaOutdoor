@@ -1,12 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './SessionDeleteDialog.module.css';
 
 const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
   const [selectedSessions, setSelectedSessions] = useState([]);
+  const [sessionWithBookings, setSessionWithBookings] = useState(null);
+  const [bookingAction, setBookingAction] = useState(null); // 'delete' ou 'move'
+  const [alternativeSessions, setAlternativeSessions] = useState([]);
+  const [selectedTargetSession, setSelectedTargetSession] = useState(null);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
 
   const toggleSession = (sessionId) => {
+    const session = sessions.find(s => s.id === sessionId);
+    const hasBookings = session.bookings && session.bookings.length > 0;
+
+    // Si la session a des réservations, ouvrir le modal de choix
+    if (hasBookings) {
+      setSessionWithBookings(session);
+      setBookingAction(null);
+      setSelectedTargetSession(null);
+      setAlternativeSessions([]);
+      return;
+    }
+
+    // Sinon, toggle normalement
     setSelectedSessions(prev => {
       if (prev.includes(sessionId)) {
         return prev.filter(id => id !== sessionId);
@@ -14,6 +32,65 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
         return [...prev, sessionId];
       }
     });
+  };
+
+  // Récupérer les sessions alternatives
+  const fetchAlternativeSessions = async (sessionId) => {
+    setLoadingAlternatives(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/sessions/${sessionId}/alternatives`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data)
+        setAlternativeSessions(data.alternativeSessions || []);
+      } else {
+        console.error('Erreur lors de la récupération des sessions alternatives');
+        setAlternativeSessions([]);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      setAlternativeSessions([]);
+    } finally {
+      setLoadingAlternatives(false);
+    }
+  };
+
+  // Lorsqu'on choisit "move", charger les alternatives
+  useEffect(() => {
+    if (bookingAction === 'move' && sessionWithBookings) {
+      fetchAlternativeSessions(sessionWithBookings.id);
+    }
+  }, [bookingAction, sessionWithBookings]);
+
+  const handleConfirmBookingAction = () => {
+    if (!sessionWithBookings) return;
+
+    if (bookingAction === 'delete') {
+      // Supprimer la session avec toutes ses réservations
+      onConfirm([{
+        ...sessionWithBookings,
+        action: 'delete'
+      }]);
+    } else if (bookingAction === 'move' && selectedTargetSession) {
+      // Déplacer les réservations vers la session cible
+      onConfirm([{
+        ...sessionWithBookings,
+        action: 'move',
+        targetSessionId: selectedTargetSession
+      }]);
+    }
+
+    // Réinitialiser
+    setSessionWithBookings(null);
+    setBookingAction(null);
+    setSelectedTargetSession(null);
+    setAlternativeSessions([]);
   };
 
   const handleConfirm = () => {
@@ -44,18 +121,166 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
   // Trier les dates
   const sortedDates = Object.keys(sessionsByDate).sort();
 
+  // Modal pour choisir l'action sur les réservations
+  if (sessionWithBookings) {
+    return (
+      <div className={styles.overlay} onClick={() => setSessionWithBookings(null)}>
+        <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+          <h2>⚠️ Session avec réservations</h2>
+
+          <div className={styles.bookingInfo}>
+            <p className={styles.instruction}>
+              Cette session contient <strong>{sessionWithBookings.bookings.length} réservation(s)</strong>.
+            </p>
+            <p className={styles.instruction}>
+              Que souhaitez-vous faire avec les réservations ?
+            </p>
+          </div>
+
+          <div className={styles.bookingsDetails}>
+            {sessionWithBookings.bookings.map(booking => (
+              <div key={booking.id} className={styles.bookingCard}>
+                <div className={styles.bookingName}>
+                  👤 {booking.clientFirstName} {booking.clientLastName}
+                </div>
+                <div className={styles.bookingDetail}>
+                  📧 {booking.clientEmail}
+                </div>
+                <div className={styles.products}>
+                  <span
+                    className={styles.productTag}
+                    style={{ borderColor: booking.product.color }}
+                  >
+                    {booking.product.name}
+                  </span>
+                </div>
+                <div className={styles.bookingDetail}>
+                  👥 {booking.numberOfPeople} personne(s)
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.actionChoice}>
+            <button
+              className={`${styles.actionBtn} ${bookingAction === 'move' ? styles.active : ''}`}
+              onClick={() => setBookingAction('move')}
+            >
+              📦 Déplacer vers une autre session
+            </button>
+            <button
+              className={`${styles.actionBtn} ${styles.dangerBtn} ${bookingAction === 'delete' ? styles.active : ''}`}
+              onClick={() => setBookingAction('delete')}
+            >
+              🗑️ Supprimer les réservations
+            </button>
+          </div>
+
+          {bookingAction === 'move' && (
+            <div className={styles.targetSessionSelection}>
+              <h3>Sélectionnez une session de destination</h3>
+
+              {loadingAlternatives && (
+                <p className={styles.loading}>⏳ Chargement des sessions disponibles...</p>
+              )}
+
+              {!loadingAlternatives && alternativeSessions.length === 0 && (
+                <p className={styles.noAlternatives}>
+                  ℹ️ Aucune session compatible trouvée. Créez d'abord une nouvelle session ou supprimez les réservations.
+                </p>
+              )}
+
+              {!loadingAlternatives && alternativeSessions.length > 0 && (
+                <div className={styles.alternativesList}>
+                  {alternativeSessions.map(session => (
+                    <div
+                      key={session.id}
+                      className={`${styles.alternativeSession} ${selectedTargetSession === session.id ? styles.selectedTarget : ''}`}
+                      onClick={() => setSelectedTargetSession(session.id)}
+                    >
+                      <div className={styles.altSessionHeader}>
+                        <span className={styles.altDate}>
+                          📅 {format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr })}
+                        </span>
+                        <span className={styles.altTime}>
+                          ⏰ {session.timeSlot} - {session.startTime}
+                        </span>
+                      </div>
+
+                      {session.bookings && session.bookings.length > 0 ? (
+                        <div className={styles.altProducts}>
+                          <span
+                            className={styles.altProductTag}
+                            style={{ borderColor: session.bookings[0].product.color }}
+                          >
+                            {session.bookings[0].product.name}
+                          </span>
+                      </div>
+                      ) : (
+                        <div className={styles.altProducts}>
+                        {session.products.map(sp => (
+                          <span
+                            key={sp.product.id}
+                            className={styles.altProductTag}
+                            style={{ borderColor: sp.product.color }}
+                          >
+                            {sp.product.name}
+                          </span>
+                        ))}
+                      </div>
+                      )}
+                      
+                      {session.compatibilityInfo && !session.compatibilityInfo.allProductsCompatible && (
+                        <div className={styles.compatibilityWarning}>
+                          ⚠️ Certains produits ne sont pas disponibles dans cette session
+                        </div>
+                      )}
+                      <div className={styles.altBookingsCount}>
+                        {session.bookings.length} réservation(s) actuelles
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {bookingAction === 'delete' && (
+            <div className={styles.deleteWarning}>
+              <p>⚠️ <strong>Attention :</strong> Cette action est irréversible. Toutes les réservations seront définitivement supprimées.</p>
+            </div>
+          )}
+
+          <div className={styles.actions}>
+            <button className={styles.btnCancel} onClick={() => setSessionWithBookings(null)}>
+              Annuler
+            </button>
+            <button
+              className={styles.btnConfirm}
+              onClick={handleConfirmBookingAction}
+              disabled={!bookingAction || (bookingAction === 'move' && !selectedTargetSession)}
+            >
+              {bookingAction === 'delete' ? 'Supprimer tout' : 'Déplacer et supprimer la session'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Modal principal de sélection de sessions
   return (
     <div className={styles.overlay} onClick={onCancel}>
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
         <h2>🗑️ Supprimer des sessions</h2>
 
         <p className={styles.instruction}>
-          Sélectionnez les sessions à supprimer. Les sessions contenant des réservations ne peuvent pas être supprimées.
+          Sélectionnez les sessions à supprimer. Pour les sessions avec réservations, vous pourrez choisir de déplacer ou supprimer les réservations.
         </p>
 
         <div className={styles.bulkActions}>
           <button className={styles.bulkBtn} onClick={selectAll}>
-            ✓ Tout sélectionner
+            ✓ Tout sélectionner (sans réservations)
           </button>
           <button className={styles.bulkBtn} onClick={deselectAll}>
             ✗ Tout désélectionner
@@ -76,8 +301,8 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
                 return (
                   <div
                     key={session.id}
-                    className={`${styles.sessionItem} ${isSelected ? styles.selected : ''} ${hasBookings ? styles.disabled : ''}`}
-                    onClick={() => !hasBookings && toggleSession(session.id)}
+                    className={`${styles.sessionItem} ${isSelected ? styles.selected : ''} ${hasBookings ? styles.hasBookings : ''}`}
+                    onClick={() => toggleSession(session.id)}
                   >
                     <div className={styles.sessionCheckbox}>
                       {!hasBookings && (
@@ -101,7 +326,18 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
                         )}
                       </div>
 
-                      <div className={styles.products}>
+                      {hasBookings ? (
+                        <div className={styles.products}>
+                          <span
+                            key={session.bookings[0].id}
+                            className={styles.productTag}
+                            style={{ borderColor: session.bookings[0].product.color }}
+                          >
+                            {session.bookings[0].product.name}
+                          </span>
+                      </div>
+                      ):(
+                        <div className={styles.products}>
                         {session.products.map(sp => (
                           <span
                             key={sp.product.id}
@@ -112,10 +348,12 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
                           </span>
                         ))}
                       </div>
+                      )}
+                      
 
                       {hasBookings && (
-                        <div className={styles.bookingsWarning}>
-                          ⚠️ {session.bookings.length} réservation(s) - Suppression impossible
+                        <div className={styles.bookingsInfo}>
+                          ⚠️ {session.bookings.length} réservation(s) - Cliquez pour gérer
                         </div>
                       )}
                     </div>
