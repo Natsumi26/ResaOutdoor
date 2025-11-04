@@ -42,6 +42,7 @@ model User {
   giftVouchers          GiftVoucher[]
   resellers             Reseller[]
   newsletters           Newsletter[]
+  settings              Settings?
 
   @@map("users")
 }
@@ -358,7 +359,7 @@ model EmailTemplate {
   @@map("email_templates")
 }
 
-// Paramètres globaux de l'application
+// Paramètres personnalisés par utilisateur
 model Settings {
   id                String   @id @default(uuid())
   companyName       String?  // Nom de l'entreprise
@@ -371,6 +372,9 @@ model Settings {
   secondaryColor    String?  // Couleur secondaire (session button guide)
   clientButtonColor String?  // Couleur des boutons côté client
   clientAccentColor String?  // Couleur des textes/accents côté client
+
+  userId            String   @unique // Chaque utilisateur a ses propres paramètres
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

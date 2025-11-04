@@ -1,15 +1,26 @@
 import prisma from '../config/database.js';
 
-// Récupérer les paramètres (il n'y en a qu'un seul enregistrement)
+// Récupérer les paramètres de l'utilisateur connecté
 export const getSettings = async (req, res) => {
   try {
-    // Récupérer le premier (et seul) enregistrement de settings
-    let settings = await prisma.settings.findFirst();
+    const userId = req.user?.userId || req.user?.id;
 
-    // Si aucun settings n'existe, créer un enregistrement par défaut
+    // Si pas d'utilisateur connecté, retourner des settings vides
+    if (!userId) {
+      return res.status(200).json({ settings: null });
+    }
+
+    // Récupérer les settings de l'utilisateur
+    let settings = await prisma.settings.findUnique({
+      where: { userId }
+    });
+
+    // Si aucun settings n'existe pour cet utilisateur, créer un enregistrement par défaut
     if (!settings) {
       settings = await prisma.settings.create({
-        data: {}
+        data: {
+          userId
+        }
       });
     }
 
@@ -20,9 +31,15 @@ export const getSettings = async (req, res) => {
   }
 };
 
-// Mettre à jour les paramètres
+// Mettre à jour les paramètres de l'utilisateur connecté
 export const updateSettings = async (req, res) => {
   try {
+    const userId = req.user?.userId || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Utilisateur non authentifié' });
+    }
+
     const {
       companyName,
       companyPhone,
@@ -36,13 +53,16 @@ export const updateSettings = async (req, res) => {
       clientAccentColor
     } = req.body;
 
-    // Récupérer ou créer le settings
-    let settings = await prisma.settings.findFirst();
+    // Récupérer les settings de l'utilisateur
+    let settings = await prisma.settings.findUnique({
+      where: { userId }
+    });
 
     if (!settings) {
       // Créer si n'existe pas
       settings = await prisma.settings.create({
         data: {
+          userId,
           companyName,
           companyPhone,
           companyEmail,
@@ -56,9 +76,9 @@ export const updateSettings = async (req, res) => {
         }
       });
     } else {
-      // Mettre à jour
+      // Mettre à jour uniquement les champs fournis
       settings = await prisma.settings.update({
-        where: { id: settings.id },
+        where: { userId },
         data: {
           ...(companyName !== undefined && { companyName }),
           ...(companyPhone !== undefined && { companyPhone }),
@@ -84,25 +104,36 @@ export const updateSettings = async (req, res) => {
   }
 };
 
-// Mettre à jour uniquement le logo
+// Mettre à jour uniquement le logo de l'utilisateur connecté
 export const updateLogo = async (req, res) => {
   try {
+    const userId = req.user?.userId || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Utilisateur non authentifié' });
+    }
+
     const { logo } = req.body;
 
     if (!logo) {
       return res.status(400).json({ error: 'URL du logo requise' });
     }
 
-    // Récupérer ou créer le settings
-    let settings = await prisma.settings.findFirst();
+    // Récupérer ou créer les settings de l'utilisateur
+    let settings = await prisma.settings.findUnique({
+      where: { userId }
+    });
 
     if (!settings) {
       settings = await prisma.settings.create({
-        data: { logo }
+        data: {
+          userId,
+          logo
+        }
       });
     } else {
       settings = await prisma.settings.update({
-        where: { id: settings.id },
+        where: { userId },
         data: { logo }
       });
     }

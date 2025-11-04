@@ -4,13 +4,13 @@ import { getSettings, updateSettings, updateLogo } from '../controllers/settings
 
 const router = express.Router();
 
-// Récupérer les paramètres
-router.get('/', getSettings);
+// Récupérer les paramètres de l'utilisateur connecté
+router.get('/', authMiddleware, getSettings);
 
-// Mettre à jour les paramètres
+// Mettre à jour les paramètres de l'utilisateur connecté
 router.put('/', authMiddleware, updateSettings);
 
-// Mettre à jour uniquement le logo
+// Mettre à jour uniquement le logo de l'utilisateur connecté
 router.patch('/logo', authMiddleware, updateLogo);
 
 export default router;

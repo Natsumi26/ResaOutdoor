@@ -58,7 +58,7 @@ export const createUser = async (req, res, next) => {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Créer l'utilisateur
+    // Créer l'utilisateur avec ses settings par défaut
     const user = await prisma.user.create({
       data: {
         login,
@@ -72,7 +72,10 @@ export const createUser = async (req, res, next) => {
         depositAmount,
         practiceActivities: practiceActivities || [],
         teamName,
-        teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null // teamLeaderId pour employees/trainees
+        teamLeaderId: (role === 'employee' || role === 'trainee') ? teamLeaderId : null, // teamLeaderId pour employees/trainees
+        settings: {
+          create: {} // Créer des settings vides par défaut pour le nouvel utilisateur
+        }
       },
       select: {
         id: true,
