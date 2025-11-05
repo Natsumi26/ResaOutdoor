@@ -378,11 +378,11 @@ const Calendar = () => {
 
   const handleDeleteSession = async (sessionId) => {
     try {
-      await sessionsAPI.delete(sessionId);
+      console.log('Session supprimée:', sessionId);
+      // La session a déjà été supprimée par le modal, on recharge juste les sessions
       await loadSessions();
     } catch (err) {
-      console.error('Erreur suppression session:', err);
-      alert('Erreur lors de la suppression: ' + (err.response?.data?.message || err.message));
+      console.error('Erreur lors du rechargement des sessions:', err);
     }
   };
 

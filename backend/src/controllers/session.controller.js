@@ -680,21 +680,13 @@ export const getAlternativeSessions = async (req, res, next) => {
       throw new AppError('Session non trouvée', 404);
     }
 
-    // Récupérer les IDs des produits de la session actuelle
-    const currentProductIds = currentSession.products.map(sp => sp.productId);
-
-    // Chercher d'autres sessions du même guide qui contiennent au moins un des mêmes produits
+    // Chercher d'autres sessions du même guide (peu importe les produits)
     const alternativeSessions = await prisma.session.findMany({
       where: {
         id: { not: id }, // Exclure la session actuelle
         guideId: currentSession.guideId, // Même guide
         date: { gte: new Date() }, // Sessions futures uniquement
-        status: { in: ['open', 'full'] }, // Sessions ouvertes ou complètes
-        products: {
-          some: {
-            productId: { in: currentProductIds } // Au moins un produit en commun
-          }
-        }
+        status: { in: ['open', 'full'] } // Sessions ouvertes ou complètes
       },
       include: {
         products: {
@@ -718,18 +710,56 @@ export const getAlternativeSessions = async (req, res, next) => {
     // Enrichir les sessions alternatives avec les infos de compatibilité
     const enrichedSessions = alternativeSessions
       .map(session => {
-        const sessionProductIds = session.products.map(sp => sp.productId);
-        const compatibleProducts = currentProductIds.filter(pid => sessionProductIds.includes(pid));
-        const allProductsCompatible = currentProductIds.every(pid => sessionProductIds.includes(pid));
+        // 🔒 Rotation magique : si la session alternative a déjà des réservations,
+        // on verrouille sur le produit de la première réservation
+        const lockedProductId = session.bookings.length > 0
+          ? session.bookings[0].productId
+          : null;
 
-        // Vérifier la disponibilité des produits réservés
-        const availableProducts = compatibleProducts.filter(pid => {
-          const productInSession = session.products.find(sp => sp.productId === pid);
-          const capacity = productInSession?.product?.maxCapacity || 0;
+        // Calculer le nombre total de personnes à déplacer depuis la session actuelle
+        const totalPeopleToMove = currentSession.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
 
-          const bookingsForProduct = session.bookings.filter(b => b.productId === pid);
-          return bookingsForProduct.length < capacity;
-        });
+        // Vérifier la disponibilité de TOUS les produits de la session (pas seulement ceux en commun)
+        const availableProducts = [];
+
+        if (lockedProductId) {
+          // Si un produit est verrouillé, vérifier seulement celui-là
+          const productInSession = session.products.find(sp => sp.productId === lockedProductId);
+          if (productInSession) {
+            const capacity = productInSession.product.maxCapacity || 0;
+            const bookedPeopleForProduct = session.bookings
+              .filter(b => b.productId === lockedProductId && b.status !== 'cancelled')
+              .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+            const availableCapacity = capacity - bookedPeopleForProduct;
+
+            if (availableCapacity >= totalPeopleToMove) {
+              availableProducts.push({
+                productId: lockedProductId,
+                productName: productInSession.product.name,
+                availableCapacity
+              });
+            }
+          }
+        } else {
+          // Sinon, vérifier tous les produits de la session
+          for (const sp of session.products) {
+            const capacity = sp.product.maxCapacity || 0;
+            const bookedPeopleForProduct = session.bookings
+              .filter(b => b.productId === sp.productId && b.status !== 'cancelled')
+              .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+            const availableCapacity = capacity - bookedPeopleForProduct;
+
+            if (availableCapacity >= totalPeopleToMove) {
+              availableProducts.push({
+                productId: sp.productId,
+                productName: sp.product.name,
+                availableCapacity
+              });
+            }
+          }
+        }
 
       const hasAvailableProduct = availableProducts.length > 0;
 
@@ -737,9 +767,9 @@ export const getAlternativeSessions = async (req, res, next) => {
       ? {
           ...session,
           compatibilityInfo: {
-            allProductsCompatible,
-            compatibleProductsCount: availableProducts.length,
-            totalProductsNeeded: currentProductIds.length
+            lockedProductId, // Produit verrouillé si rotation magique
+            availableProducts, // Liste des produits disponibles avec capacité suffisante
+            totalPeopleToMove
           }
         }
       : null;
@@ -843,7 +873,11 @@ export const deleteSession = async (req, res, next) => {
                 product: true
               }
             },
-            bookings: true
+            bookings: {
+              include: {
+                product: true
+              }
+            }
           }
         });
 
@@ -851,30 +885,81 @@ export const deleteSession = async (req, res, next) => {
           throw new AppError('Session cible non trouvée', 404);
         }
 
-        // Vérifier que tous les produits des réservations existent dans la session cible
-        const targetProductIds = targetSession.products.map(sp => sp.productId);
-        const bookingProductIds = [...new Set(session.bookings.map(b => b.productId))];
+        // 🔒 Rotation magique : déterminer le produit verrouillé dans la session cible
+        const targetLockedProductId = targetSession.bookings.length > 0
+          ? targetSession.bookings[0].productId
+          : null;
 
-        const missingProducts = bookingProductIds.filter(pid => !targetProductIds.includes(pid));
-        if (missingProducts.length > 0) {
-          throw new AppError('Certains produits des réservations ne sont pas disponibles dans la session cible', 400);
+        // Calculer le nombre total de personnes à déplacer
+        const totalPeopleToMove = session.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+        // Déterminer le produit à utiliser dans la session cible
+        let targetProductId;
+
+        if (targetLockedProductId) {
+          // Si un produit est verrouillé, on doit l'utiliser
+          targetProductId = targetLockedProductId;
+
+          // Vérifier la capacité disponible
+          const product = targetSession.products.find(sp => sp.productId === targetLockedProductId)?.product;
+          if (!product) {
+            throw new AppError('Le produit verrouillé n\'existe pas dans la session cible', 400);
+          }
+
+          const bookedPeople = targetSession.bookings
+            .filter(b => b.productId === targetLockedProductId && b.status !== 'cancelled')
+            .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+          const availableCapacity = product.maxCapacity - bookedPeople;
+
+          if (availableCapacity < totalPeopleToMove) {
+            throw new AppError(`Capacité insuffisante : ${availableCapacity} places disponibles pour ${totalPeopleToMove} personnes`, 400);
+          }
+        } else {
+          // Sinon, chercher n'importe quel produit avec capacité suffisante
+          for (const sp of targetSession.products) {
+            const bookedPeople = targetSession.bookings
+              .filter(b => b.productId === sp.productId && b.status !== 'cancelled')
+              .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+            const availableCapacity = sp.product.maxCapacity - bookedPeople;
+
+            if (availableCapacity >= totalPeopleToMove) {
+              targetProductId = sp.productId;
+              break;
+            }
+          }
+        }
+
+        if (!targetProductId) {
+          throw new AppError('Aucun produit disponible avec une capacité suffisante dans la session cible', 400);
         }
 
         // Déplacer les réservations en transaction
         await prisma.$transaction(async (tx) => {
-          // Mettre à jour toutes les réservations pour pointer vers la nouvelle session
-          await tx.booking.updateMany({
-            where: { sessionId: id },
-            data: { sessionId: targetSessionId }
-          });
-
-          // Ajouter une entrée dans l'historique pour chaque réservation
+          // Mettre à jour chaque réservation individuellement
           for (const booking of session.bookings) {
+            const oldProductId = booking.productId;
+            const productChanged = oldProductId !== targetProductId;
+
+            await tx.booking.update({
+              where: { id: booking.id },
+              data: {
+                sessionId: targetSessionId,
+                productId: targetProductId
+              }
+            });
+
+            // Ajouter une entrée dans l'historique
+            const historyDetails = productChanged
+              ? `Réservation déplacée de la session du ${new Date(session.date).toLocaleDateString()} à ${session.startTime} (${booking.product.name}) vers la session du ${new Date(targetSession.date).toLocaleDateString()} à ${targetSession.startTime} (${targetSession.products.find(sp => sp.productId === targetProductId)?.product?.name || 'produit modifié'})`
+              : `Réservation déplacée de la session du ${new Date(session.date).toLocaleDateString()} à ${session.startTime} vers la session du ${new Date(targetSession.date).toLocaleDateString()} à ${targetSession.startTime}`;
+
             await tx.bookingHistory.create({
               data: {
                 bookingId: booking.id,
                 action: 'modified',
-                details: `Réservation déplacée de la session du ${new Date(session.date).toLocaleDateString()} à ${session.startTime} vers la session du ${new Date(targetSession.date).toLocaleDateString()} à ${targetSession.startTime}`
+                details: historyDetails
               }
             });
           }
@@ -888,7 +973,8 @@ export const deleteSession = async (req, res, next) => {
         return res.json({
           success: true,
           message: `Session supprimée et ${session.bookings.length} réservation(s) déplacée(s) avec succès`,
-          movedBookingsCount: session.bookings.length
+          movedBookingsCount: session.bookings.length,
+          targetProductId
         });
       }
 

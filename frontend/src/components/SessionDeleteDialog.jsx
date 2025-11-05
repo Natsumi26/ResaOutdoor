@@ -39,7 +39,7 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
     setLoadingAlternatives(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/sessions/${sessionId}/alternatives`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${sessionId}/alternatives`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -67,7 +67,7 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
       fetchAlternativeSessions(sessionWithBookings.id);
     }
   }, [bookingAction, sessionWithBookings]);
-
+console.log(sessionWithBookings)
   const handleConfirmBookingAction = () => {
     if (!sessionWithBookings) return;
 

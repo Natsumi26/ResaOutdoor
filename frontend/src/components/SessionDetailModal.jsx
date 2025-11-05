@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import WetsuitSummary from './WetsuitSummary';
-import MoveBookingModal from './MoveBookingModal';
 import { bookingsAPI } from '../services/api';
 import styles from './SessionDetailModal.module.css';
 
@@ -15,9 +14,13 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   const [selectedBookings, setSelectedBookings] = useState([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteAction, setDeleteAction] = useState(null);
+  const [alternativeSessions, setAlternativeSessions] = useState([]);
+  const [selectedTargetSession, setSelectedTargetSession] = useState(null);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
 
   if (!session) return null;
-console.log(session)
   const { bookings = [], startTime, date, guide, products } = session;
 
   // Calculer les statistiques
@@ -149,15 +152,119 @@ console.log(session)
     onDuplicate?.(session);
   };
 
+  // Récupérer les sessions alternatives pour le déplacement
+  const fetchAlternativeSessions = async () => {
+    setLoadingAlternatives(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}/alternatives`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Sessions alternatives:', data);
+        setAlternativeSessions(data.alternativeSessions || []);
+      } else {
+        console.error('Erreur lors de la récupération des sessions alternatives');
+        setAlternativeSessions([]);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      setAlternativeSessions([]);
+    } finally {
+      setLoadingAlternatives(false);
+    }
+  };
+
+  // Charger les alternatives lorsqu'on choisit "move"
+  useEffect(() => {
+    if (deleteAction === 'move') {
+      fetchAlternativeSessions();
+    }
+  }, [deleteAction]);
+
   const handleDeleteSession = async () => {
+    // Si la session a des réservations confirmées, ouvrir le dialogue de choix
     if (confirmedBookings.length > 0) {
-      alert('Impossible de supprimer une session avec des réservations confirmées');
+      setShowDeleteDialog(true);
+      setDeleteAction(null);
+      setSelectedTargetSession(null);
+      setAlternativeSessions([]);
       return;
     }
 
+    // Sinon, suppression simple
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
-      onDelete?.(session.id);
-      onClose();
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          alert('Session supprimée avec succès');
+          onDelete?.(session.id);
+          onClose();
+        } else {
+          const data = await response.json();
+          alert(`Erreur: ${data.error || 'Impossible de supprimer la session'}`);
+        }
+      } catch (error) {
+        console.error('Erreur suppression:', error);
+        alert('Erreur lors de la suppression de la session');
+      }
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteAction) {
+      alert('Veuillez choisir une action (déplacer ou supprimer)');
+      return;
+    }
+
+    if (deleteAction === 'move' && !selectedTargetSession) {
+      alert('Veuillez sélectionner une session de destination');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const body = {
+        action: deleteAction
+      };
+
+      if (deleteAction === 'move') {
+        body.targetSessionId = selectedTargetSession;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message || 'Opération réussie');
+        setShowDeleteDialog(false);
+        onDelete?.(session.id);
+        onClose();
+      } else {
+        const data = await response.json();
+        alert(`Erreur: ${data.error || 'Impossible de supprimer la session'}`);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de l\'opération');
     }
   };
 
@@ -557,6 +664,211 @@ console.log(session)
             onSuccess={handleBulkMoveSuccess}
           />
         )}
+
+        {/* Modal de suppression avec gestion des réservations */}
+        {showDeleteDialog && (
+          <DeleteSessionDialog
+            session={session}
+            confirmedBookings={confirmedBookings}
+            deleteAction={deleteAction}
+            setDeleteAction={setDeleteAction}
+            alternativeSessions={alternativeSessions}
+            selectedTargetSession={selectedTargetSession}
+            setSelectedTargetSession={setSelectedTargetSession}
+            loadingAlternatives={loadingAlternatives}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => {
+              setShowDeleteDialog(false);
+              setDeleteAction(null);
+              setSelectedTargetSession(null);
+              setAlternativeSessions([]);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Composant pour la confirmation de suppression avec gestion des réservations
+const DeleteSessionDialog = ({
+  session,
+  confirmedBookings,
+  deleteAction,
+  setDeleteAction,
+  alternativeSessions,
+  selectedTargetSession,
+  setSelectedTargetSession,
+  loadingAlternatives,
+  onConfirm,
+  onCancel
+}) => {
+  return (
+    <div className={styles.bulkMoveOverlay} onClick={onCancel}>
+      <div className={styles.bulkMoveModal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.bulkMoveHeader}>
+          <h3>⚠️ Session avec réservations</h3>
+          <button className={styles.closeButton} onClick={onCancel}>×</button>
+        </div>
+
+        <div className={styles.bulkMoveBody}>
+          <div className={styles.bulkMoveInfo}>
+            <p>
+              Cette session contient <strong>{confirmedBookings.length} réservation(s)</strong>.
+            </p>
+            <p>
+              Que souhaitez-vous faire avec les réservations ?
+            </p>
+          </div>
+
+          {/* Liste des réservations */}
+          <div className={styles.bookingsList} style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem' }}>
+            {confirmedBookings.map(booking => (
+              <div key={booking.id} style={{
+                padding: '0.75rem',
+                marginBottom: '0.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                <div style={{ fontWeight: 'bold' }}>
+                  👤 {booking.clientFirstName} {booking.clientLastName}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                  📧 {booking.clientEmail}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                  👥 {booking.numberOfPeople} personne(s)
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Choix de l'action */}
+          <div className={styles.formGroup}>
+            <label>Choisissez une action :</label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: `2px solid ${deleteAction === 'move' ? 'var(--guide-primary)' : '#ddd'}`,
+                  backgroundColor: deleteAction === 'move' ? 'var(--guide-primary-light, #e8f4f8)' : 'white',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: deleteAction === 'move' ? 'bold' : 'normal'
+                }}
+                onClick={() => setDeleteAction('move')}
+              >
+                📦 Déplacer vers une autre session
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: `2px solid ${deleteAction === 'delete' ? '#dc2626' : '#ddd'}`,
+                  backgroundColor: deleteAction === 'delete' ? '#fee' : 'white',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: deleteAction === 'delete' ? 'bold' : 'normal',
+                  color: deleteAction === 'delete' ? '#dc2626' : 'inherit'
+                }}
+                onClick={() => setDeleteAction('delete')}
+              >
+                🗑️ Supprimer les réservations
+              </button>
+            </div>
+          </div>
+
+          {/* Sélection de session alternative si action = move */}
+          {deleteAction === 'move' && (
+            <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
+              <label>Sélectionnez une session de destination</label>
+
+              {loadingAlternatives && (
+                <p style={{ color: '#666', fontStyle: 'italic' }}>⏳ Chargement des sessions disponibles...</p>
+              )}
+
+              {!loadingAlternatives && alternativeSessions.length === 0 && (
+                <p style={{ color: '#dc2626' }}>
+                  ℹ️ Aucune session compatible trouvée. Créez d'abord une nouvelle session ou supprimez les réservations.
+                </p>
+              )}
+
+              {!loadingAlternatives && alternativeSessions.length > 0 && (
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '4px', padding: '0.5rem' }}>
+                  {alternativeSessions.map(altSession => (
+                    <div
+                      key={altSession.id}
+                      style={{
+                        padding: '0.75rem',
+                        marginBottom: '0.5rem',
+                        border: `2px solid ${selectedTargetSession === altSession.id ? 'var(--guide-primary)' : '#ddd'}`,
+                        backgroundColor: selectedTargetSession === altSession.id ? 'var(--guide-primary-light, #e8f4f8)' : 'white',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setSelectedTargetSession(altSession.id)}
+                    >
+                      <div style={{ fontWeight: 'bold' }}>
+                        📅 {format(new Date(altSession.date), 'EEEE dd MMMM yyyy', { locale: fr })}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                        ⏰ {altSession.timeSlot} - {altSession.startTime}
+                      </div>
+                      {altSession.bookings && altSession.bookings.length > 0 && (
+                        <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
+                          {altSession.bookings.length} réservation(s) actuelles
+                        </div>
+                      )}
+                      {altSession.compatibilityInfo?.lockedProductId && (
+                        <div style={{ fontSize: '0.85rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+                          🔒 Produit verrouillé par rotation magique
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Avertissement si action = delete */}
+          {deleteAction === 'delete' && (
+            <div style={{
+              padding: '1rem',
+              backgroundColor: '#fee',
+              border: '1px solid #dc2626',
+              borderRadius: '4px',
+              color: '#dc2626',
+              marginTop: '1rem'
+            }}>
+              <p style={{ margin: 0 }}>
+                ⚠️ <strong>Attention :</strong> Cette action est irréversible. Toutes les réservations seront définitivement supprimées.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.bulkMoveFooter}>
+          <button
+            className={styles.btnSecondary}
+            onClick={onCancel}
+          >
+            Annuler
+          </button>
+          <button
+            className={styles.btnPrimary}
+            onClick={onConfirm}
+            disabled={!deleteAction || (deleteAction === 'move' && !selectedTargetSession)}
+            style={{
+              backgroundColor: deleteAction === 'delete' ? '#dc2626' : 'var(--guide-primary)',
+              opacity: (!deleteAction || (deleteAction === 'move' && !selectedTargetSession)) ? 0.5 : 1
+            }}
+          >
+            {deleteAction === 'delete' ? 'Supprimer tout' : 'Déplacer et supprimer la session'}
+          </button>
+        </div>
       </div>
     </div>
   );
