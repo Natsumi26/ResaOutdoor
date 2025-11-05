@@ -4,20 +4,33 @@ import { AppError } from '../middleware/errorHandler.js';
 // Obtenir les prochaines dates disponibles
 export const getNextAvailableDates = async (req, res, next) => {
   try {
-    const { participants } = req.query;
+    const { participants, guideId, teamName } = req.query;
     const participantCount = participants ? parseInt(participants) : 1;
 
     // Récupérer toutes les sessions futures ouvertes
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const sessions = await prisma.session.findMany({
-      where: {
-        date: {
-          gte: today
-        },
-        status: { in: ['open', 'full'] }
+    const sessionWhere = {
+      date: {
+        gte: today
       },
+      status: { in: ['open', 'full'] }
+    };
+
+    // 🌐 Filtrage par guideId ou teamName (pour iframe multi-tenant)
+    if (guideId) {
+      sessionWhere.guideId = guideId;
+    } else if (teamName) {
+      const teamGuides = await prisma.user.findMany({
+        where: { teamName },
+        select: { id: true }
+      });
+      sessionWhere.guideId = { in: teamGuides.map(g => g.id) };
+    }
+
+    const sessions = await prisma.session.findMany({
+      where: sessionWhere,
       include: {
         products: {
           include: {
@@ -107,12 +120,23 @@ export const getNextAvailableDates = async (req, res, next) => {
 // Rechercher les produits disponibles selon les filtres (pour les clients)
 export const searchAvailableProducts = async (req, res, next) => {
   try {
-    const { participants, startDate, endDate, date } = req.query;
+    const { participants, startDate, endDate, date, guideId, teamName } = req.query;
 
     // Construire le filtre de dates pour les sessions
     const sessionWhere = {
       status: { in: ['open', 'full'] } // Sessions ouvertes ou complètes (mais peut-être pas pour tous les produits)
     };
+
+    // 🌐 Filtrage par guideId ou teamName (pour iframe multi-tenant)
+    if (guideId) {
+      sessionWhere.guideId = guideId;
+    } else if (teamName) {
+      const teamGuides = await prisma.user.findMany({
+        where: { teamName },
+        select: { id: true }
+      });
+      sessionWhere.guideId = { in: teamGuides.map(g => g.id) };
+    }
 
     // Filtre par date spécifique
     if (date) {
@@ -282,11 +306,26 @@ export const getAllSessions = async (req, res, next) => {
       };
     }
 
-    // Filtre par guide
-    if (guideId && guideId !== '') {
+    // Filtre par guide ou équipe
+    const { teamName } = req.query;
+
+    // 🌐 Si appel depuis les pages CLIENT (avec guideId ou teamName dans query)
+    if (guideId && guideId !== '' && !req.user) {
+      // Filtrage public par guideId
       where.guideId = guideId;
-    } else if (req.user) {
-      if ((req.user.role === 'super_admin' && req.user.teamName !== null )||( req.user.role === 'leader' && req.user.teamName !== null)) {
+    } else if (teamName && !req.user) {
+      // Filtrage public par teamName
+      const teamGuides = await prisma.user.findMany({
+        where: { teamName },
+        select: { id: true }
+      });
+      where.guideId = { in: teamGuides.map(g => g.id) };
+    }
+    // 🔐 Si utilisateur connecté (espace admin)
+    else if (req.user) {
+      if (guideId && guideId !== '') {
+        where.guideId = guideId;
+      } else if ((req.user.role === 'super_admin' && req.user.teamName !== null) || (req.user.role === 'leader' && req.user.teamName !== null)) {
         const teamGuides = await prisma.user.findMany({
           where: {
             teamName: req.user.teamName,
@@ -298,7 +337,7 @@ export const getAllSessions = async (req, res, next) => {
         where.guideId = req.user.userId;
       }
     }
-    // Si pas connecté → ne pas filtrer par guideId
+    // Si pas connecté et aucun filtre → ne pas filtrer par guideId
 console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)');
 
 

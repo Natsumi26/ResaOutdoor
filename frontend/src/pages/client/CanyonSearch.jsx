@@ -24,6 +24,8 @@ const CanyonSearch = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [nextAvailableDates, setNextAvailableDates] = useState([]);
   const [filters, setFilters] = useState({
+    guideId : searchParams.get('guideId')|| '',
+    teamName : searchParams.get('teamName')|| '',
     participants: searchParams.get('participants') || '',
     date: searchParams.get('date') || '',
     startDate: searchParams.get('startDate') || '',
@@ -155,6 +157,13 @@ console.log(isMobile)
         params.endDate = currentFilters.endDate;
       }
 
+      // 🌐 Ajouter les filtres guideId ou teamName depuis l'URL
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+
+      if (guideId) params.guideId = guideId;
+      if (teamName) params.teamName = teamName;
+
       // Utiliser la nouvelle API de recherche
       const response = await sessionsAPI.searchAvailable(params);
       const fetchedProducts = response.data.products || [];
@@ -164,7 +173,15 @@ console.log(isMobile)
       // Si aucun produit trouvé, chercher les prochaines dates disponibles
       if (!fetchedProducts || fetchedProducts.length === 0) {
         try {
-          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(currentFilters.participants);
+          // 🌐 Ajouter les filtres guideId ou teamName
+          const nextDatesParams = currentFilters.participants;
+          const guideId = searchParams.get('guideId');
+          const teamName = searchParams.get('teamName');
+          const nextDatesQueryParams = new URLSearchParams({ participants: nextDatesParams });
+          if (guideId) nextDatesQueryParams.set('guideId', guideId);
+          if (teamName) nextDatesQueryParams.set('teamName', teamName);
+
+          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(nextDatesQueryParams.toString());
           const dates = nextDatesResponse.data.dates || [];
 
           // Filtrer pour ne garder que les dates avec au moins une session future
@@ -207,10 +224,18 @@ console.log(isMobile)
       const today = new Date();
       const endDate = addDays(today, 60);
 
-      const response = await sessionsAPI.getAll({
+      // 🌐 Ajouter les filtres guideId ou teamName depuis l'URL
+      const params = {
         startDate: format(today, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd')
-      });
+      };
+
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+      if (guideId) params.guideId = guideId;
+      if (teamName) params.teamName = teamName;
+
+      const response = await sessionsAPI.getAll(params);
 
       const allSessions = response.data.sessions || [];
       const availability = {};
@@ -291,8 +316,8 @@ console.log(isMobile)
 
     setFilters(newFilters);
 
-    // Mettre à jour les paramètres URL
-    const params = new URLSearchParams();
+    // Mettre à jour les paramètres URL en préservant guideId/teamName
+    const params = new URLSearchParams(searchParams);
     Object.keys(newFilters).forEach(key => {
       if (newFilters[key]) params.set(key, newFilters[key]);
     });
@@ -326,8 +351,8 @@ console.log(isMobile)
     setFilters(newFilters);
     setSelectedDate(new Date(startDate));
 
-    // Mettre à jour l'URL
-    const params = new URLSearchParams();
+    // Mettre à jour l'URL en préservant guideId/teamName
+    const params = new URLSearchParams(searchParams);
     Object.keys(newFilters).forEach(key => {
       if (newFilters[key]) params.set(key, newFilters[key]);
     });
@@ -341,8 +366,8 @@ console.log(isMobile)
     const newFilters = { ...filters, participants: value };
     setFilters(newFilters);
 
-    // Mettre à jour les paramètres URL
-    const params = new URLSearchParams();
+    // Mettre à jour les paramètres URL en préservant guideId/teamName
+    const params = new URLSearchParams(searchParams);
     Object.keys(newFilters).forEach(key => {
       if (newFilters[key]) params.set(key, newFilters[key]);
     });

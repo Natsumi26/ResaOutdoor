@@ -10,7 +10,8 @@ import {
   createConnectAccountLinkForExisting,
   getConnectAccount,
   createLoginLink,
-  createGiftVoucherCheckoutSession
+  createGiftVoucherCheckoutSession,
+  createPaymentIntent
 } from '../services/stripe.service.js';
 import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification } from '../services/email.service.js';
 import stripe from '../config/stripe.js';
@@ -180,6 +181,39 @@ router.post('/create-booking-checkout', async (req, res, next) => {
       url: checkoutSession.url,
       amountToPay: amountToPay,
       isDeposit: isDeposit
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Créer un Payment Intent pour paiement inline (Stripe Payment Element)
+ * POST /api/stripe/create-payment-intent
+ */
+router.post('/create-payment-intent', async (req, res, next) => {
+  try {
+    const { sessionId, productId, bookingData, amountDue, participants, payFullAmount } = req.body;
+
+    if (!sessionId || !productId || !bookingData || !amountDue) {
+      throw new AppError('sessionId, productId, bookingData et amountDue requis', 400);
+    }
+
+    // Créer le Payment Intent
+    const paymentIntent = await createPaymentIntent(
+      sessionId,
+      productId,
+      bookingData,
+      parseFloat(amountDue),
+      participants,
+      payFullAmount
+    );
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.clientSecret,
+      amountToPay: paymentIntent.amountToPay,
+      isDeposit: paymentIntent.isDeposit
     });
   } catch (error) {
     next(error);
@@ -567,6 +601,125 @@ router.post('/', async (req, res) => {
           console.error('Erreur envoi email de confirmation de paiement:', err);
           // L'email échoue mais le paiement est enregistré
         });
+
+        break;
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+
+        // Vérifier si c'est une nouvelle réservation (Payment Element)
+        if (paymentIntent.metadata && paymentIntent.metadata.type === 'new_booking') {
+          try {
+            console.log('🆕 Création de réservation après paiement Payment Intent');
+
+            const sessionId = paymentIntent.metadata.sessionId;
+            const productId = paymentIntent.metadata.productId;
+            const bookingData = JSON.parse(paymentIntent.metadata.bookingData);
+            const participants = paymentIntent.metadata.participants ? JSON.parse(paymentIntent.metadata.participants) : null;
+            const amountPaid = paymentIntent.amount / 100;
+
+            // Créer la réservation avec transaction
+            const booking = await prisma.$transaction(async (tx) => {
+              const newBooking = await tx.booking.create({
+                data: {
+                  clientFirstName: bookingData.clientFirstName,
+                  clientLastName: bookingData.clientLastName,
+                  clientEmail: bookingData.clientEmail,
+                  clientPhone: bookingData.clientPhone,
+                  clientNationality: bookingData.clientNationality,
+                  numberOfPeople: parseInt(bookingData.numberOfPeople),
+                  totalPrice: parseFloat(bookingData.totalPrice),
+                  amountPaid: amountPaid,
+                  status: 'confirmed',
+                  sessionId: sessionId,
+                  productId: productId,
+                  voucherCode: bookingData.voucherCode || null,
+                  discountAmount: bookingData.discountAmount || null
+                },
+                include: {
+                  session: {
+                    include: {
+                      guide: true
+                    }
+                  },
+                  product: true
+                }
+              });
+
+              // Créer l'entrée historique
+              await tx.bookingHistory.create({
+                data: {
+                  action: 'created',
+                  details: `Réservation créée avec paiement Stripe (Payment Element) de ${amountPaid}€`,
+                  bookingId: newBooking.id
+                }
+              });
+
+              // Créer le paiement
+              await tx.payment.create({
+                data: {
+                  amount: amountPaid,
+                  method: 'stripe',
+                  notes: `Payment Intent: ${paymentIntent.id}`,
+                  voucherCode: bookingData.voucherCode,
+                  discountAmount: bookingData.discountAmount,
+                  bookingId: newBooking.id
+                }
+              });
+
+              // Enregistrer les participants s'ils existent
+              if (participants && participants.length > 0) {
+                for (const participant of participants) {
+                  await tx.participant.create({
+                    data: {
+                      bookingId: newBooking.id,
+                      firstName: participant.firstName || '',
+                      age: participant.age ? parseInt(participant.age) : null,
+                      weight: participant.weight ? parseFloat(participant.weight) : null,
+                      height: participant.height ? parseFloat(participant.height) : null,
+                      shoeRental: participant.shoeRental || false,
+                      shoeSize: participant.shoeSize ? parseInt(participant.shoeSize) : null
+                    }
+                  });
+                }
+              }
+
+              return newBooking;
+            });
+
+            // Envoyer l'email de confirmation
+            sendBookingConfirmation(booking).catch(err => {
+              console.error('Erreur envoi email de confirmation:', err);
+            });
+
+            // Envoyer email de notification au guide
+            sendGuideNewBookingNotification(booking).catch(err => {
+              console.error('Erreur envoi email au guide:', err);
+            });
+
+            // Envoyer notification en temps réel aux admins
+            const notification = createNewBookingNotification({
+              id: booking.id,
+              clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
+              productName: booking.product.name,
+              sessionDate: booking.session.date,
+              totalAmount: amountPaid
+            });
+            notifyAdmins(notification);
+
+            // Mettre à jour le calendrier
+            updateCalendar({
+              action: 'booking-created',
+              bookingId: booking.id,
+              sessionId: booking.sessionId
+            });
+
+            console.log('✅ Réservation créée avec succès via Payment Intent:', booking.id);
+          } catch (error) {
+            console.error('❌ Erreur création réservation après Payment Intent:', error);
+          }
+        }
 
         break;
       }

@@ -147,12 +147,18 @@
 .previewContainer {
   border: 2px dashed #dee2e6;
   border-radius: 8px;
-  padding: 20px;
+  padding: 0;
   background: #f8f9fa;
-  min-height: 400px;
+  height: 800px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  overflow: hidden;
+}
+
+.previewContainer iframe {
+  flex: 1;
+  border-radius: 8px;
 }
 
 .previewPlaceholder {
@@ -160,6 +166,10 @@
   color: #6c757d;
   font-size: 1.1rem;
   padding: 40px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .loading {

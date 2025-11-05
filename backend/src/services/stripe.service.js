@@ -289,6 +289,113 @@ export const createLoginLink = async (accountId) => {
 };
 
 /**
+ * Créer un Payment Intent pour le paiement dans l'iframe (Stripe Payment Element)
+ * @param {string} sessionId - ID de la session
+ * @param {string} productId - ID du produit
+ * @param {Object} bookingData - Données de réservation
+ * @param {number} amountDue - Montant dû
+ * @param {Array} participants - Liste des participants (optionnel)
+ * @param {boolean} payFullAmount - Payer la totalité (true) ou l'acompte (false)
+ * @returns {Promise<Object>} Payment Intent avec client_secret
+ */
+export const createPaymentIntent = async (sessionId, productId, bookingData, amountDue, participants = null, payFullAmount = false) => {
+  try {
+    // Importer prisma localement
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    // Charger la session et le produit
+    const [dbSession, product] = await Promise.all([
+      prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          guide: {
+            include: {
+              teamLeader: true
+            }
+          },
+          bookings: true
+        }
+      }),
+      prisma.product.findUnique({
+        where: { id: productId }
+      })
+    ]);
+
+    if (!dbSession) {
+      throw new Error('Session non trouvée');
+    }
+
+    if (!product) {
+      throw new Error('Produit non trouvé');
+    }
+
+    // Calculer le montant à payer (acompte ou totalité)
+    let amountToPay = amountDue;
+    let isDeposit = false;
+
+    if (dbSession.depositRequired && !payFullAmount) {
+      if (dbSession.depositType === 'percentage') {
+        amountToPay = (amountDue * dbSession.depositAmount) / 100;
+      } else {
+        amountToPay = Math.min(dbSession.depositAmount, amountDue);
+      }
+      isDeposit = true;
+    }
+
+    // Déterminer le compte Stripe à utiliser
+    let stripeAccountId = null;
+    if (dbSession.guide.role === 'trainee' && dbSession.guide.teamLeader) {
+      stripeAccountId = dbSession.guide.teamLeader.stripeAccount;
+    } else {
+      stripeAccountId = dbSession.guide.stripeAccount;
+    }
+
+    // Configuration du Payment Intent
+    const paymentIntentData = {
+      amount: Math.round(amountToPay * 100), // En centimes
+      currency: 'eur',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        type: 'new_booking',
+        sessionId: sessionId,
+        productId: productId,
+        bookingData: JSON.stringify(bookingData),
+        participants: participants ? JSON.stringify(participants) : null,
+        isDeposit: isDeposit ? 'true' : 'false',
+        totalAmount: amountDue.toString()
+      }
+    };
+
+    // Si on a un compte Stripe Connect, l'ajouter
+    let paymentIntent;
+    if (stripeAccountId) {
+      paymentIntentData.application_fee_amount = 0;
+      paymentIntentData.transfer_data = {
+        destination: stripeAccountId
+      };
+      paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    } else {
+      paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    }
+
+    await prisma.$disconnect();
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amountToPay: amountToPay,
+      isDeposit: isDeposit
+    };
+  } catch (error) {
+    console.error('Erreur création Payment Intent:', error);
+    throw error;
+  }
+};
+
+/**
  * Créer une session de paiement Stripe pour l'achat d'un bon cadeau
  * @param {number} amount - Montant du bon cadeau en euros
  * @param {string} buyerEmail - Email de l'acheteur

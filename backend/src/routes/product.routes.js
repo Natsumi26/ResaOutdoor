@@ -4,14 +4,13 @@ import { authMiddleware, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/:id',optionalAuth, getProductById);
+// Routes publiques (avec auth optionnelle)
+router.get('/', optionalAuth, getAllProducts);
+router.get('/:id', optionalAuth, getProductById);
 
-router.use(authMiddleware);
-
-router.get('/', getAllProducts);
-
-router.post('/', createProduct);
-router.put('/:id', updateProduct);
-router.delete('/:id', deleteProduct);
+// Routes protégées (auth obligatoire)
+router.post('/', authMiddleware, createProduct);
+router.put('/:id', authMiddleware, updateProduct);
+router.delete('/:id', authMiddleware, deleteProduct);
 
 export default router;

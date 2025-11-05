@@ -5,28 +5,16 @@ import styles from './SiteIntegration.module.css';
 const SiteIntegration = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   // Configuration de l'iframe
-  const [iframeType, setIframeType] = useState('search'); // search, canyon-details, calendar-only, booking
+  const [iframeType, setIframeType] = useState('search'); // search, calendar-only
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [iframeWidth, setIframeWidth] = useState('100%');
-  const [iframeHeight, setIframeHeight] = useState('800');
-  const [customWidth, setCustomWidth] = useState('');
-  const [customHeight, setCustomHeight] = useState('');
-
-  // Options prédéfinies de dimensions
-  const dimensionPresets = [
-    { label: 'Pleine largeur (800px hauteur)', width: '100%', height: '800' },
-    { label: 'Pleine largeur (600px hauteur)', width: '100%', height: '600' },
-    { label: 'Pleine largeur (1000px hauteur)', width: '100%', height: '1000' },
-    { label: 'Desktop standard (1200x800)', width: '1200', height: '800' },
-    { label: 'Tablette (768x600)', width: '768', height: '600' },
-    { label: 'Calendrier compact (100% x 500)', width: '100%', height: '500' },
-    { label: 'Personnalisé', width: 'custom', height: 'custom' }
-  ];
+  const [filterMode, setFilterMode] = useState('individual'); // 'individual' ou 'team'
 
   useEffect(() => {
     loadProducts();
+    loadUser();
   }, []);
 
   const loadProducts = async () => {
@@ -42,63 +30,57 @@ const SiteIntegration = () => {
     }
   };
 
+  const loadUser = () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error('Erreur chargement utilisateur:', error);
+    }
+  };
+
   const getIframeUrl = () => {
     const baseUrl = window.location.origin;
 
+    // Construire les paramètres de filtrage
+    const filterParams = [];
+    if (filterMode === 'team' && user?.teamName) {
+      filterParams.push(`teamName=${encodeURIComponent(user.teamName)}`);
+    } else if (filterMode === 'individual' && user?.id) {
+      filterParams.push(`guideId=${user.id}`);
+    }
+
+    // Ajouter le produit sélectionné si nécessaire
+    if (selectedProduct && iframeType === 'search') {
+      filterParams.push(`productId=${selectedProduct}`);
+    }
+
+    const queryString = filterParams.length > 0 ? `?${filterParams.join('&')}` : '';
+
     switch (iframeType) {
       case 'search':
-        if (selectedProduct) {
-          return `${baseUrl}/client/search?productId=${selectedProduct}`;
-        }
-        return `${baseUrl}/client/search`;
-
-      case 'canyon-details':
-        if (!selectedProduct) return `${baseUrl}/client/search`;
-        return `${baseUrl}/client/canyon/${selectedProduct}`;
+        return `${baseUrl}/client/search${queryString}`;
 
       case 'calendar-only':
-        if (!selectedProduct) return `${baseUrl}/client/search`;
-        return `${baseUrl}/client/embed/calendar/${selectedProduct}`;
-
-      case 'booking':
-        return `${baseUrl}/client/book/SESSION_ID`;
+        if (!selectedProduct) return `${baseUrl}/client/search${queryString}`;
+        return `${baseUrl}/client/embed/calendar/${selectedProduct}${queryString}`;
 
       default:
-        return `${baseUrl}/client/search`;
+        return `${baseUrl}/client/search${queryString}`;
     }
   };
 
   const getIframeCode = () => {
     const url = getIframeUrl();
-    const width = iframeWidth === 'custom' ? customWidth : iframeWidth;
-    const height = iframeHeight === 'custom' ? customHeight : iframeHeight;
 
     return `<iframe
   src="${url}"
-  width="${width}"
-  height="${height}"
-  frameborder="0"
-  style="border: none; border-radius: 8px;"
+  style="width: 100%; min-height: 800px; border: none; border-radius: 8px;"
+  allow="payment"
   allowfullscreen>
 </iframe>`;
-  };
-
-  const handleDimensionPresetChange = (e) => {
-    const preset = dimensionPresets.find(p => p.label === e.target.value);
-    if (preset) {
-      setIframeWidth(preset.width);
-      setIframeHeight(preset.height);
-    }
-  };
-
-  const getActualWidth = () => {
-    if (iframeWidth === 'custom') return customWidth || '100%';
-    return iframeWidth;
-  };
-
-  const getActualHeight = () => {
-    if (iframeHeight === 'custom') return customHeight || '600';
-    return iframeHeight;
   };
 
   const copyToClipboard = () => {
@@ -110,12 +92,8 @@ const SiteIntegration = () => {
     switch (iframeType) {
       case 'search':
         return 'Page de recherche complète avec filtres. Vous pouvez pré-filtrer par un canyon spécifique.';
-      case 'canyon-details':
-        return 'Page détails d\'un canyon avec calendrier et réservation. Parfait pour intégrer dans une page WordPress dédiée à un canyon.';
       case 'calendar-only':
         return 'Uniquement le calendrier de disponibilités. Cliquable pour rediriger vers le formulaire de réservation.';
-      case 'booking':
-        return 'Formulaire de réservation (nécessite un ID de session). Sera automatiquement redirigé depuis le calendrier.';
       default:
         return '';
     }
@@ -134,12 +112,43 @@ const SiteIntegration = () => {
       <div className={styles.header}>
         <h1>🔗 Intégration à mon site</h1>
         <p>Générez des iframes pour intégrer vos pages de réservation dans votre site WordPress</p>
+        <div style={{
+          background: '#e3f2fd',
+          padding: '1rem',
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          color: '#1976d2',
+          marginTop: '1rem'
+        }}>
+          ℹ️ <strong>Tout le parcours de réservation se fait dans l'iframe</strong> : recherche, formulaire, participants, paiement et confirmation.
+          Vos clients restent sur votre site WordPress tout au long de leur réservation.
+        </div>
       </div>
 
       <div className={styles.content}>
         {/* Configuration */}
         <div className={styles.configSection}>
           <h2>⚙️ Configuration de l'iframe</h2>
+
+          {/* Mode de filtrage : Individuel ou Équipe */}
+          {user?.teamName && (
+            <div className={styles.formGroup}>
+              <label>Filtrer les produits et sessions par</label>
+              <select
+                value={filterMode}
+                onChange={(e) => setFilterMode(e.target.value)}
+                className={styles.select}
+              >
+                <option value="individual">👤 Individuel (seulement mes produits/sessions)</option>
+                <option value="team">👥 Équipe ({user.teamName})</option>
+              </select>
+              <small className={styles.description}>
+                {filterMode === 'team'
+                  ? `Affichera tous les produits et sessions de l'équipe "${user.teamName}"`
+                  : 'Affichera uniquement vos propres produits et sessions'}
+              </small>
+            </div>
+          )}
 
           {/* Type d'iframe */}
           <div className={styles.formGroup}>
@@ -150,15 +159,13 @@ const SiteIntegration = () => {
               className={styles.select}
             >
               <option value="search">🔍 Page de recherche</option>
-              <option value="canyon-details">🏔️ Détails d'un canyon</option>
               <option value="calendar-only">📅 Calendrier uniquement</option>
-              <option value="booking">📝 Formulaire de réservation</option>
             </select>
             <small className={styles.description}>{getDescription()}</small>
           </div>
 
           {/* Sélection du produit */}
-          {(iframeType === 'search' || iframeType === 'canyon-details' || iframeType === 'calendar-only') && (
+          {(iframeType === 'search' || iframeType === 'calendar-only') && (
             <div className={styles.formGroup}>
               <label>
                 {iframeType === 'search' ? 'Filtrer par canyon (optionnel)' : 'Sélectionner un canyon'}
@@ -179,48 +186,6 @@ const SiteIntegration = () => {
             </div>
           )}
 
-          {/* Dimensions */}
-          <div className={styles.formGroup}>
-            <label>Dimensions de l'iframe</label>
-            <select
-              onChange={handleDimensionPresetChange}
-              className={styles.select}
-              defaultValue={dimensionPresets[0].label}
-            >
-              {dimensionPresets.map(preset => (
-                <option key={preset.label} value={preset.label}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Custom dimensions */}
-          {(iframeWidth === 'custom' || iframeHeight === 'custom') && (
-            <div className={styles.customDimensions}>
-              <div className={styles.formGroup}>
-                <label>Largeur personnalisée</label>
-                <input
-                  type="text"
-                  value={customWidth}
-                  onChange={(e) => setCustomWidth(e.target.value)}
-                  placeholder="Ex: 100%, 800px, 800"
-                  className={styles.input}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Hauteur personnalisée</label>
-                <input
-                  type="text"
-                  value={customHeight}
-                  onChange={(e) => setCustomHeight(e.target.value)}
-                  placeholder="Ex: 600px, 600"
-                  className={styles.input}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Code généré */}
           <div className={styles.formGroup}>
             <label>Code HTML à copier</label>
@@ -232,26 +197,16 @@ const SiteIntegration = () => {
             </div>
           </div>
 
-          {/* Note pour booking */}
-          {iframeType === 'booking' && (
-            <div className={styles.warningBox}>
-              ⚠️ <strong>Note :</strong> Le formulaire de réservation nécessite un ID de session spécifique.
-              Les utilisateurs seront automatiquement redirigés vers cette page depuis le calendrier.
-            </div>
-          )}
-        </div>
-
         {/* Preview */}
         <div className={styles.previewSection}>
           <h2>👁️ Aperçu</h2>
           <div className={styles.previewContainer}>
-            {(iframeType !== 'canyon-details' && iframeType !== 'calendar-only') || selectedProduct ? (
+            {iframeType !== 'calendar-only' || selectedProduct ? (
               <iframe
                 src={getIframeUrl()}
-                width={getActualWidth()}
-                height={getActualHeight()}
-                frameBorder="0"
-                style={{ border: 'none', borderRadius: '8px', maxWidth: '100%' }}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
+                allow="payment"
+                allowFullScreen
                 title="Preview"
               />
             ) : (
@@ -263,6 +218,7 @@ const SiteIntegration = () => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
