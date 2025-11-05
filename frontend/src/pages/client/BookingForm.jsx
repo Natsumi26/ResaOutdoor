@@ -1027,16 +1027,16 @@ const BookingForm = () => {
                 <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
                   <span>
                     <Trans i18nKey="consent.newsletter">
-                    J'accepte les{' '}
-                    <a
-                      href={session.guide.confidentialityPolicy}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: clientColor, textDecoration: 'underline' }}
-                    >
-                      conditions de confidentialité
-                    </a>{' '}
-                    et souhaite recevoir la newsletter avec les actualités et offres spéciales. *
+                      J'accepte les
+                      <a
+                        href={session.guide.confidentialityPolicy}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: clientColor, textDecoration: 'underline' }}
+                      >
+                        conditions de confidentialité
+                      </a>{' '}
+                      et souhaite recevoir la newsletter avec les actualités et offres spéciales. *
                   </Trans>
                   </span>
                 </div>

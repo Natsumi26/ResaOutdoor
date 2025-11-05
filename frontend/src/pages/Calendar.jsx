@@ -123,21 +123,27 @@ const Calendar = () => {
       console.error('Erreur chargement produits:', err);
     }
   };
-
+  console.log(currentUser)
   const loadGuides = async () => {
     // Charger les guides uniquement si admin
     if (currentUser?.role === 'leader'|| currentUser?.role === 'super_admin' ) {
       try {
         const response = await usersAPI.getAll();
         let allGuides = response.data.users;
-        let guideTeam = allGuides.filter(g => g.teamName === currentUser.teamName);
+
+        if (currentUser.teamName !== null){
+          let guideTeam = allGuides.filter(g => g.teamName === currentUser.teamName);
         setGuides(guideTeam);
+        } else {
+          setGuides(currentUser)
+        }
+        
       } catch (err) {
         console.error('Erreur chargement guides:', err);
       }
     }
   };
-
+        console.log(guides)
   const loadCurrentUser = async () => {
     try {
       const response = await authAPI.getCurrentUser();
@@ -411,7 +417,7 @@ const Calendar = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           {/* Filtre par guide (admin uniquement) */}
-          {(currentUser?.role === 'leader'||currentUser?.role === 'super_admin') && !showSessionForm && !showBookingForm && (
+          {((currentUser?.role === 'leader' && currentUser?.teamName !== null)||(currentUser?.role === 'super_admin'&& currentUser?.teamName !== null)) && !showSessionForm && !showBookingForm && (
             <div className={styles.guideFilter}>
               <label>Filtrer par guide :</label>
               <select

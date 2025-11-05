@@ -286,7 +286,7 @@ export const getAllSessions = async (req, res, next) => {
     if (guideId && guideId !== '') {
       where.guideId = guideId;
     } else if (req.user) {
-      if (req.user.role === 'super_admin' || req.user.role === 'leader') {
+      if ((req.user.role === 'super_admin' && req.user.teamName !== null )||( req.user.role === 'leader' && req.user.teamName !== null)) {
         const teamGuides = await prisma.user.findMany({
           where: {
             teamName: req.user.teamName,
@@ -294,7 +294,7 @@ export const getAllSessions = async (req, res, next) => {
           select: { id: true }
         });
         where.guideId = { in: teamGuides.map(g => g.id) };
-      } else if (req.user.role === 'employee' || req.user.role === 'trainee') {
+      } else if (req.user.role === 'employee' || req.user.role === 'trainee' || req.user.teamName === null) {
         where.guideId = req.user.userId;
       }
     }
