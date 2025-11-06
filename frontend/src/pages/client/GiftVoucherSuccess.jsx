@@ -1,62 +1,104 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
 import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const GiftVoucherSuccess = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
 
   const [loading, setLoading] = useState(true);
   const [voucher, setVoucher] = useState(null);
   const [error, setError] = useState(null);
+  const [status, setStatus] = useState('loading');
+  const [message, setMessage] = useState(t('VerifPayement'));
 
   useEffect(() => {
-    if (!sessionId) {
-      setError('Session invalide');
-      setLoading(false);
-      return;
-    }
+    verifyPayment();
+  }, []);
 
-    let retryCount = 0;
-    const maxRetries = 10; // Réessayer jusqu'à 10 fois
+  const verifyPayment = async () => {
+    try {
+      const stripe = await stripePromise;
+      const clientSecret = searchParams.get('payment_intent_client_secret');
 
-    const verifyPayment = async () => {
-      try {
-        console.log(sessionId)
-        const response = await stripeAPI.verifyGiftVoucherPayment(sessionId);
+      if (!clientSecret) {
+        setStatus('error');
+        setError('Paramètres de paiement manquants.');
+        setLoading(false);
+        return;
+      }
 
-        if (response.data.paid && response.data.voucher) {
-          setVoucher(response.data.voucher);
-          setLoading(false);
-        } else if (response.data.pending) {
-          // Le bon cadeau n'a pas encore été créé, réessayer dans quelques secondes
-          retryCount++;
-          if (retryCount < maxRetries) {
-            setTimeout(() => {
-              verifyPayment();
-            }, 2000);
-          } else {
-            setError('Le bon cadeau prend plus de temps que prévu à être créé. Veuillez vérifier vos emails ou contacter le support.');
-            setLoading(false);
-          }
-        } else {
-          setError('Le paiement n\'a pas été confirmé');
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Erreur vérification paiement:', err);
-        setError('Une erreur est survenue lors de la vérification du paiement');
+      // Récupérer le Payment Intent
+      const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+
+      if (paymentIntent.status === 'succeeded') {
+        setMessage(t('PaySuccess') || 'Paiement réussi ! Recherche de votre bon cadeau...');
+
+        // Attendre que le webhook crée le bon cadeau
+        pollForGiftVoucher(paymentIntent.id, 0);
+      } else if (paymentIntent.status === 'processing') {
+        setMessage('Votre paiement est en cours de traitement...');
+        // Réessayer dans 2 secondes
+        setTimeout(() => verifyPayment(), 2000);
+      } else {
+        setStatus('error');
+        setError('Le paiement n\'a pas abouti. Veuillez contacter le support.');
         setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error('Erreur vérification paiement:', err);
+      setStatus('error');
+      setError('Erreur lors de la vérification du paiement.');
+      setLoading(false);
+    }
+  };
 
-    verifyPayment();
-  }, [sessionId]);
+  const pollForGiftVoucher = async (paymentIntentId, currentAttempt) => {
+    const maxAttempts = 30; // 30 secondes max
+
+    try {
+      console.log(`Tentative ${currentAttempt + 1}/${maxAttempts} - Recherche bon cadeau...`);
+
+      // Essayer de trouver le bon cadeau créé par le webhook via le Payment Intent ID
+      const response = await stripeAPI.getGiftVoucherByPaymentIntent(paymentIntentId);
+
+      if (response.data.found && response.data.voucher) {
+        // Bon cadeau trouvé !
+        console.log('Bon cadeau trouvé:', response.data.voucher);
+        setVoucher(response.data.voucher);
+        setStatus('success');
+        setLoading(false);
+      } else {
+        // Pas encore trouvé, réessayer
+        if (currentAttempt < maxAttempts - 1) {
+          setTimeout(() => pollForGiftVoucher(paymentIntentId, currentAttempt + 1), 1000); // Réessayer dans 1 seconde
+        } else {
+          // Trop de tentatives
+          console.log('Trop de tentatives, abandon');
+          setStatus('error');
+          setError('La création de votre bon cadeau prend plus de temps que prévu. Vous recevrez un email de confirmation sous peu.');
+          setLoading(false);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur recherche bon cadeau:', err);
+
+      // Réessayer
+      if (currentAttempt < maxAttempts - 1) {
+        setTimeout(() => pollForGiftVoucher(paymentIntentId, currentAttempt + 1), 1000);
+      } else {
+        setStatus('error');
+        setError('Impossible de récupérer votre bon cadeau. Vous recevrez un email de confirmation.');
+        setLoading(false);
+      }
+    }
+  };
 
   const copyToClipboard = () => {
     if (voucher?.code) {
@@ -67,12 +109,14 @@ const GiftVoucherSuccess = () => {
 
   if (loading) {
     return (
-      <div className={styles.clientContainer}>
+      <div className={styles.clientContainerIframe}>
         <div className={styles.searchHeader}>
           <h1>{t('VerifPayement')}</h1>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className={styles.loader}></div>
-            <p>{t('PatientCreationGift')}</p>
+            <div className={styles.loadingSpinner}>
+              <div className={styles.spinner}></div>
+            </div>
+            <p>{message}</p>
           </div>
         </div>
       </div>
@@ -81,13 +125,20 @@ const GiftVoucherSuccess = () => {
 
   if (error) {
     return (
-      <div className={styles.clientContainer}>
+      <div className={styles.clientContainerIframe}>
         <div className={styles.searchHeader}>
           <h1>{t('Erreur')}</h1>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: 'red' }}>{error}</p>
             <button
-              onClick={() => navigate('/client/gift-voucher')}
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (filters.guideId) params.set('guideId', filters.guideId);
+                if (filters.teamName) params.set('teamName', filters.teamName);
+                const color = searchParams.get('color');
+                if (color) params.set('color', color);
+                navigate(`/client/gift-voucher?${params.toString()}`);
+              }}
               className={styles.btnPrimary}
               style={{ marginTop: '1rem' }}
             >
@@ -100,7 +151,7 @@ const GiftVoucherSuccess = () => {
   }
 
   return (
-    <div className={styles.clientContainer}>
+    <div className={styles.clientContainerIframe}>
       <div className={styles.searchHeader}>
         <h1>{t('PaySuccess')}</h1>
         <p>{t('CreateGiftSuccess')}</p>

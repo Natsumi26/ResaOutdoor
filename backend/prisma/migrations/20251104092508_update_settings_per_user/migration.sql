@@ -1,3 +1,20 @@
+-- Retirer le teamLeaderId du super_admin
+-- Un super_admin ne doit pas avoir de leader
+
+UPDATE users
+SET "teamLeaderId" = NULL
+WHERE role = 'super_admin';
+
+-- Vérifier le résultat
+SELECT id, login, role, "teamLeaderId" FROM users WHERE role = 'super_admin';
+
+-- Mettre à jour l'utilisateur canyonlife en super_admin
+UPDATE users
+SET role = 'super_admin'
+WHERE login = 'canyonlife';
+
+-- Vérifier le résultat
+SELECT id, login, role FROM users WHERE login = 'canyonlife';
 -- Migration: Update Settings to be per-user
 -- Date: 2025-11-04
 

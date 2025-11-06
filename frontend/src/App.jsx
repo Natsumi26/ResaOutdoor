@@ -24,9 +24,11 @@ import CanyonDetails from './pages/client/CanyonDetails';
 import CalendarEmbed from './pages/client/CalendarEmbed';
 import BookingForm from './pages/client/BookingForm';
 import BookingPayment from './pages/client/BookingPayment';
+import ClientPaymentSuccess from './pages/client/PaymentSuccess';
 import BookingConfirmation from './pages/client/BookingConfirmation';
 import MyBooking from './pages/client/MyBooking';
 import GiftVoucherPurchase from './pages/client/GiftVoucherPurchase';
+import GiftVoucherPayment from './pages/client/GiftVoucherPayment';
 import GiftVoucherSuccess from './pages/client/GiftVoucherSuccess';
 
 const PrivateRoute = ({ children }) => {
@@ -59,10 +61,12 @@ const AppRoutes = () => {
       <Route path="/client/embed/calendar/:id" element={<CalendarEmbed />} />
       <Route path="/client/book/:sessionId" element={<BookingForm />} />
       <Route path="/client/payment" element={<BookingPayment />} />
-      <Route path="/client/payment-confirmation" element={<BookingConfirmation />} />
+      <Route path="/client/payment-confirmation" element={<ClientPaymentSuccess />} />
       <Route path="/client/booking-confirmation/:bookingId" element={<BookingConfirmation />} />
       <Route path="/client/my-booking/:bookingId" element={<MyBooking />} />
       <Route path="/client/gift-voucher" element={<GiftVoucherPurchase />} />
+      <Route path="/client/gift-voucher/payment" element={<GiftVoucherPayment />} />
+      <Route path="/client/gift-voucher/success" element={<GiftVoucherSuccess />} />
       <Route path="/gift-voucher/payment/success" element={<GiftVoucherSuccess />} />
 
       {/* Routes admin/guide - authentification requise */}

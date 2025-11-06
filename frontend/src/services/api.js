@@ -137,14 +137,11 @@ export const emailTemplatesAPI = {
 
 // Stripe
 export const stripeAPI = {
-  createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),
-  createBookingCheckout: (data) => axios.post(`${API_URL}/stripe/create-booking-checkout`, data),
+  // Payment Intent (utilisé pour les paiements côté client en iframe)
   createPaymentIntent: (data) => axios.post(`${API_URL}/stripe/create-payment-intent`, data),
-  verifyPayment: (sessionId) => api.get(`/stripe/verify-payment/${sessionId}`),
-  verifyBookingPayment: (sessionId) => axios.get(`${API_URL}/stripe/verify-booking-payment/${sessionId}`),
-  // Gift Voucher Payment
-  createGiftVoucherCheckout: (data) => api.post('/stripe/create-gift-voucher-checkout', data),
-  verifyGiftVoucherPayment: (sessionId) => api.get(`/stripe/verify-gift-voucher-payment/${sessionId}`),
+  getBookingByPaymentIntent: (paymentIntentId) => axios.get(`${API_URL}/stripe/payment-intent/${paymentIntentId}/booking`),
+  createGiftVoucherPaymentIntent: (data) => axios.post(`${API_URL}/stripe/create-gift-voucher-payment-intent`, data),
+  getGiftVoucherByPaymentIntent: (paymentIntentId) => axios.get(`${API_URL}/stripe/payment-intent/${paymentIntentId}/gift-voucher`),
   // Stripe Connect
   connectOnboard: () => api.post('/stripe/connect/onboard'),
   getConnectAccount: () => api.get('/stripe/connect/account'),

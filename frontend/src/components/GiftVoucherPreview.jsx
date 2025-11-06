@@ -3,7 +3,6 @@ import styles from './GiftVoucherPreview.module.css';
 
 const GiftVoucherPreview = ({
   amount,
-  buyerName,
   recipientName,
   personalMessage,
   companyName,
@@ -16,13 +15,6 @@ const GiftVoucherPreview = ({
   isOpen,
   onClose
 }) => {
-  // Générer un code masqué pour la pré-visualisation
-  const generateMaskedCode = () => {
-    const code = 'GY' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    return code.substring(0, 4) + ' ' + code.substring(4, 8) + ' ' + '****';
-  };
-
-  const maskedCode = generateMaskedCode();
 
   if (!isOpen) return null;
 

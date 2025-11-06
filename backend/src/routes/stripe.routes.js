@@ -3,189 +3,18 @@ import { authMiddleware } from '../middleware/auth.js';
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import {
-  createCheckoutSession,
-  retrieveCheckoutSession,
   constructWebhookEvent,
   createConnectAccountLink,
   createConnectAccountLinkForExisting,
   getConnectAccount,
   createLoginLink,
-  createGiftVoucherCheckoutSession,
-  createPaymentIntent
+  createPaymentIntent,
+  createGiftVoucherPaymentIntent
 } from '../services/stripe.service.js';
 import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification } from '../services/email.service.js';
-import stripe from '../config/stripe.js';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { notifyAdmins, createNewBookingNotification, updateCalendar } from '../services/notification.service.js';
 
 const router = express.Router();
-
-/**
- * Créer une session de paiement Stripe pour une réservation
- * POST /api/stripe/create-checkout-session
- */
-router.post('/create-checkout-session', authMiddleware, async (req, res, next) => {
-  try {
-    const { bookingId, amount } = req.body;
-
-    if (!bookingId || !amount) {
-      throw new AppError('bookingId et amount requis', 400);
-    }
-
-    // Charger la réservation complète
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: {
-        session: {
-          include: {
-            guide: true
-          }
-        },
-        product: true
-      }
-    });
-
-    if (!booking) {
-      throw new AppError('Réservation non trouvée', 404);
-    }
-
-    // Créer la session Stripe
-    const checkoutSession = await createCheckoutSession(booking, parseFloat(amount));
-
-    res.json({
-      success: true,
-      sessionId: checkoutSession.sessionId,
-      url: checkoutSession.url
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * Créer une session de paiement Stripe AVANT la création de la réservation
- * POST /api/stripe/create-booking-checkout
- */
-router.post('/create-booking-checkout', async (req, res, next) => {
-  try {
-    const { sessionId, productId, bookingData, amountDue, participants, payFullAmount } = req.body;
-
-    if (!sessionId || !productId || !bookingData|| !amountDue) {
-      throw new AppError('sessionId, productId et bookingData requis', 400);
-    }
-
-    // Charger la session et le produit
-    const [dbSession, product] = await Promise.all([
-      prisma.session.findUnique({
-        where: { id: sessionId },
-        include: {
-          guide: {
-            include: {
-              teamLeader: true // Pour récupérer le leader si trainee
-            }
-          },
-          bookings: true
-        }
-      }),
-      prisma.product.findUnique({
-        where: { id: productId }
-      })
-    ]);
-
-    if (!dbSession) {
-      throw new AppError('Session non trouvée', 404);
-    }
-
-    if (!product) {
-      throw new AppError('Produit non trouvé', 404);
-    }
-
-    const sessionDate = format(new Date(dbSession.date), 'dd MMMM yyyy', { locale: fr });
-
-    // Calculer le montant à payer (acompte ou totalité)
-    let amountToPay = amountDue;
-    let isDeposit = false;
-
-    if (dbSession.depositRequired && !payFullAmount) {
-      // Calculer l'acompte
-      if (dbSession.depositType === 'percentage') {
-        amountToPay = (amountDue * dbSession.depositAmount) / 100;
-      } else {
-        // fixed
-        amountToPay = Math.min(dbSession.depositAmount, amountDue);
-      }
-      isDeposit = true;
-    }
-
-    // Déterminer le compte Stripe à utiliser
-    let stripeAccountId = null;
-    if (dbSession.guide.role === 'trainee' && dbSession.guide.teamLeader) {
-      // Si le guide est trainee, utiliser le compte Stripe du leader
-      stripeAccountId = dbSession.guide.teamLeader.stripeAccount;
-    } else {
-      // Sinon, utiliser le compte du guide
-      stripeAccountId = dbSession.guide.stripeAccount;
-    }
-
-    // Créer la session Stripe avec toutes les métadonnées nécessaires
-    const sessionConfig = {
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `${product.name} - ${sessionDate}${isDeposit ? ' (Acompte)' : ''}`,
-              description: `${dbSession.timeSlot} - ${dbSession.startTime} | ${bookingData.numberOfPeople} personne(s)`,
-              images: product.images && product.images.length > 0
-                ? [product.images[0].startsWith('http') ? product.images[0] : `${process.env.APP_URL || 'http://localhost:5000'}${product.images[0]}`]
-                : []
-            },
-            unit_amount: Math.round(amountToPay * 100)
-          },
-          quantity: 1
-        }
-      ],
-      mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cancel`,
-      customer_email: bookingData.clientEmail,
-      metadata: {
-        type: 'new_booking',
-        sessionId: sessionId,
-        productId: productId,
-        bookingData: JSON.stringify(bookingData),
-        participants: participants ? JSON.stringify(participants) : null,
-        isDeposit: isDeposit ? 'true' : 'false',
-        totalAmount: amountDue.toString()
-      }
-    };
-
-    // Si on a un compte Stripe Connect, l'ajouter
-    if (stripeAccountId) {
-      sessionConfig.payment_intent_data = {
-        application_fee_amount: 0, // Pas de frais d'application
-        transfer_data: {
-          destination: stripeAccountId
-        }
-      };
-    }
-
-    // Créer la session de checkout
-    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
-
-    res.json({
-      success: true,
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url,
-      amountToPay: amountToPay,
-      isDeposit: isDeposit
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 /**
  * Créer un Payment Intent pour paiement inline (Stripe Payment Element)
@@ -221,6 +50,117 @@ router.post('/create-payment-intent', async (req, res, next) => {
 });
 
 /**
+ * Créer un Payment Intent pour l'achat d'un bon cadeau (Stripe Payment Element)
+ * POST /api/stripe/create-gift-voucher-payment-intent
+ */
+router.post('/create-gift-voucher-payment-intent', async (req, res, next) => {
+  try {
+    const { amount, buyerEmail, recipientEmail, recipientName, message, guideId, teamName } = req.body;
+
+    if (!amount || !buyerEmail) {
+      throw new AppError('amount et buyerEmail requis', 400);
+    }
+
+    // Créer le Payment Intent
+    const paymentIntent = await createGiftVoucherPaymentIntent(
+      parseFloat(amount),
+      buyerEmail,
+      recipientEmail,
+      recipientName,
+      message,
+      guideId,
+      teamName
+    );
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.clientSecret,
+      amount: paymentIntent.amount
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Récupérer une réservation via un Payment Intent ID
+ * GET /api/stripe/payment-intent/:paymentIntentId/booking
+ */
+router.get('/payment-intent/:paymentIntentId/booking', async (req, res, next) => {
+  try {
+    const { paymentIntentId } = req.params;
+
+    // Chercher le paiement qui contient ce Payment Intent ID dans les notes
+    const payment = await prisma.payment.findFirst({
+      where: {
+        notes: {
+          contains: paymentIntentId
+        }
+      },
+      include: {
+        booking: {
+          include: {
+            session: true,
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!payment || !payment.booking) {
+      return res.json({
+        success: false,
+        found: false,
+        message: 'Réservation en cours de création...'
+      });
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      booking: payment.booking
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Récupérer un bon cadeau via un Payment Intent ID
+ * GET /api/stripe/payment-intent/:paymentIntentId/gift-voucher
+ */
+router.get('/payment-intent/:paymentIntentId/gift-voucher', async (req, res, next) => {
+  try {
+    const { paymentIntentId } = req.params;
+
+    // Chercher le bon cadeau qui contient ce Payment Intent ID dans les notes
+    const giftVoucher = await prisma.giftVoucher.findFirst({
+      where: {
+        notes: {
+          contains: paymentIntentId
+        }
+      }
+    });
+
+    if (!giftVoucher) {
+      return res.json({
+        success: false,
+        found: false,
+        message: 'Bon cadeau en cours de création...'
+      });
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      voucher: giftVoucher
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * Vérifier le statut d'un paiement après redirection
  * GET /api/stripe/verify-payment/:sessionId
  */
@@ -249,71 +189,6 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
         next(error);
       }
     });
-
-/**
- * Vérifier le statut d'un paiement de nouvelle réservation après redirection
- * GET /api/stripe/verify-booking-payment/:sessionId
- */
-router.get('/verify-booking-payment/:sessionId', async (req, res, next) => {
-  try {
-    const { sessionId } = req.params;
-
-    const session = await retrieveCheckoutSession(sessionId);
-
-    if (session.payment_status === 'paid') {
-      // Vérifier si c'est une nouvelle réservation
-      if (session.metadata && session.metadata.type === 'new_booking') {
-        // Chercher la réservation créée par le webhook
-        const bookingData = JSON.parse(session.metadata.bookingData);
-
-        // Chercher la réservation par email et session
-        const booking = await prisma.booking.findFirst({
-          where: {
-            clientEmail: bookingData.clientEmail,
-            sessionId: session.metadata.sessionId,
-            amountPaid: session.amount_total / 100
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
-        });
-
-        if (booking) {
-          return res.json({
-            success: true,
-            paid: true,
-            bookingId: booking.id,
-            amount: session.amount_total / 100
-          });
-        } else {
-          // Le webhook n'a pas encore créé la réservation
-          return res.json({
-            success: true,
-            paid: true,
-            pending: true,
-            message: 'Paiement confirmé, réservation en cours de création'
-          });
-        }
-      }
-
-      // Pour les anciens paiements
-      return res.json({
-        success: true,
-        paid: true,
-        bookingId: session.client_reference_id,
-        amount: session.amount_total / 100
-      });
-    } else {
-      res.json({
-        success: true,
-        paid: false,
-        status: session.payment_status
-      });
-    }
-  } catch (error) {
-    next(error);
-  }
-});
 
 /**
  * Webhook Stripe pour confirmer les paiements
@@ -720,6 +595,90 @@ router.post('/', async (req, res) => {
             console.error('❌ Erreur création réservation après Payment Intent:', error);
           }
         }
+        // Vérifier si c'est un bon cadeau (Payment Element)
+        else if (paymentIntent.metadata && paymentIntent.metadata.type === 'gift_voucher') {
+          try {
+            console.log('🎁 Création de bon cadeau après paiement Payment Intent');
+
+            const amount = parseFloat(paymentIntent.metadata.amount);
+            const buyerEmail = paymentIntent.metadata.buyerEmail;
+            const recipientEmail = paymentIntent.metadata.recipientEmail || null;
+            const recipientName = paymentIntent.metadata.recipientName || null;
+            const message = paymentIntent.metadata.message || null;
+            const guideId = paymentIntent.metadata.guideId || null;
+            const teamName = paymentIntent.metadata.teamName || null;
+            console.log(paymentIntent.metadata)
+            // Déterminer le guide ou team leader à associer au bon cadeau
+            let targetUserId = null;
+
+            if (teamName) {
+              // Chercher le team leader par teamName
+              const teamLeader = await prisma.user.findFirst({
+                where: {
+                  teamName: teamName,
+                  role: { in: ['leader', 'super_admin'] }
+                }
+              });
+              if (teamLeader) {
+                targetUserId = teamLeader.id;
+                console.log(`🎁 Bon cadeau associé au team leader: ${teamLeader.email}`);
+              }
+            } else if (guideId) {
+              // Chercher le guide par ID
+              const guide = await prisma.user.findUnique({
+                where: { id: guideId }
+              });
+              if (guide) {
+                targetUserId = guide.id;
+                console.log(`🎁 Bon cadeau associé au guide: ${guide.email}`);
+              }
+            }
+
+            // Si aucun guide/team leader trouvé, associer au super_admin par défaut
+            if (!targetUserId) {
+              const superAdmin = await prisma.user.findFirst({
+                where: { role: 'super_admin' },
+                orderBy: { createdAt: 'asc' }
+              });
+              if (superAdmin) {
+                targetUserId = superAdmin.id;
+                console.log('🎁 Bon cadeau associé au super_admin par défaut');
+              } else {
+                console.error('❌ Aucun utilisateur trouvé pour associer le bon cadeau');
+                return;
+              }
+            }
+
+            // Générer un code unique
+            const code = `GV${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+            // Créer le bon cadeau
+            const giftVoucher = await prisma.giftVoucher.create({
+              data: {
+                code,
+                type: 'gift',
+                amount,
+                discountType: 'fixed',
+                userId: targetUserId,
+                buyerEmail,
+                recipientEmail,
+                recipientName,
+                message,
+                notes: `Payment Intent: ${paymentIntent.id}`,
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 an
+              }
+            });
+
+            // Envoyer l'email avec le code
+            sendGiftVoucherEmail(giftVoucher).catch(err => {
+              console.error('Erreur envoi email bon cadeau:', err);
+            });
+
+            console.log('✅ Bon cadeau créé avec succès via Payment Intent:', giftVoucher.code);
+          } catch (error) {
+            console.error('❌ Erreur création bon cadeau après Payment Intent:', error);
+          }
+        }
 
         break;
       }
@@ -875,87 +834,6 @@ router.post('/connect/disconnect', authMiddleware, async (req, res, next) => {
       success: true,
       message: 'Compte Stripe déconnecté'
     });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * Créer une session de paiement Stripe pour l'achat d'un bon cadeau
- * POST /api/stripe/create-gift-voucher-checkout
- */
-router.post('/create-gift-voucher-checkout', async (req, res, next) => {
-  try {
-    const { amount, buyerEmail, recipientEmail, recipientName, message } = req.body;
-
-    if (!amount || amount <= 0) {
-      throw new AppError('Montant invalide', 400);
-    }
-
-    if (!buyerEmail) {
-      throw new AppError('Email de l\'acheteur requis', 400);
-    }
-
-    // Créer la session Stripe pour le bon cadeau
-    const checkoutSession = await createGiftVoucherCheckoutSession(
-      parseFloat(amount),
-      buyerEmail,
-      recipientEmail,
-      recipientName,
-      message
-    );
-
-    res.json({
-      success: true,
-      sessionId: checkoutSession.sessionId,
-      url: checkoutSession.url
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * Vérifier le paiement d'un bon cadeau après redirection
- * GET /api/stripe/verify-gift-voucher-payment/:sessionId
- */
-router.get('/verify-gift-voucher-payment/:sessionId', async (req, res, next) => {
-  try {
-    const { sessionId } = req.params;
-
-    const session = await retrieveCheckoutSession(sessionId);
-
-    if (session.payment_status === 'paid') {
-      // Chercher le bon cadeau par le payment_intent
-      const voucher = await prisma.giftVoucher.findFirst({
-        where: {
-          notes: session.payment_intent
-        }
-      });
-
-      if (voucher) {
-        return res.json({
-          success: true,
-          paid: true,
-          voucher
-        });
-      }
-
-      // Le bon cadeau n'a pas encore été créé par le webhook
-      // Cela peut arriver si le webhook est en retard
-      return res.json({
-        success: true,
-        paid: true,
-        pending: true,
-        message: 'Paiement confirmé, le bon cadeau est en cours de création'
-      });
-    } else {
-      res.json({
-        success: true,
-        paid: false,
-        status: session.payment_status
-      });
-    }
   } catch (error) {
     next(error);
   }

@@ -391,20 +391,6 @@ console.log(isMobile)
     }, 300);
   };
 
-  const handleResetFilters = () => {
-    setFilters({
-      participants: '',
-      date: '',
-      startDate: '',
-      endDate: ''
-    });
-    setSearchParams({});
-    setHasSearched(false);
-    setProducts([]);
-    setNextAvailableDates([]);
-    setShowCalendar(false);
-  };
-
   const canSearch = filters.participants && (filters.date || (filters.startDate && filters.endDate));
 
   const getDurationLabel = (minutes) => {
@@ -582,7 +568,14 @@ console.log(isMobile)
         {/* Bouton Bon Cadeau */}
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
           <button
-            onClick={() => navigate('/client/gift-voucher')}
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (filters.guideId) params.set('guideId', filters.guideId);
+              if (filters.teamName) params.set('teamName', filters.teamName);
+              const color = searchParams.get('color');
+              if (color) params.set('color', color);
+              navigate(`/client/gift-voucher?${params.toString()}`);
+            }}
             style={{
               background: '#6c757d',
               color: 'white',

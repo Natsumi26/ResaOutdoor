@@ -1,146 +1,4 @@
 import stripe from '../config/stripe.js';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-
-/**
- * Créer une session de paiement Stripe
- * @param {Object} booking - La réservation
- * @param {number} amount - Montant à payer en euros
- * @returns {Promise<Object>} Session Stripe
- */
-export const createCheckoutSession = async (booking, amount) => {
-  try {
-    const { session, product } = booking;
-    const sessionDate = format(new Date(session.date), 'dd MMMM yyyy', { locale: fr });
-
-    // Configuration de base de la session
-    const sessionConfig = {
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `${product.name} - ${sessionDate}`,
-              description: `${session.timeSlot} - ${session.startTime} | ${booking.numberOfPeople} personne(s)`,
-              images: product.images && product.images.length > 0
-                ? [product.images[0].startsWith('http') ? product.images[0] : `${process.env.APP_URL || 'http://localhost:5000'}${product.images[0]}`]
-                : []
-            },
-            unit_amount: Math.round(amount * 100) // Convertir en centimes
-          },
-          quantity: 1
-        }
-      ],
-      mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cancel`,
-      client_reference_id: booking.id, // Pour identifier la réservation dans le webhook
-      customer_email: booking.clientEmail,
-      metadata: {
-        bookingId: booking.id,
-        productName: product.name,
-        numberOfPeople: booking.numberOfPeople.toString(),
-        sessionDate: sessionDate
-      }
-    };
-
-    // Créer la session de checkout
-    // Si le guide a un compte Stripe Connect DIFFÉRENT du compte plateforme, utiliser Stripe Connect
-    // Sinon, créer la session sur le compte plateforme (cas du propriétaire/admin qui est aussi guide)
-    let checkoutSession;
-
-    // Récupérer l'ID du compte plateforme pour comparaison
-    const platformAccountId = process.env.STRIPE_ACCOUNT_ID; // Optionnel : définir cet ID dans .env
-    const guideStripeAccount = session.guide?.stripeAccount;
-
-    // Utiliser Stripe Connect uniquement si :
-    // 1. Le guide a un stripeAccount défini
-    // 2. Ce compte est différent du compte plateforme (si défini)
-    const shouldUseConnect = guideStripeAccount &&
-                            guideStripeAccount !== platformAccountId &&
-                            platformAccountId; // Seulement si l'ID plateforme est configuré
-
-    if (shouldUseConnect) {
-      // Créer la session sur le compte du guide (autre guide que le propriétaire)
-      checkoutSession = await stripe.checkout.sessions.create(
-        sessionConfig,
-        { stripeAccount: guideStripeAccount }
-      );
-    } else {
-      // Créer la session sur le compte plateforme
-      // Cas : pas de Stripe Connect, ou guide = propriétaire de la plateforme
-      checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
-    }
-
-    return {
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url
-    };
-  } catch (error) {
-    console.error('Erreur création session Stripe:', error);
-    throw error;
-  }
-};
-
-/**
- * Créer un lien de paiement (Payment Link) réutilisable
- * @param {Object} product - Le produit
- * @returns {Promise<Object>} Payment Link
- */
-export const createPaymentLink = async (product) => {
-  try {
-    // Créer d'abord un produit Stripe
-    const stripeProduct = await stripe.products.create({
-      name: product.name,
-      description: product.shortDescription || product.longDescription,
-      images: product.images && product.images.length > 0
-        ? product.images.map(img => img.startsWith('http') ? img : `${process.env.APP_URL || 'http://localhost:5000'}${img}`)
-        : []
-    });
-
-    // Créer un prix pour ce produit
-    const price = await stripe.prices.create({
-      product: stripeProduct.id,
-      unit_amount: Math.round(product.priceIndividual * 100),
-      currency: 'eur'
-    });
-
-    // Créer le payment link
-    const paymentLink = await stripe.paymentLinks.create({
-      line_items: [
-        {
-          price: price.id,
-          quantity: 1
-        }
-      ]
-    });
-
-    return {
-      url: paymentLink.url,
-      stripeProductId: stripeProduct.id,
-      stripePriceId: price.id
-    };
-  } catch (error) {
-    console.error('Erreur création payment link:', error);
-    throw error;
-  }
-};
-
-/**
- * Vérifier le statut d'une session de paiement
- * @param {string} sessionId - ID de la session Stripe
- * @returns {Promise<Object>} Détails de la session
- */
-export const retrieveCheckoutSession = async (sessionId) => {
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    return session;
-  } catch (error) {
-    console.error('Erreur récupération session Stripe:', error);
-    throw error;
-  }
-};
 
 /**
  * Créer un remboursement
@@ -396,63 +254,86 @@ export const createPaymentIntent = async (sessionId, productId, bookingData, amo
 };
 
 /**
- * Créer une session de paiement Stripe pour l'achat d'un bon cadeau
+ * Créer un Payment Intent pour l'achat d'un bon cadeau (Stripe Payment Element)
  * @param {number} amount - Montant du bon cadeau en euros
  * @param {string} buyerEmail - Email de l'acheteur
  * @param {string} recipientEmail - Email du destinataire (optionnel)
  * @param {string} recipientName - Nom du destinataire (optionnel)
  * @param {string} message - Message personnalisé (optionnel)
- * @returns {Promise<Object>} Session Stripe
+ * @returns {Promise<Object>} Payment Intent avec client_secret
  */
-export const createGiftVoucherCheckoutSession = async (amount, buyerEmail, recipientEmail = null, recipientName = null, message = null) => {
+export const createGiftVoucherPaymentIntent = async (amount, buyerEmail, recipientEmail = null, recipientName = null, message = null, guideId = null, teamName = null) => {
   try {
+    // Importer prisma localement
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
     // Vérifier que le montant est valide
     if (!amount || amount <= 0) {
       throw new Error('Montant invalide pour le bon cadeau');
     }
 
-    // Configuration de la session de paiement
-    const sessionConfig = {
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `Bon cadeau de ${amount}€`,
-              description: recipientName
-                ? `Bon cadeau pour ${recipientName}`
-                : 'Bon cadeau',
-              images: []
-            },
-            unit_amount: Math.round(amount * 100) // Convertir en centimes
-          },
-          quantity: 1
+    // Déterminer le guide ou le team leader à associer au bon cadeau
+    let targetGuide = null;
+    let stripeAccountId = null;
+    if (teamName) {
+      // Chercher le team leader par teamName
+      targetGuide = await prisma.user.findFirst({
+        where: {
+          teamName: teamName,
+          role: 'leader'
         }
-      ],
-      mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/gift-voucher/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/gift-voucher/payment/cancel`,
-      customer_email: buyerEmail,
+      });      
+        stripeAccountId = targetGuide.stripeAccount;
+    } else if (guideId) {
+      // Chercher le guide par ID
+      targetGuide = await prisma.user.findUnique({
+        where: { id: guideId }
+      });
+        stripeAccountId = targetGuide.stripeAccount;
+    }
+
+    // Configuration du Payment Intent
+    const paymentIntentData = {
+      amount: Math.round(amount * 100), // En centimes
+      currency: 'eur',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      receipt_email: buyerEmail,
       metadata: {
         type: 'gift_voucher',
         amount: amount.toString(),
         buyerEmail,
         recipientEmail: recipientEmail || '',
         recipientName: recipientName || '',
-        message: message || ''
+        message: message || '',
+        guideId: guideId || '',
+        teamName: teamName || '',
       }
     };
 
-    // Créer la session de checkout
-    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+    // Si on a un compte Stripe Connect, créer le paiement avec destination
+    let paymentIntent;
+
+    if (stripeAccountId) {
+      paymentIntentData.application_fee_amount = 0; // Pas de frais de plateforme
+      paymentIntentData.transfer_data = {
+        destination: stripeAccountId
+      };
+      paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    } else {
+      paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    }
 
     return {
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amount: amount
     };
   } catch (error) {
-    console.error('Erreur création session Stripe pour bon cadeau:', error);
+    console.error('Erreur création Payment Intent pour bon cadeau:', error);
     throw error;
   }
 };
+

@@ -500,28 +500,6 @@ console.log('Booking data:', booking);
     }
   };
 
-  const handlePayWithStripe = async () => {
-    try {
-      const remainingAmount = booking.totalPrice - booking.amountPaid;
-
-      if (remainingAmount <= 0) {
-        alert('Cette réservation est déjà entièrement payée !');
-        return;
-      }
-
-      // Créer une session Stripe
-      const response = await stripeAPI.createCheckoutSession({
-        bookingId: booking.id,
-        amount: remainingAmount
-      });
-
-      // Rediriger vers Stripe Checkout
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error('Erreur création session Stripe:', error);
-      alert('Impossible de créer la session de paiement: ' + (error.response?.data?.message || error.message));
-    }
-  };
 
   const handleSendClientRequest = async () => {
     try {
@@ -1242,12 +1220,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               </form>
             )}
 
-            {/* Bouton Stripe pour paiement */}
-            {remainingAmount > 0 && booking.status !== 'cancelled' && (
-              <button className={styles.btnStripe} onClick={handlePayWithStripe}>
-                💳 Demander un paiement Stripe
-              </button>
-            )}
           </div>
 
             {/* Bloc Notes (BLANC) */}

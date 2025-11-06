@@ -62,11 +62,9 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
 
     setIsLoading(true);
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/client/payment-confirmation`,
-      },
+      redirect: 'if_required', // Ne redirige que si nécessaire (3D Secure, etc.)
     });
 
     if (error) {
@@ -75,9 +73,11 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
       } else {
         setMessage(t('payment.unexpected') || 'Une erreur inattendue s\'est produite.');
       }
+      setIsLoading(false);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // Paiement réussi, naviguer vers la page de succès SANS sortir de l'iframe
+      navigate(`/client/payment-confirmation?payment_intent=${paymentIntent.id}&payment_intent_client_secret=${paymentIntent.client_secret}`);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -158,7 +158,7 @@ const BookingPayment = () => {
         participants,
         payFullAmount
       });
-
+      
       setClientSecret(response.data.clientSecret);
       setAmountToPay(response.data.amountToPay);
       setIsDeposit(response.data.isDeposit);
@@ -172,7 +172,7 @@ const BookingPayment = () => {
 
   if (loading) {
     return (
-      <div className={styles.searchPageContainer}>
+      <div className={styles.searchPageContainerIframe}>
         <div className={styles.loading}>
           {t('loading') || 'Chargement...'}
         </div>
@@ -182,7 +182,7 @@ const BookingPayment = () => {
 
   if (error) {
     return (
-      <div className={styles.searchPageContainer}>
+      <div className={styles.searchPageContainerIframe}>
         <div className={styles.errorBox}>
           <h2>{t('error') || 'Erreur'}</h2>
           <p>{error}</p>
@@ -207,7 +207,7 @@ const BookingPayment = () => {
   };
 
   return (
-    <div className={styles.searchPageContainer}>
+    <div className={styles.searchPageContainerIframe}>
       <div className={styles.paymentContainer}>
         <h1>{t('payment.title') || 'Paiement'}</h1>
 

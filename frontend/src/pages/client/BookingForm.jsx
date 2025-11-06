@@ -348,7 +348,7 @@ const BookingForm = () => {
         }
       }
 
-      // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : créer la session Stripe sans créer la réservation
+      // SI ACOMPTE REQUIS OU PAIEMENT EN LIGNE : rediriger vers la page de paiement avec Payment Element
       if (isDepositRequired() || formData.paymentMethod === 'online') {
         let amountDue = 0;
 
@@ -363,18 +363,11 @@ const BookingForm = () => {
           amountDue = finalPrice;
         }
 
-        // Créer une session Stripe avec les données de réservation en metadata
-        const stripeResponse = await stripeAPI.createBookingCheckout({
-          sessionId: session.id,
-          productId: productId,
-          amountDue,
-          bookingData,
-          participants: participants.length > 0 ? participants : null,
-          payFullAmount: formData.payFullAmount || false
-        });
+        // Préparer l'URL de redirection vers la page de paiement
+        const paymentUrl = `/client/payment?sessionId=${session.id}&productId=${productId}&bookingData=${encodeURIComponent(JSON.stringify(bookingData))}&amountDue=${amountDue}&participants=${encodeURIComponent(JSON.stringify(participants.length > 0 ? participants : []))}&payFullAmount=${formData.payFullAmount || false}`;
 
-        // Rediriger vers Stripe
-        window.location.href = stripeResponse.data.url;
+        // Rediriger vers la page de paiement
+        navigate(paymentUrl);
       } else {
         // SI PAIEMENT SUR PLACE (et pas d'acompte requis) : créer la réservation normalement
         const bookingDataForCreate = {

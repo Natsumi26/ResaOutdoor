@@ -29,7 +29,6 @@ const GiftVoucherPurchase = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [guideSettings, setGuideSettings] = useState({
     companyName: '',
@@ -89,25 +88,40 @@ const GiftVoucherPurchase = () => {
         ? `${formData.recipientFirstName} ${formData.recipientLastName}`
         : '';
 
-      const paymentData = {
-        amount: totalAmount,
-        buyerEmail: formData.buyerEmail,
-        recipientEmail: formData.recipientEmail || null,
-        recipientName: recipientName || null,
-        message: formData.personalMessage || null
-      };
+      // Construire l'URL avec les paramètres
+      const urlParams = new URLSearchParams(window.location.search);
+      const color = urlParams.get('color');
+      const guideId = urlParams.get('guideId');
+      const teamName = urlParams.get('teamName');
 
-      const response = await stripeAPI.createGiftVoucherCheckout(paymentData);
+      const paymentUrl = new URL('/client/gift-voucher/payment', window.location.origin);
+      paymentUrl.searchParams.set('amount', totalAmount.toString());
+      paymentUrl.searchParams.set('buyerEmail', formData.buyerEmail);
 
-      if (response.data.success && response.data.url) {
-        window.location.href = response.data.url;
-      } else {
-        throw new Error('Impossible de créer la session de paiement');
+      if (formData.recipientEmail) {
+        paymentUrl.searchParams.set('recipientEmail', formData.recipientEmail);
       }
+      if (recipientName) {
+        paymentUrl.searchParams.set('recipientName', recipientName);
+      }
+      if (formData.personalMessage) {
+        paymentUrl.searchParams.set('message', formData.personalMessage);
+      }
+      if (color) {
+        paymentUrl.searchParams.set('color', color);
+      }
+      if (guideId) {
+        paymentUrl.searchParams.set('guideId', guideId);
+      }
+      if (teamName) {
+        paymentUrl.searchParams.set('teamName', teamName);
+      }
+
+      // Rediriger vers la page de paiement
+      navigate(paymentUrl.pathname + paymentUrl.search);
     } catch (error) {
       console.error('Erreur création bon cadeau:', error);
       alert(t('ErreurSessionPayment'));
-    } finally {
       setLoading(false);
     }
   };
@@ -274,6 +288,15 @@ const GiftVoucherPurchase = () => {
                     type="text"
                     value={formData.recipientLastName}
                     onChange={(e) => handleChange('recipientLastName', e.target.value)}
+                    placeholder="Optionnel"
+                  />
+                </div>
+                <div className={modalStyles.formGroup}>
+                  <label>Email</label>
+                  <input
+                    type="text"
+                    value={formData.recipientEmail}
+                    onChange={(e) => handleChange('recipientEmail', e.target.value)}
                     placeholder="Optionnel"
                   />
                 </div>

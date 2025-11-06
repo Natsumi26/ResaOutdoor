@@ -49,7 +49,7 @@ const BookingConfirmation = () => {
 
   if (!booking) {
     return (
-      <div className={styles.clientContainer}>
+      <div className={styles.clientContainerIframe}>
         <div className={styles.error}>{t('noReservation')}</div>
       </div>
     );
@@ -58,7 +58,7 @@ const BookingConfirmation = () => {
   const isPaid = (booking.amountPaid+booking.discountAmount) >= booking.totalPrice;
   console.log(booking)
   return (
-    <div className={styles.clientContainer}>
+    <div className={styles.clientContainerIframe}>
       <div className={styles.confirmationContainer}>
         {/* En-tête de succès */}
         <div className={styles.confirmationHeader}>
