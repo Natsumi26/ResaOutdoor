@@ -6,7 +6,7 @@ import GiftVoucherPreview from '../../components/GiftVoucherPreview';
 import modalStyles from '../../components/GiftVoucherModal.module.css';
 
 const GiftVoucherPurchase = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [clientColor, setClientColor] = useState(() => {
@@ -217,9 +217,10 @@ const GiftVoucherPurchase = () => {
                     {t('MontantPerso')}
                   </label>
                   <input
+                    key={i18n.language}
                     type="number"
                     min="20"
-                    placeholder="Montant en €"
+                    placeholder={t('gift.amountPlaceholder')}
                     value={formData.amount}
                     onChange={(e) => handleChange('amount', e.target.value)}
                     required
@@ -234,7 +235,7 @@ const GiftVoucherPurchase = () => {
               <div className={modalStyles.formSection}>
                 <h2>{t('yoursInfos')}</h2>
                 <div className={modalStyles.formGroup}>
-                  <label>Prénom *</label>
+                  <label>{t('Prénom')} *</label>
                   <input
                     type="text"
                     value={formData.buyerFirstName}
@@ -279,7 +280,7 @@ const GiftVoucherPurchase = () => {
                     type="text"
                     value={formData.recipientFirstName}
                     onChange={(e) => handleChange('recipientFirstName', e.target.value)}
-                    placeholder="Optionnel"
+                    placeholder={t('form.optional')}
                   />
                 </div>
                 <div className={modalStyles.formGroup}>
@@ -288,7 +289,7 @@ const GiftVoucherPurchase = () => {
                     type="text"
                     value={formData.recipientLastName}
                     onChange={(e) => handleChange('recipientLastName', e.target.value)}
-                    placeholder="Optionnel"
+                    placeholder={t('form.optional')}
                   />
                 </div>
                 <div className={modalStyles.formGroup}>
@@ -297,7 +298,7 @@ const GiftVoucherPurchase = () => {
                     type="text"
                     value={formData.recipientEmail}
                     onChange={(e) => handleChange('recipientEmail', e.target.value)}
-                    placeholder="Optionnel"
+                    placeholder={t('form.optional')}
                   />
                 </div>
                 <div className={modalStyles.formGroup}>
@@ -305,7 +306,7 @@ const GiftVoucherPurchase = () => {
                   <textarea
                     value={formData.personalMessage}
                     onChange={(e) => handleChange('personalMessage', e.target.value)}
-                    placeholder="Ajoutez un message personnel..."
+                    placeholder={t('gift.personalMessagePlaceholder')}
                     rows="4"
                     style={{ width: '100%' }}
                   />
@@ -316,8 +317,12 @@ const GiftVoucherPurchase = () => {
             {/* Info Box */}
             <div className={modalStyles.formSection} style={{ backgroundColor: `${clientColor}08`, borderLeft: `3px solid ${clientColor}` }}>
               <p style={{ margin: '0', lineHeight: '1.6', fontSize: '0.9rem', color: '#333' }}>
-                <Trans i18nKey="gift.email">
-                  <strong>📧 Bon cadeau par email :</strong> Une fois le paiement validé, vous recevez un email avec le bon cadeau imprimable.
+                <Trans i18nKey="gift.email" values={{
+                  label: t('gift.emailLabel'),
+                  description: t('gift.emailDescription')
+                }}
+                components={{ strong: <strong /> }}
+                >
                 </Trans>
               </p>
             </div>
@@ -347,7 +352,7 @@ const GiftVoucherPurchase = () => {
                   opacity: (!formData.amount || parseFloat(formData.amount) < 20) ? 0.5 : 1
                 }}
               >
-                👁️ {showPreview ? 'Masquer' : 'Aperçu'}
+                👁️ {showPreview ? t('common.hidePreview') : t('common.showPreview')}
               </button>
               <button
                 type="submit"

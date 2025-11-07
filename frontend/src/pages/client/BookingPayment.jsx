@@ -41,7 +41,7 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
           }, 2000);
           break;
         case 'processing':
-          setMessage(t('payment.processing') || 'Votre paiement est en cours de traitement.');
+          setMessage(t('payment.processing') || 'Traitement en cours...');
           break;
         case 'requires_payment_method':
           setMessage(t('payment.failed') || 'Le paiement a échoué. Veuillez réessayer.');
@@ -187,7 +187,7 @@ const BookingPayment = () => {
           <h2>{t('error') || 'Erreur'}</h2>
           <p>{error}</p>
           <button onClick={() => navigate(-1)} className={styles.backButton}>
-            {t('back') || 'Retour'}
+            {t('Retour') || 'Retour'}
           </button>
         </div>
       </div>
@@ -212,9 +212,9 @@ const BookingPayment = () => {
         <h1>{t('payment.title') || 'Paiement'}</h1>
 
         <div className={styles.paymentSummary}>
-          <h2>{t('payment.summary') || 'Récapitulatif'}</h2>
+          <h2>{t('Récapitulatif') || 'Récapitulatif'}</h2>
           <div className={styles.summaryLine}>
-            <span>{t('payment.amount') || 'Montant'} {isDeposit ? `(${t('payment.deposit') || 'Acompte'})` : ''}:</span>
+            <span>{t('Montant') || 'Montant'} {isDeposit ? `(${t('payment.deposit') || 'Acompte'})` : ''}:</span>
             <strong>{amountToPay.toFixed(2)}€</strong>
           </div>
           {bookingData && (

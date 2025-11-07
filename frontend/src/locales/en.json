@@ -179,6 +179,7 @@
   "Rembourse": "will be refunded",
   "TimeBeforeSession": "Time remaining before the session",
   "CancelRule": "Cancellation rules",
+  "Annuler": "Cancel",
   "PolicyRefund": {
     "full": "✅ More than 48h before: Full refund (100%)",
     "partial": "⚠️ Between 24h and 48h: Partial refund (50%)",
@@ -195,7 +196,11 @@
   "allMassifs":"All mountain ranges",
   "DepartPlace": "Departure location",
   "allCategories": "All categories",
+  "spokenLanguage": "Spoken language",
   "payment": {
+    "Client": "Guest",
+    "participants": "Participants",
+    "title": "Payment",
     "processing": "Processing...",
     "proceed": "Proceed to payment",
     "depositNow": "Deposit to be paid now",
@@ -207,7 +212,11 @@
     "depositNowLong": "You will pay a deposit of {{deposit}}€ by credit card. The remaining balance of {{balance}}€ will be paid on site.",
     "onlineRequired": "Online payment required",
     "fullAmountNow": "You must pay the full amount ({{amount}}€) by credit card.",
-    "onSite": "Pay on the day of the activity by cash, check, or holiday voucher"
+    "onSite": "Pay on the day of the activity by cash, check, or holiday voucher",
+    "suceeded": "Payment successful",
+    "failed": "The payment failed. Please try again.",
+    "unexpected": "An unexpected error has occurred.",
+    "payNow": "Pay now"
   },
 
   "alerts": {
@@ -342,6 +351,21 @@
   },
 
   "gift": {
-    "email": "<1>📧 Gift voucher by email:</1> Once payment is confirmed, you’ll receive an email with a printable gift voucher."
+    "email": "<strong>{{label}}</strong> {{description}}",
+    "emailLabel": "📧 Gift voucher by email:",
+    "emailDescription": "Once payment is confirmed, you'll receive a printable voucher by email.",
+    "amountPlaceholder": "Amount in €",
+    "personalMessagePlaceholder": "Add a personal message..."
+  },
+
+  "common": {
+    "showPreview": "Preview",
+    "hidePreview": "Hide",
+    "pleaseWait": "Please wait..."
+  },
+
+  "form": {
+    "optional": "Optional"
   }
+
 }

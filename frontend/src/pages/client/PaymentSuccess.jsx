@@ -122,7 +122,7 @@ const PaymentSuccess = () => {
               {message}
             </h2>
             <p style={{ textAlign: 'center', color: '#6c757d', marginTop: '0.5rem' }}>
-              Veuillez patienter...
+              {t('common.pleaseWait')}
             </p>
           </>
         )}
@@ -155,7 +155,7 @@ const PaymentSuccess = () => {
                 className={styles.btn}
                 style={{ backgroundColor: clientColor }}
               >
-                Retour à la recherche
+                {t('RetourSearch')}
               </button>
             </div>
           </>

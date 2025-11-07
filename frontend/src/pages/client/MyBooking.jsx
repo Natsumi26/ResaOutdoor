@@ -4,7 +4,7 @@ import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 const MyBooking = () => {
   const { t } = useTranslation();

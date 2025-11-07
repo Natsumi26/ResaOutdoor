@@ -5,7 +5,7 @@ import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './CalendarEmbed.module.css';
 import DateRangePicker from '../../components/DateRangePicker';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 const CalendarEmbed = () => {
   const { t } = useTranslation();

@@ -178,7 +178,8 @@
     "refund":"de remboursement",
     "Rembourse":"seront remboursés",
     "TimeBeforeSession":"Temps restant avant la session",
-    "CancelRule":"Règles d'annulation",   
+    "CancelRule":"Règles d'annulation", 
+    "Annuler": "Annuler",  
     "PolicyRefund": {
         "full": "✅ Plus de 48h avant : Remboursement intégral (100%)",
         "partial": "⚠️ Entre 24h et 48h : Remboursement partiel (50%)",
@@ -195,7 +196,11 @@
     "allCategories":"Toutes les catégories",
     "allMassifs":"Tous les massifs",
     "DepartPlace": "Lieu de départ",
+    "spokenLanguage": "Langue parlée",
     "payment": {
+        "Client": "Client",
+        "participants": "Participants",
+        "title": "Paiement",
         "processing": "Traitement en cours...",
         "proceed": "Procéder au paiement",
         "depositNow": "Acompte à payer maintenant",
@@ -207,7 +212,11 @@
         "depositNowLong": "Vous allez payer l'acompte de {{deposit}}€ par carte bancaire. Le solde de {{balance}}€ sera à régler sur place.",
         "onlineRequired": "Paiement en ligne requis",
         "fullAmountNow": "Vous devez payer la totalité ({{amount}}€) par carte bancaire.",
-        "onSite": "Payer le jour de l'activité en liquide, chèque ou chèque vacances"
+        "onSite": "Payer le jour de l'activité en liquide, chèque ou chèque vacances",
+        "suceeded": "Paiement réussi",
+        "failed": "Le paiement a échoué. Veuillez réessayer.",
+        "unexpected": "Une erreur inattendue s'est produite.",
+        "payNow": "Payer maintenant"
     },
 
     "alerts":{
@@ -342,6 +351,22 @@
     },
 
     "gift": {
-        "email": "<1>📧 Bon cadeau par email :</1> Une fois le paiement validé, vous recevez un email avec le bon cadeau imprimable."
+        "email": "<strong>{{label}}</strong> {{description}}",
+        "emailLabel": "📧 Bon cadeau par email :",
+        "emailDescription": "Une fois le paiement validé, vous recevez un email avec le bon cadeau imprimable.",
+        "amountPlaceholder": "Montant en €",
+        "personalMessagePlaceholder": "Ajoutez un message personnel..."
+    },
+
+    "common": {
+        "showPreview": "Aperçu",
+        "hidePreview": "Masquer",
+        "pleaseWait": "Veuillez patienter..."
+    },
+
+    "form": {
+        "optional": "Optionnel"
     }
+
+
 }

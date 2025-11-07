@@ -4,7 +4,7 @@ import { productsAPI, sessionsAPI, settingsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
-import { Trans, useTranslation } from 'react-i18next';
+import {useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import DateRangePicker from '../../components/DateRangePicker';
 

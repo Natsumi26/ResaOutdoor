@@ -645,7 +645,7 @@ const BookingForm = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Langue parlée *</label>
+              <label>{t('spokenLanguage')} *</label>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 {languageOptions.map((lang) => {
                   // Mapper le code langue vers le code pays pour les drapeaux
