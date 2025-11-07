@@ -133,12 +133,15 @@ const GiftVoucherSuccess = () => {
             <button
               onClick={() => {
                 const params = new URLSearchParams();
-                if (filters.guideId) params.set('guideId', filters.guideId);
-                if (filters.teamName) params.set('teamName', filters.teamName);
+                const guideId = searchParams.get('guideId');
+                const teamName = searchParams.get('teamName');
+
+                if (guideId) params.set('guideId', guideId);
+                if (teamName) params.set('teamName', teamName);
                 const color = searchParams.get('color');
                 if (color) params.set('color', color);
-                navigate(`/client/gift-voucher?${params.toString()}`);
-              }}
+              navigate(`/client/gift-voucher?${params.toString()}`);
+            }}
               className={styles.btnPrimary}
               style={{ marginTop: '1rem' }}
             >
@@ -210,7 +213,17 @@ const GiftVoucherSuccess = () => {
             {t('SaveActivity')}
           </button>
           <button
-            onClick={() => navigate('/client/gift-voucher')}
+            onClick={() => {
+              const params = new URLSearchParams();
+              const guideId = searchParams.get('guideId');
+                const teamName = searchParams.get('teamName');
+
+                if (guideId) params.set('guideId', guideId);
+                if (teamName) params.set('teamName', teamName);
+                const color = searchParams.get('color');
+                if (color) params.set('color', color);
+              navigate(`/client/gift-voucher?${params.toString()}`);
+            }}
             className={styles.btnSecondary}
           >
             {t('BuyOtherBon')}

@@ -11,7 +11,7 @@ import {
   createPaymentIntent,
   createGiftVoucherPaymentIntent
 } from '../services/stripe.service.js';
-import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification } from '../services/email.service.js';
+import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification, sendPaymentFailedEmail } from '../services/email.service.js';
 import { notifyAdmins, createNewBookingNotification, updateCalendar } from '../services/notification.service.js';
 
 const router = express.Router();
@@ -335,84 +335,7 @@ router.post('/', async (req, res) => {
             break;
           }
 
-          // CAS 2: Achat de bon cadeau
-          if (stripeSession.metadata && stripeSession.metadata.type === 'gift_voucher') {
-            try {
-              const paymentIntentId = stripeSession.payment_intent;
-              const buyerEmail = stripeSession.metadata?.buyerEmail;
-              const amount = parseFloat(stripeSession.metadata?.amount);
-              const recipientEmail = stripeSession.metadata?.recipientEmail;
-              const recipientName = stripeSession.metadata?.recipientName;
-              const message = stripeSession.metadata?.message;
-
-              if (!buyerEmail || !amount || !paymentIntentId) {
-                console.warn('Données manquantes pour le bon cadeau');
-                return;
-              }
-
-              // Vérifier si un bon existe déjà pour ce paiement
-              const existingVoucher = await prisma.giftVoucher.findFirst({
-                where: { notes: paymentIntentId }
-              });
-
-              if (existingVoucher) {
-                console.log('🎁 Bon cadeau déjà généré pour ce paiement');
-                return;
-              }
-
-              // Générer un code unique
-              const generateCode = () => {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-              };
-
-              let code;
-              let isUnique = false;
-
-              while (!isUnique) {
-                code = generateCode();
-                const existing = await prisma.giftVoucher.findUnique({ where: { code } });
-                if (!existing) isUnique = true;
-              }
-
-              // Récupérer le premier super_admin pour associer le bon cadeau
-              // (les bons cadeaux achetés publiquement sont associés au super_admin)
-              const superAdmin = await prisma.user.findFirst({
-                where: { role: 'super_admin' },
-                orderBy: { createdAt: 'asc' }
-              });
-
-              if (!superAdmin) {
-                console.error('❌ Aucun super_admin trouvé pour associer le bon cadeau');
-                return;
-              }
-
-              // Créer le bon cadeau dans la base de données
-              const voucher = await prisma.giftVoucher.create({
-                data: {
-                  code,
-                  amount,
-                  discountType: 'fixed',
-                  type: 'voucher',
-                  notes: paymentIntentId, // Stocker le payment_intent pour éviter les doublons
-                  userId: superAdmin.id, // Associer au super_admin
-                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // Expire dans 1 an
-                }
-              });
-
-              console.log('✅ Bon cadeau créé en BDD:', code, 'pour', amount, '€');
-
-              // Envoyer l'email
-              await sendGiftVoucherEmail(buyerEmail, code, amount, stripeSession.metadata);
-              console.log('📧 Email envoyé à', buyerEmail);
-            } catch (error) {
-              console.error('💥 Erreur dans handleGiftVoucher:', error);
-            }
-
-            break;
-          }
-
-          // CAS 3: Paiement de réservation existante (ancien flux)
+          // CAS 2 : Paiement de réservation existante (ancien flux)
           // Sinon, c'est un paiement de réservation classique
           const bookingId = stripeSession.client_reference_id || stripeSession.metadata.bookingId;
         if (!bookingId) {
@@ -621,7 +544,7 @@ router.post('/', async (req, res) => {
               });
               if (teamLeader) {
                 targetUserId = teamLeader.id;
-                console.log(`🎁 Bon cadeau associé au team leader: ${teamLeader.email}`);
+                console.log(`🎁 Bon cadeau associé au team leader: ${teamLeader.login}`);
               }
             } else if (guideId) {
               // Chercher le guide par ID
@@ -648,16 +571,21 @@ router.post('/', async (req, res) => {
                 return;
               }
             }
-
             // Générer un code unique
-            const code = `GV${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+              const generateCode = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+              };
+            // Générer un code unique
+            const code = generateCode();
 
             // Créer le bon cadeau
             const giftVoucher = await prisma.giftVoucher.create({
               data: {
                 code,
-                type: 'gift',
+                type: 'voucher',
                 amount,
+                maxUsages: 1,
                 discountType: 'fixed',
                 userId: targetUserId,
                 buyerEmail,
@@ -685,8 +613,23 @@ router.post('/', async (req, res) => {
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object;
-        console.error('Échec de paiement:', paymentIntent.id);
-        // TODO: Notifier le client de l'échec
+        console.error('❌ Échec de paiement:', paymentIntent.id);
+
+        try {
+          // Récupérer la raison de l'échec
+          const failureReason = paymentIntent.last_payment_error?.message || 'Le paiement a été refusé par votre banque.';
+
+          console.log('Raison de l\'échec:', failureReason);
+          console.log('Metadata:', paymentIntent.metadata);
+
+          // Envoyer un email au client
+          await sendPaymentFailedEmail(paymentIntent, failureReason);
+
+          console.log('✅ Email d\'échec de paiement envoyé');
+        } catch (error) {
+          console.error('❌ Erreur lors de la notification d\'échec de paiement:', error);
+        }
+
         break;
       }
 

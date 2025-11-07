@@ -15,8 +15,6 @@ import Preferences from './pages/Preferences';
 import PaymentPreferences from './pages/PaymentPreferences';
 import SiteIntegration from './pages/SiteIntegration';
 import Team from './pages/Team';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentCancel from './pages/PaymentCancel';
 
 // Pages client
 import CanyonSearch from './pages/client/CanyonSearch';
@@ -51,10 +49,6 @@ const AppRoutes = () => {
         element={isAuthenticated ? <Navigate to="/" /> : <Login />}
       />
 
-      {/* Pages de paiement - accessibles sans authentification */}
-      <Route path="/payment/success" element={<PaymentSuccess />} />
-      <Route path="/payment/cancel" element={<PaymentCancel />} />
-
       {/* Routes client - accessibles sans authentification (pour iframe WordPress) */}
       <Route path="/client/search" element={<CanyonSearch />} />
       <Route path="/client/canyon/:id" element={<CanyonDetails />} />
@@ -67,7 +61,6 @@ const AppRoutes = () => {
       <Route path="/client/gift-voucher" element={<GiftVoucherPurchase />} />
       <Route path="/client/gift-voucher/payment" element={<GiftVoucherPayment />} />
       <Route path="/client/gift-voucher/success" element={<GiftVoucherSuccess />} />
-      <Route path="/gift-voucher/payment/success" element={<GiftVoucherSuccess />} />
 
       {/* Routes admin/guide - authentification requise */}
       <Route

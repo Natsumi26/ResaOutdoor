@@ -660,7 +660,7 @@ export const sendCustomEmail = async (to, subject, content) => {
  * Template HTML pour email de bon cadeau
  */
 const giftVoucherTemplate = (code, amount, metadata) => {
-  const { recipientName, recipientEmail, message } = metadata;
+  const { recipientName, message } = metadata;
 
   return `
     <!DOCTYPE html>
@@ -818,10 +818,17 @@ const giftVoucherTemplate = (code, amount, metadata) => {
 
 /**
  * Envoyer un email de bon cadeau
+ * @param {Object} giftVoucher - L'objet bon cadeau complet de la base de données
  */
-export const sendGiftVoucherEmail = async (recipientEmail, code, amount, metadata = {}) => {
+export const sendGiftVoucherEmail = async (giftVoucher) => {
   try {
-    const { recipientName, buyerEmail } = metadata;
+    const { code, amount, recipientEmail, buyerEmail, recipientName, message } = giftVoucher;
+
+    // Créer l'objet metadata pour le template
+    const metadata = {
+      recipientName: recipientName || '',
+      message: message || ''
+    };
 
     const mailOptions = {
       from: defaultFrom,
@@ -832,7 +839,7 @@ export const sendGiftVoucherEmail = async (recipientEmail, code, amount, metadat
 
     const info = await transporter.sendMail(mailOptions);
 
-    console.log('Email de bon cadeau envoyé:', info.messageId);
+    console.log('✅ Email de bon cadeau envoyé:', info.messageId, 'to:', recipientEmail || buyerEmail);
 
     // En développement, afficher le lien pour voir l'email
     if (process.env.NODE_ENV !== 'production') {
@@ -841,7 +848,7 @@ export const sendGiftVoucherEmail = async (recipientEmail, code, amount, metadat
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Erreur envoi email de bon cadeau:', error);
+    console.error('❌ Erreur envoi email de bon cadeau:', error);
     throw error;
   }
 };
@@ -1475,6 +1482,176 @@ export const sendGuideModificationNotification = async (booking) => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Erreur envoi email au guide (modification):', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Template HTML pour email d'échec de paiement
+ */
+const paymentFailedTemplate = (metadata, reason) => {
+  const { type } = metadata;
+  const isBooking = type === 'new_booking';
+  const isGiftVoucher = type === 'gift_voucher';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .error-box {
+          background: #fee2e2;
+          border-left: 4px solid #ef4444;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #3b82f6;
+        }
+        .button {
+          display: inline-block;
+          background: #3b82f6;
+          color: white;
+          padding: 12px 30px;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 20px 0;
+          font-weight: bold;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>❌ Échec du paiement</h1>
+        <p>Votre paiement n'a pas pu être traité</p>
+      </div>
+
+      <div class="content">
+        <p>Bonjour,</p>
+
+        <p>Nous sommes désolés, mais votre paiement pour ${isBooking ? 'votre réservation' : 'le bon cadeau'} n'a pas pu être traité.</p>
+
+        <div class="error-box">
+          <h3>❗ Raison de l'échec</h3>
+          <p>${reason || 'Le paiement a été refusé par votre banque.'}</p>
+        </div>
+
+        <div class="info-box">
+          <h3>🔄 Que faire maintenant ?</h3>
+          <ul>
+            <li>Vérifiez que votre carte bancaire est valide et dispose de fonds suffisants</li>
+            <li>Assurez-vous que les informations de votre carte sont correctes</li>
+            <li>Contactez votre banque si le problème persiste</li>
+            <li>Réessayez le paiement avec une autre carte si nécessaire</li>
+          </ul>
+        </div>
+
+        ${isBooking ? `
+        <div style="text-align: center;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/search" class="button">
+            Réessayer ma réservation
+          </a>
+        </div>
+        ` : ''}
+
+        ${isGiftVoucher ? `
+        <div style="text-align: center;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/gift-voucher" class="button">
+            Réessayer l'achat du bon cadeau
+          </a>
+        </div>
+        ` : ''}
+
+        <div class="info-box">
+          <h3>📞 Besoin d'aide ?</h3>
+          <p>Si vous rencontrez des difficultés, n'hésitez pas à nous contacter :</p>
+          <p>Email: ${defaultFrom}</p>
+        </div>
+
+        <p>Nous restons à votre disposition pour toute question.</p>
+        <p>L'équipe Canyon Life 🌊</p>
+      </div>
+
+      <div class="footer">
+        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+        <p>© ${new Date().getFullYear()} Canyon Life - Tous droits réservés</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Envoyer un email d'échec de paiement
+ */
+export const sendPaymentFailedEmail = async (paymentIntent, reason) => {
+  try {
+    const { metadata } = paymentIntent;
+    const email = metadata.buyerEmail || metadata.clientEmail;
+
+    if (!email) {
+      console.error('❌ Pas d\'email trouvé pour notifier l\'échec de paiement');
+      return { success: false, reason: 'no_email' };
+    }
+
+    const type = metadata.type;
+    const subject = type === 'gift_voucher'
+      ? '❌ Échec du paiement de votre bon cadeau'
+      : '❌ Échec du paiement de votre réservation';
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: email,
+      subject,
+      html: paymentFailedTemplate(metadata, reason)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('✅ Email d\'échec de paiement envoyé:', info.messageId, 'to:', email);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email d\'échec de paiement:', error);
     return { success: false, error: error.message };
   }
 };
