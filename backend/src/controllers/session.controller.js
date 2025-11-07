@@ -17,7 +17,7 @@ export const getNextAvailableDates = async (req, res, next) => {
       },
       status: { in: ['open', 'full'] }
     };
-
+    
     // 🌐 Filtrage par guideId ou teamName (pour iframe multi-tenant)
     if (guideId) {
       sessionWhere.guideId = guideId;
@@ -63,15 +63,17 @@ export const getNextAvailableDates = async (req, res, next) => {
       const dateKey = session.date.toLocaleDateString('fr-CA'); // format YYYY-MM-DD
 
       // Si on a déjà cette date, on passe
-      if (seenDates.has(dateKey)) continue;
-        
+      if (seenDates.has(dateKey)) {
+        continue;
+      }
+
       // 🔒 Rotation magique : produit verrouillé ?
       const lockedProductId = session.bookings.length > 0
         ? session.bookings[0].productId
         : null;
 
       const relevantProducts = lockedProductId
-        ? session.products.filter(sp => sp.product.id === lockedProductId)
+        ? session.products.filter(sp => String(sp.product.id) === String(lockedProductId))
         : session.products;
 
       // Vérifier s'il y a au moins un produit disponible pour le nombre de participants
@@ -83,7 +85,7 @@ export const getNextAvailableDates = async (req, res, next) => {
 
         // Calculer les places réservées pour ce produit dans cette session
         const bookedForProduct = session.bookings
-          .filter(b => b.productId === product.id)
+          .filter(b => String(b.productId) === String(product.id))
           .reduce((sum, b) => sum + b.numberOfPeople, 0);
 
         const availableCapacity = product.maxCapacity - bookedForProduct;

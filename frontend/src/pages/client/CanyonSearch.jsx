@@ -174,31 +174,29 @@ console.log(isMobile)
       if (!fetchedProducts || fetchedProducts.length === 0) {
         try {
           // 🌐 Ajouter les filtres guideId ou teamName
-          const nextDatesParams = currentFilters.participants;
           const guideId = searchParams.get('guideId');
           const teamName = searchParams.get('teamName');
-          const nextDatesQueryParams = new URLSearchParams({ participants: nextDatesParams });
-          if (guideId) nextDatesQueryParams.set('guideId', guideId);
-          if (teamName) nextDatesQueryParams.set('teamName', teamName);
+          const params = {
+            participants: currentFilters.participants
+          };
+          if (guideId) params.guideId = guideId;
+          if (teamName) params.teamName = teamName;
 
-          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(nextDatesQueryParams.toString());
+          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(params);
           const dates = nextDatesResponse.data.dates || [];
 
           // Filtrer pour ne garder que les dates avec au moins une session future
           const now = new Date();
+          now.setHours(0, 0, 0, 0); // Réinitialiser l'heure pour comparer uniquement les dates
+
           const futureDates = dates.filter(dateInfo => {
             const dateObj = new Date(dateInfo.date);
-            // Pour être sûr qu'il y a au moins une session future ce jour-là,
-            // on considère que si la date est aujourd'hui, il faut vérifier l'heure
-            // Sinon, on garde toutes les dates futures
-            if (dateObj.toDateString() === now.toDateString()) {
-              // Pour aujourd'hui, on garde seulement si c'est encore tôt dans la journée
-              // (on suppose qu'il peut y avoir des sessions l'après-midi)
-              return now.getHours() < 14; // Garder si avant 14h
-            }
-            return dateObj > now;
+            dateObj.setHours(0, 0, 0, 0); // Réinitialiser l'heure pour comparer uniquement les dates
+            
+            // Garder toutes les dates >= aujourd'hui
+            return dateObj >= now;
           });
-
+          console.log(futureDates)
           setNextAvailableDates(futureDates);
         } catch (err) {
           console.error('Erreur récupération prochaines dates:', err);
@@ -340,12 +338,19 @@ console.log(isMobile)
     alert(t("alerts.missingParticipantCount"));      return;
     }
 
+    // Récupérer guideId et teamName depuis l'URL
+    const guideId = searchParams.get('guideId');
+    const teamName = searchParams.get('teamName');
+
     // Sélectionner cette date et lancer la recherche
     const newFilters = {
       ...filters,
       date: startDate,
       startDate: '',
-      endDate: ''
+      endDate: '',
+      // Inclure guideId et teamName dans les filtres
+      ...(guideId && { guideId }),
+      ...(teamName && { teamName })
     };
 
     setFilters(newFilters);
@@ -455,6 +460,7 @@ console.log(isMobile)
     return Array.from(difficulties).sort();
   };
 
+  console.log(nextAvailableDates)
   // Afficher l'interface de recherche (toujours visible maintenant)
   return (
     <div className={styles.searchPageContainer}>
