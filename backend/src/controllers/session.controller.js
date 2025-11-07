@@ -119,6 +119,72 @@ export const getNextAvailableDates = async (req, res, next) => {
   }
 };
 
+// Obtenir la capacité disponible pour un produit dans une session
+export const getAvailableCapacity = async (req, res, next) => {
+  try {
+    const { sessionId, productId } = req.query;
+
+    if (!sessionId || !productId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId et productId sont requis'
+      });
+    }
+
+    // Récupérer la session avec ses réservations et produits
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          where: {
+            status: { not: 'cancelled' }
+          }
+        }
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session non trouvée'
+      });
+    }
+
+    // Trouver le produit dans la session
+    const sessionProduct = session.products.find(sp => String(sp.product.id) === String(productId));
+
+    if (!sessionProduct) {
+      return res.status(404).json({
+        success: false,
+        error: 'Produit non trouvé dans cette session'
+      });
+    }
+
+    const product = sessionProduct.product;
+
+    // Calculer les places réservées pour ce produit
+    const bookedForProduct = session.bookings
+      .filter(b => String(b.productId) === String(productId))
+      .reduce((sum, b) => sum + b.numberOfPeople, 0);
+
+    const availableCapacity = product.maxCapacity - bookedForProduct;
+
+    res.json({
+      success: true,
+      maxCapacity: product.maxCapacity,
+      bookedCapacity: bookedForProduct,
+      availableCapacity: Math.max(0, availableCapacity)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Rechercher les produits disponibles selon les filtres (pour les clients)
 export const searchAvailableProducts = async (req, res, next) => {
   try {

@@ -46,6 +46,7 @@ const BookingForm = () => {
   const [voucherError, setVoucherError] = useState('');
   const [showParticipantsForm, setShowParticipantsForm] = useState(true);
   const [isUrgent, setIsUrgent] = useState(false); // Pour forcer le re-render
+  const [availableCapacity, setAvailableCapacity] = useState(null);
 
 
 
@@ -111,14 +112,24 @@ const BookingForm = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [sessionRes, productRes, settingsRes] = await Promise.all([
+        const [sessionRes, productRes, settingsRes, capacityRes] = await Promise.all([
           sessionsAPI.getById(sessionId),
           productsAPI.getById(productId),
-          settingsAPI.get()
+          settingsAPI.get(),
+          sessionsAPI.getAvailableCapacity(sessionId, productId)
         ]);
         setSession(sessionRes.data.session);
         setModePayment(sessionRes.data.session.guide.paymentMode);
         setProduct(productRes.data.product);
+        setAvailableCapacity(capacityRes.data.availableCapacity);
+
+        // Si le nombre de participants de l'URL dépasse la capacité disponible, le limiter
+        if (participantsFromUrl && parseInt(participantsFromUrl) > capacityRes.data.availableCapacity) {
+          setFormData(prev => ({
+            ...prev,
+            numberOfPeople: Math.max(1, capacityRes.data.availableCapacity)
+          }));
+        }
 
         // Charger la couleur client
         const settings = settingsRes.data.settings;
@@ -405,6 +416,24 @@ const BookingForm = () => {
     return <div className={styles.error}>{t('noSession')}</div>;
   }
 
+  if (availableCapacity !== null && availableCapacity === 0) {
+    return (
+      <div className={styles.clientContainer}>
+        <div className={styles.error} style={{ textAlign: 'center', padding: '2rem' }}>
+          <h2>😔 Session complète</h2>
+          <p>Il n'y a plus de places disponibles pour cette session.</p>
+          <button
+            onClick={() => navigate(-1)}
+            className={styles.btnPrimary}
+            style={{ marginTop: '1rem', backgroundColor: clientColor, borderColor: clientColor }}
+          >
+            {t('Retour')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const total = calculateTotal();
   const discount = calculateDiscount();
   const finalPrice = calculateFinalPrice();
@@ -588,10 +617,15 @@ const BookingForm = () => {
                 onChange={(e) => handleChange('numberOfPeople', parseInt(e.target.value))}
                 required
               >
-                {Array.from({ length: product.maxCapacity }, (_, i) => i + 1).map(num => (
+                {Array.from({ length: availableCapacity !== null ? availableCapacity : product.maxCapacity }, (_, i) => i + 1).map(num => (
                   <option key={num} value={num}>{num} personne{num > 1 ? 's' : ''}</option>
                 ))}
               </select>
+              {availableCapacity !== null && availableCapacity < product.maxCapacity && (
+                <small style={{ color: '#ff9800', marginTop: '0.5rem', display: 'block' }}>
+                  ⚠️ {availableCapacity} place{availableCapacity > 1 ? 's' : ''} restante{availableCapacity > 1 ? 's' : ''} sur {product.maxCapacity}
+                </small>
+              )}
             </div>
 
             {/* Prénom et Nom sur la même ligne */}

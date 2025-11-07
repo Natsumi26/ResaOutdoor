@@ -83,6 +83,7 @@ export const sessionsAPI = {
   getById: (id) => api.get(`/sessions/${id}`),
   searchAvailable: (params) => api.get('/sessions/search/available', { params }),
   getNextAvailableDates: (params) => api.get('/sessions/next-available', { params }),
+  getAvailableCapacity: (sessionId, productId) => api.get('/sessions/available-capacity', { params: { sessionId, productId } }),
   create: (data) => api.post('/sessions', data),
   update: (id, data) => api.put(`/sessions/${id}`, data),
   delete: (id, data) => api.delete(`/sessions/${id}`, { data })
