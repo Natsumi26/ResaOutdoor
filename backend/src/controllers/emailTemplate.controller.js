@@ -320,13 +320,436 @@ export const initializeDefaultTemplates = async (req, res) => {
         name: 'Confirmation de réservation',
         subject: 'Confirmation de réservation - {{productName}}',
         htmlContent: `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmation de ta réservation – {{productName}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
+
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="{{logo}}" alt="Logo {{companyName}}" style="max-width: 250px; height: auto; display: block; margin: 0 auto;">
+  </div>
+
+  <p>Bonjour {{clientFirstName}},</p>
+
+  <p>Ta réservation est bien confirmée pour <strong>{{productName}}</strong> 🎉  
+  Rendez-vous le <strong>{{sessionDate}}</strong> à <strong>{{sessionStartTime}}</strong> !</p>
+
+  <div style="background: #e3f2fd; border-left: 4px solid #1976d2; padding: 12px 16px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">💳 Récapitulatif de ta réservation</h3>
+    <p><strong>Prix total :</strong> <span style="font-weight: bold; color: #1976d2;">{{totalPrice}} €</span></p>
+    <p><strong>Déjà payé :</strong> <span style="font-weight: bold; color: #1976d2;">{{amountPaid}} €</span></p>
+    <p><strong>Reste à payer sur place :</strong> <span style="font-weight: bold; color: #1976d2;">{{amountDue}} €</span></p>
+  </div>
+
+  <div style="background: #fff9c4; border-left: 4px solid #fbc02d; padding: 12px 16px; margin: 20px 0;">
+    ⚠️ <strong>Important :</strong>  
+    Si ce n’est pas déjà fait, pense à <a href="{{bookingLink}}" style="color: #1976d2;">remplir le formulaire des participants</a>.  
+    Tu pourras encore le modifier jusqu’à la veille de l’activité.
+  </div>
+
+  <p>⏰ Merci d’arriver environ <strong>10 minutes avant</strong> l’heure du rendez-vous,  
+  le temps de te préparer tranquillement avant de te changer.</p>
+
+  <p><strong>📍 Point de rendez-vous :</strong><br>
+    👉 <a href="{{googleMapsLink}}" style="color: #1976d2;">Voir sur Google Maps</a><br>
+    👉 <a href="{{wazeLink}}" style="color: #1976d2;">Voir sur Waze</a>
+  </p>
+
+  <p><strong>N’oublie pas d’emporter avec toi :</strong></p>
+  <ul style="margin: 10px 0; padding-left: 25px;">
+    <li>Des chaussures qui accrochent (type baskets), + une paire de rechange pour après l'activité.</li>
+    <li>Ton maillot de bain (déjà porté sous tes vêtements).</li>
+    <li>Une serviette pour te sécher et te changer après le canyon.</li>
+    <li>Une bouteille d’eau pour rester bien hydraté(e).</li>
+  </ul>
+
+  <p>Et surtout, amène ta bonne humeur 😄</p>
+
+  <p>Avec tout ça, on est sûr de passer un super moment ensemble !</p>
+
+  <p>À très bientôt,</p>
+
+  <p><strong>{{guideName}}</strong><br>
+  (celui que tu devras chercher sur le parking)</p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+  <div style="font-size: 14px; color: #555; text-align: center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank" style="color: #1976d2;">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}" style="color: #1976d2;">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}" style="color: #1976d2;">{{companyPhone}}</a>
+    </p>
+  </div>
+
+</body>
+</html>`,
+        textContent: `Bonjour {{clientFirstName}},
+
+Ta réservation est bien confirmée pour {{productName}} 🎉
+📅 Rendez-vous le {{sessionDate}} à {{sessionStartTime}} !
+
+💳 Récapitulatif de ta réservation :
+
+Prix total : {{totalPrice}} €
+
+Déjà payé : {{amountPaid}} €
+
+Reste à payer sur place : {{amountDue}} €
+
+⚠️ Important :
+Si ce n’est pas déjà fait, pense à remplir le formulaire des participants ici :
+{{bookingLink}}
+Tu pourras encore le modifier jusqu’à la veille de l’activité.
+
+⏰ Merci d’arriver environ 10 minutes avant l’heure du rendez-vous,
+le temps de te préparer tranquillement avant de te changer.
+
+📍 Point de rendez-vous :
+
+Google Maps : {{googleMapsLink}}
+
+Waze : {{wazeLink}}
+
+À emporter avec toi :
+
+Des chaussures qui accrochent (type baskets), + une paire de rechange pour après l’activité.
+
+Ton maillot de bain (déjà porté sous tes vêtements).
+
+Une serviette pour te sécher et te changer après le canyon.
+
+Une bouteille d’eau pour rester bien hydraté(e).
+
+Et surtout, n’oublie pas ta bonne humeur 😄
+Avec tout ça, on est sûr de passer un super moment ensemble !
+
+À très bientôt,
+{{guideName}}
+(celui que tu devras chercher sur le parking)
+
+En cas de souci ou de retard : {{companyPhone}}
+Site : {{companyWebsite}}
+Mail : {{companyEmail}}
+
+{{companyName}}`
+      },
+      {
+        type: 'booking_reminder',
+        name: 'Rappel de réservation',
+        subject: '🔔 Rappel - {{productName}} demain !',
+        htmlContent: `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rappel de ton activité canyoning</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
+
+
+  <div style="text-align:center; margin-bottom:20px;">
+    <img src="{{logo}}" alt="{{companyName}}" style="max-width:250px; height:auto;">
+  </div>
+
+  <p>Salut {{clientFirstName}},</p>
+
+  <p>On se retrouve demain pour une super descente dans le canyon de <strong>{{productName}}</strong> 💦 !  
+  Rendez-vous le <strong>{{sessionDate}}</strong> à <strong>{{sessionStartTime}}</strong> 🕘</p>
+
+  <div style="background:#e3f2fd; border-left:4px solid #1976d2; padding:12px 16px; margin:20px 0;">
+    <h3 style="margin-top:0;">💳 Récapitulatif de ta réservation</h3>
+    <p><strong>Prix total :</strong> <span style="font-weight:bold; color:#1976d2;">{{totalPrice}} €</span></p>
+    <p><strong>Déjà payé :</strong> <span style="font-weight:bold; color:#1976d2;">{{amountPaid}} €</span></p>
+    <p><strong>Reste à payer sur place :</strong> <span style="font-weight:bold; color:#1976d2;">{{amountDue}} €</span></p>
+  </div>
+
+  <div style="background:#e8f5e9; border-left:4px solid #43a047; padding:12px 16px; margin:20px 0;">
+    ⏰ Merci d’arriver environ <strong>10 minutes avant</strong> l’heure du rendez-vous,  
+    le temps de te préparer tranquillement avant de te changer.
+  </div>
+
+  <p><strong>📍 Point de rendez-vous :</strong><br>
+    👉 <a href="{{googleMapsLink}}" style="color:#1976d2;">Voir sur Google Maps</a><br>
+    👉 <a href="{{wazeLink}}" style="color:#1976d2;">Voir sur Waze</a>
+  </p>
+
+  <p><strong>🧺 Pense à prendre :</strong></p>
+  <ul style="margin:10px 0; padding-left:25px;">
+    <li>Des chaussures qui accrochent (type baskets), + une paire de rechange.</li>
+    <li>Ton maillot de bain (déjà porté sous tes vêtements).</li>
+    <li>Une serviette et une bouteille d’eau.</li>
+  </ul>
+
+  <p>Et surtout, n’oublie pas ta bonne humeur 😄</p>
+
+  <p>À demain !</p>
+
+  <p><strong>{{guideName}}</strong><br>
+  (celui que tu devras chercher sur le parking)</p>
+
+  <p style="margin-top:20px;">S’il y a le moindre souci ou retard, tu peux m’appeler directement au <a href="tel:{{companyPhone}}" style="color:#1976d2;">{{companyPhone}}</a>.</p>
+
+  <hr style="margin:30px 0; border:none; border-top:1px solid #ddd;">
+
+  <div style="font-size:14px; color:#555; text-align:center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank" style="color:#1976d2;">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}" style="color:#1976d2;">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}" style="color:#1976d2;">{{companyPhone}}</a>
+    </p>
+  </div>
+
+</body>
+</html>`,
+        textContent: `Rappel pour ton activité de demain !
+
+Salut {{clientFirstName}},
+
+On se retrouve demain pour une super descente dans le canyon de {{productName}} 💦
+📅 Le {{sessionDate}} à {{sessionStartTime}} 🕘
+
+💳 Récapitulatif de ta réservation :
+
+Prix total : {{totalPrice}} €
+
+Déjà payé : {{amountPaid}} €
+
+Reste à payer sur place : {{amountDue}} €
+
+⏰ Merci d’arriver environ 10 minutes avant l’heure du rendez-vous,
+le temps de te préparer tranquillement avant de te changer.
+
+📍 Point de rendez-vous :
+
+Google Maps : {{googleMapsLink}}
+
+Waze : {{wazeLink}}
+
+🧺 Pense à prendre :
+
+Des chaussures qui accrochent (type baskets), + une paire de rechange.
+
+Ton maillot de bain (déjà porté sous tes vêtements).
+
+Une serviette et une bouteille d’eau.
+
+Et surtout, n’oublie pas ta bonne humeur 😄
+
+À demain !
+
+{{guideName}}
+(celui que tu devras chercher sur le parking)
+
+En cas de souci ou de retard, tu peux m’appeler au {{companyPhone}}.
+
+{{companyName}}
+🌐 {{companyWebsite}}
+📧 {{companyEmail}}
+📞 {{companyPhone}}`
+      },
+      {
+        type: 'payment_confirmation',
+        name: 'Confirmation de paiement',
+        subject: 'Paiement reçu - {{productName}}',
+        htmlContent: `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paiement confirmé – {{companyName}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+
+  <!-- Logo -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="{{logo}}" alt="Logo {{companyName}}" style="max-width: 250px; height: auto; display: block; margin: 0 auto;">
+  </div>
+
+  <!-- Message principal -->
+  <p>Bonjour {{clientFirstName}},</p>
+
+  <p>Bonne nouvelle 🎉 ! Nous avons bien reçu ton paiement d’un montant de <strong style="color:#1976d2;">{{amountPaid}} €</strong>.</p>
+
+  <div style="background-color: #e8f5e9; border-left: 4px solid #43a047; padding: 12px 16px; margin: 20px 0;">
+    💳 <strong>Ton paiement est confirmé.</strong><br>
+    Tu recevras (ou as peut-être déjà reçu) un mail de <strong>confirmation de réservation</strong> avec tous les détails pratiques :  
+    lieu, horaire, matériel à prévoir, et toutes les infos utiles pour le jour J.
+  </div>
+
+  <p>Merci encore pour ta confiance 🙏</p>
+
+  <p>On se retrouve très bientôt pour partager un super moment en canyon 😄</p>
+
+  <p>À très vite,</p>
+
+  <p><strong>L’équipe {{companyName}}</strong></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+  <!-- Signature -->
+  <div style="font-size: 14px; color: #555; text-align: center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank" style="color:#1976d2;">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}" style="color:#1976d2;">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}" style="color:#1976d2;">{{companyPhone}}</a>
+    </p>
+  </div>
+
+</body>
+</html>`,
+        textContent: `Bonjour {{clientFirstName}},
+
+Bonne nouvelle 🎉 !
+Nous avons bien reçu ton paiement d’un montant de {{amountPaid}} €.
+
+💳 Ton paiement est confirmé.
+Tu recevras (ou as peut-être déjà reçu) un mail de confirmation de réservation avec tous les détails pratiques :
+le lieu, l’horaire, le matériel à prévoir et toutes les infos utiles pour le jour J.
+
+Merci encore pour ta confiance 🙏
+On se retrouve très bientôt pour partager un super moment en canyon 😄
+
+À très vite,
+L’équipe {{companyName}}
+
+🌐 {{companyWebsite}}
+📧 {{companyEmail}}
+📞 {{companyPhone}}`
+      },
+      {
+        type: 'gift_voucher',
+        name: 'Bon cadeau',
+        subject: 'Votre bon cadeau',
+        htmlContent: `
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ton bon cadeau – {{companyName}}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+    }
+    a {
+      color: #1976d2;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <!-- Logo -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <img src="{{logo}}" alt="Logo {{companyName}}" style="max-width: 250px; height: auto; display: block; margin: 0 auto;">
+  </div>
+
+  <!-- Message principal -->
+  <p>Bonjour {{clientFirstName}},</p>
+
+  <p>Merci pour ton achat 🎉  
+  Ton <strong>bon cadeau d’un montant de {{totalPrice}} €</strong> est prêt à être offert ! 🥳</p>
+
+  <div style="background-color: #e3f2fd; border-left: 4px solid #1976d2; padding: 12px 16px; margin: 20px 0;">
+    🎁 <strong>Ton bon cadeau est en pièce jointe</strong> (format PDF imprimable).  
+    Tu peux l’imprimer, l’envoyer par mail ou le garder pour plus tard 😉  
+  </div>
+
+  <p>💡 Ce bon est <strong>valable pendant 2 ans</strong> à compter de la date d’achat.  
+  Il est utilisable sur toutes les activités disponibles sur notre site :</p>
+
+  <p style="text-align:center;">
+    🌐 <a href="{{companyWebsite}}" target="_blank">{{companyWebsite}}</a>
+  </p>
+
+  <div style="background-color: #e8f5e9; border-left: 4px solid #43a047; padding: 12px 16px; margin: 20px 0;">
+    ✅ <strong>Pour l’utiliser :</strong><br>
+    - Rends-toi sur notre site internet.<br>
+    - Choisis l’activité que tu veux réserver.<br>
+    - Au moment du paiement, saisis ton <strong>code cadeau :</strong> <span style="font-weight:bold; color:#1976d2;">{{giftCode}}</span> 🎟️
+  </div>
+
+  <p>Le montant du bon sera automatiquement déduit du total de la réservation.  
+  Simple, rapide, et idéal pour offrir une expérience inoubliable en canyoning 😄</p>
+
+  <p>À très bientôt dans les canyons,</p>
+
+  <p><strong>L’équipe {{companyName}}</strong></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+  <!-- Signature -->
+  <div style="font-size: 14px; color: #555; text-align: center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}">{{companyPhone}}</a>
+    </p>
+  </div>
+</body>
+</html>`,
+        textContent: `Bonjour {{clientFirstName}},
+
+Merci pour ton achat 🎉
+Ton bon cadeau d’un montant de {{totalPrice}} € est prêt à être offert 🥳
+
+🎁 Le bon cadeau est en pièce jointe (format PDF imprimable).
+Tu peux l’imprimer, l’envoyer par mail ou simplement le garder pour plus tard.
+
+💡 Ce bon est valable 2 ans à compter de la date d’achat,
+et il peut être utilisé sur toutes les activités disponibles sur notre site :
+👉 {{companyWebsite}}
+
+✅ Pour l’utiliser :
+
+Va sur notre site internet
+
+Choisis l’activité que tu veux réserver
+
+Au moment du paiement, entre ton code cadeau : {{giftCode}}
+
+Le montant du bon sera automatiquement déduit du total à payer.
+
+Merci encore pour ta confiance 🙏
+Ce bon cadeau va sûrement faire un(e) heureux(se) ! 😄
+
+À très bientôt dans les canyons,
+L'équipe {{companyName}}
+
+🌐 {{companyWebsite}}
+📧 {{companyEmail}}
+📞 {{companyPhone}}`
+      },
+      {
+        type: 'guide_notification',
+        name: 'Notification de réservation au guide',
+        subject: 'Nouvelle réservation - {{productName}} le {{sessionDate}}',
+        htmlContent: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
     body {
       font-family: Arial, sans-serif;
-      line-height: 1.6;
+      line-height: 1.5;
       color: #333;
       max-width: 600px;
       margin: 0 auto;
@@ -337,228 +760,105 @@ export const initializeDefaultTemplates = async (req, res) => {
       text-align: center;
       margin-bottom: 20px;
     }
-    .warning {
-      background: #fff9c4;
-      border-left: 4px solid #fbc02d;
+    .summary {
+      background: #f5f5f5;
+      border-left: 4px solid #1976d2;
+      padding: 12px 16px;
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .col {
+      width: 48%;
+      box-sizing: border-box;
+    }
+    .important {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
       padding: 12px 16px;
       margin: 20px 0;
     }
-    a {
+    .amount {
+      font-weight: bold;
       color: #1976d2;
-      text-decoration: none;
     }
-    a:hover {
-      text-decoration: underline;
+    .highlight {
+      font-weight: bold;
     }
-    ul {
-      margin: 10px 0;
-      padding-left: 25px;
-    }
-    ul li {
-      margin: 8px 0;
+    @media (max-width: 480px) {
+      .col {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
   <div class="logo">
-    <img src="{{logo}}" alt="{{companyName}}" style="max-width: 250px; height: auto;" />
+    <img src="{{logo}}" alt="{{companyName}}" style="max-width: 200px; height: auto;" />
   </div>
 
-  <p>Bonjour {{clientFirstName}},</p>
+  <p>👋 Salut {{guideName}},</p>
 
-  <p>Votre réservation est confirmée !</p>
+  <p>Une nouvelle réservation vient d'être enregistrée pour ta session :</p>
 
-  <p>Vous trouverez vos billets en pièce jointe.</p>
-
-  <div class="warning">
-    ⚠️ <strong>Important</strong>, vous devez <a href="{{bookingLink}}">remplir le formulaire</a> sur les participants ⚠️
+  <div class="summary">
+    <div class="col">
+      <p><strong>🧗 Activité :</strong> {{productName}}</p>
+      <p><strong>📅 Date :</strong> {{sessionDate}}</p>
+      <p><strong>🕘 Heure :</strong> {{sessionStartTime}}</p>
+      <p><strong>👥 Participants :</strong> {{numberOfPeople}}</p>
+    </div>
+    <div class="col">
+      <p><strong>👤 Client :</strong> {{clientFirstName}} {{clientLastName}}</p>
+      <p><strong>📧 Email :</strong> {{clientEmail}}</p>
+      <p><strong>📞 Téléphone :</strong> {{clientPhone}}</p>
+    </div>
   </div>
 
-  <p>Pour que tout se passe au mieux, pense à arriver au moins 5 minutes avant l'heure de rendez-vous.</p>
+  <div class="important">
+    <p><strong>💳 Paiement :</strong></p>
+    <p>Prix total : <span class="amount">{{totalPrice}} €</span><br>
+    Déjà payé : <span class="amount">{{amountPaid}} €</span><br>
+    Reste à payer sur place : <span class="amount">{{amountDue}} €</span></p>
+  </div>
 
-  <p><strong>Point de rendez-vous :</strong> <a href="{{googleMapsLink}}">Google maps</a> / <a href="{{wazeLink}}">Waze</a></p>
+  <p><strong>📊 Places restantes dans la session :</strong> {{remainingSpots}}</p>
 
-  <p><strong>N'oublie pas d'emporter avec toi :</strong></p>
+  <p><strong>🔗 Lien vers la fiche réservation :</strong> <a href="{{bookingAdminLink}}" style="color: #1976d2;">Ouvrir dans le back-office</a></p>
 
-  <ul>
-    <li>Des chaussures qui accrochent, comme des baskets, et prévois également des chaussures de rechange pour après l'activité.</li>
-    <li>Ton maillot de bain (porté directement sous tous les vêtements)</li>
-    <li>Une serviette de bain pour te sécher et te changer après le canyon.</li>
-    <li>Une bouteille d'eau pour rester bien hydraté(e) tout au long de l'expérience.</li>
-  </ul>
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
 
-  <p>{{postBookingMessage}}</p>
-
-  <p>Et surtout, amène avec toi toute la bonne humeur !</p>
-
-  <p>Avec ça, on est sûr de passer un super moment ensemble. 😊</p>
-
-  <p>À très bientôt !</p>
-
-  <p>{{guideName}} (celui que tu devras chercher sur le parking)</p>
+  <p style="font-size: 13px; color: #777;">Email automatique – {{companyName}}</p>
 </body>
 </html>`,
-        textContent: `Bonjour {{clientFirstName}} {{clientLastName}},
+        textContent: `Nouvelle réservation
 
-Votre réservation a été confirmée avec succès !
+Bonjour {{guideName}},
 
-DÉTAILS DE VOTRE RÉSERVATION
------------------------------
-Activité: {{productName}}
-Date: {{sessionDate}}
-Créneau: {{sessionTimeSlot}} - {{sessionStartTime}}
-Guide: {{guideName}}
-Nombre de personnes: {{numberOfPeople}}
-Prix total: {{totalPrice}}€
-Montant payé: {{amountPaid}}€
-Reste à payer: {{amountDue}}€
+Une nouvelle réservation a été effectuée pour votre session.
 
-INFORMATIONS IMPORTANTES
-{{postBookingMessage}}
-
-À très bientôt pour cette aventure inoubliable !
-
-L'équipe {{companyName}}`
-      },
-      {
-        type: 'booking_reminder',
-        name: 'Rappel de réservation',
-        subject: '🔔 Rappel - {{productName}} demain !',
-        htmlContent: `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px; }
-    .content { padding: 20px; background: #fffbeb; margin-top: 20px; border-radius: 8px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>⏰ Rappel - Votre activité est demain !</h1>
-  </div>
-  <div class="content">
-    <p>Bonjour {{clientFirstName}} {{clientLastName}},</p>
-    <p><strong>N'oubliez pas :</strong> Votre activité <strong>{{productName}}</strong> a lieu demain !</p>
-    <p>📅 Date : {{sessionDate}}</p>
-    <p>⏰ Heure : {{sessionStartTime}}</p>
-    <p>👥 Guide : {{guideName}}</p>
-    <p>À demain ! 🏔️</p>
-  </div>
-</body>
-</html>`,
-        textContent: `Bonjour {{clientFirstName}} {{clientLastName}},
-
-Rappel : Votre activité {{productName}} a lieu demain !
-
+DÉTAILS DE LA SESSION
+Activité : {{productName}}
 Date : {{sessionDate}}
-Heure : {{sessionStartTime}}
-Guide : {{guideName}}
+Créneau : {{sessionTimeSlot}} - {{sessionStartTime}}
 
-À demain ! 🏔️`
-      },
-      {
-        type: 'payment_confirmation',
-        name: 'Confirmation de paiement',
-        subject: 'Paiement reçu - {{productName}}',
-        htmlContent: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #28a745; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
-    .info-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #28a745; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>✓ Paiement reçu</h1>
-    </div>
-    <div class="content">
-      <p>Bonjour {{clientFirstName}},</p>
-      <p>Nous avons bien reçu votre paiement de <strong>{{amountPaid}}€</strong> pour <strong>{{productName}}</strong>.</p>
+INFORMATIONS CLIENT
+Nom : {{clientFirstName}} {{clientLastName}}
+Email : {{clientEmail}}
+Téléphone : {{clientPhone}}
+Nombre de personnes : {{numberOfPeople}}
 
-      <div class="info-box">
-        <h3>Détails du paiement</h3>
-        <p><strong>Montant de ce paiement :</strong> {{amountPaid}}€</p>
-        <p><strong>Total payé :</strong> {{totalPaid}}€</p>
-        <p><strong>Prix total :</strong> {{totalPrice}}€</p>
-        <p><strong>Montant restant :</strong> {{amountDue}}€</p>
-      </div>
-
-      <p>Merci pour votre confiance !</p>
-      <p>L'équipe</p>
-    </div>
-  </div>
-</body>
-</html>`,
-        textContent: `Bonjour {{clientFirstName}},
-
-Nous avons bien reçu votre paiement de {{amountPaid}}€ pour {{productName}}.
-
-DÉTAILS DU PAIEMENT
-Montant de ce paiement : {{amountPaid}}€
-Total payé : {{totalPaid}}€
+INFORMATIONS DE PAIEMENT
 Prix total : {{totalPrice}}€
-Montant restant : {{amountDue}}€
+Montant payé : {{amountPaid}}€
+Reste à payer : {{amountDue}}€
 
-Merci pour votre confiance !
-L'équipe`
-      },
-      {
-        type: 'gift_voucher',
-        name: 'Bon cadeau',
-        subject: 'Votre bon cadeau',
-        htmlContent: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #e74c3c; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
-    .voucher { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; border: 3px dashed #e74c3c; text-align: center; }
-    .code { font-size: 32px; font-weight: bold; color: #e74c3c; letter-spacing: 4px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🎁 Votre bon cadeau</h1>
-    </div>
-    <div class="content">
-      <p>Bonjour,</p>
-      <p>Voici votre bon cadeau !</p>
+Places restantes : {{remainingSpots}}
+Lien vers la réservation : {{bookingAdminLink}}
 
-      <div class="voucher">
-        <h2>BON CADEAU</h2>
-        <p>Code :</p>
-        <div class="code">XXXXXX</div>
-        <p style="margin-top: 20px;">Montant : XX€</p>
-      </div>
-
-      <p>Pour utiliser ce bon cadeau, rendez-vous sur notre site de réservation et entrez le code lors de la réservation.</p>
-      <p>Merci et à bientôt !</p>
-    </div>
-  </div>
-</body>
-</html>`,
-        textContent: `Votre bon cadeau
-
-Code : XXXXXX
-Montant : XX€
-
-Pour utiliser ce bon cadeau, rendez-vous sur notre site de réservation et entrez le code lors de la réservation.
-
-Merci et à bientôt !`
+Bonne session !
+{{companyName}}`
       }
     ];
 
@@ -647,6 +947,31 @@ export const getAvailableVariables = async (req, res) => {
         { key: '{{totalPrice}}', description: 'Prix total' },
         { key: '{{amountDue}}', description: 'Montant restant à payer' },
         { key: '{{isFullyPaid}}', description: 'Est entièrement payé (true/false)' }
+      ],
+      gift_voucher: [
+        ...commonVariables,
+        { key: '{{clientFirstName}}', description: 'Prénom du client' },
+        { key: '{{giftCode}}', description: 'Code du bon cadeau' },
+        { key: '{{totalPrice}}', description: 'Montant du bon cadeau' },
+        { key: '{{companyWebsite}}', description: 'Site web de l\'entreprise' }
+      ],
+      guide_notification: [
+        ...commonVariables,
+        { key: '{{guideName}}', description: 'Nom du guide' },
+        { key: '{{productName}}', description: 'Nom du produit/activité' },
+        { key: '{{sessionDate}}', description: 'Date de la session' },
+        { key: '{{sessionTimeSlot}}', description: 'Créneau horaire' },
+        { key: '{{sessionStartTime}}', description: 'Heure de début' },
+        { key: '{{clientFirstName}}', description: 'Prénom du client' },
+        { key: '{{clientLastName}}', description: 'Nom du client' },
+        { key: '{{clientEmail}}', description: 'Email du client' },
+        { key: '{{clientPhone}}', description: 'Téléphone du client' },
+        { key: '{{numberOfPeople}}', description: 'Nombre de participants' },
+        { key: '{{totalPrice}}', description: 'Prix total' },
+        { key: '{{amountPaid}}', description: 'Montant déjà payé' },
+        { key: '{{amountDue}}', description: 'Reste à payer sur place' },
+        { key: '{{remainingSpots}}', description: 'Places restantes dans la session' },
+        { key: '{{bookingAdminLink}}', description: 'Lien vers la réservation (back-office)' }
       ]
     };
 
