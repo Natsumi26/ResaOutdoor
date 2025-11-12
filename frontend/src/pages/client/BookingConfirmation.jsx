@@ -198,7 +198,7 @@ const BookingConfirmation = () => {
           </div>
 
           {/* Liens utiles */}
-          {booking.product.wazeLink || booking.product.googleMapsLink && (
+          {(booking.product.wazeLink || booking.product.googleMapsLink) && (
             <div className={styles.confirmationSection}>
               <h3>{t('LieuRDV')}</h3>
               <div className={styles.locationLinks}>
