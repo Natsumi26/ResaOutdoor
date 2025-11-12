@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
-import { categoriesAPI } from '../services/api';
+import { categoriesAPI, equipmentListsAPI } from '../services/api';
 import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
@@ -29,6 +29,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     googleMapsLink: '',
     activityTypeId: '', // Type d'activité (catégorie principale)
     categoryIds: [],
+    equipmentListId: '', // Liste de matériel associée
     guideId: '',
     images: [],
     priceGroup: { enabled: false, min: '', price: '' }
@@ -38,16 +39,34 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState(initialCategories || []);
+  const [equipmentLists, setEquipmentLists] = useState([]);
   const [guidePracticeActivities, setGuidePracticeActivities] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [showEquipmentListModal, setShowEquipmentListModal] = useState(false);
+  const [newEquipmentList, setNewEquipmentList] = useState({ name: '', items: '' });
+  const [creatingEquipmentList, setCreatingEquipmentList] = useState(false);
 
   useEffect(() => {
     if (initialCategories) {
       setCategories(initialCategories);
     }
   }, [initialCategories]);
+
+  useEffect(() => {
+    // Charger les listes de matériel
+    const loadEquipmentLists = async () => {
+      try {
+        const response = await equipmentListsAPI.getAll();
+        setEquipmentLists(response.data.equipmentLists || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des listes de matériel:', error);
+      }
+    };
+
+    loadEquipmentLists();
+  }, []);
 
   useEffect(() => {
     // Initialiser les activités pratiquées du guide actuel
@@ -75,6 +94,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         ...product,
         duration: product.duration ? product.duration / 60 : '', // Convertir minutes en heures
         categoryIds: categoryIds,
+        equipmentListId: product.equipmentListId || '',
         priceGroup: product.priceGroup
           ? { enabled: true, ...product.priceGroup }
           : { enabled: false, min: '', price: '' }
@@ -145,6 +165,42 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
       alert(error.response?.data?.error || 'Erreur lors de la création de la catégorie');
     } finally {
       setCreatingCategory(false);
+    }
+  };
+
+  const handleCreateEquipmentList = async () => {
+    if (!newEquipmentList.name.trim()) {
+      alert('Veuillez entrer un nom de liste');
+      return;
+    }
+    if (!newEquipmentList.items.trim()) {
+      alert('Veuillez entrer les éléments de la liste');
+      return;
+    }
+
+    setCreatingEquipmentList(true);
+    try {
+      const response = await equipmentListsAPI.create({
+        name: newEquipmentList.name,
+        items: newEquipmentList.items
+      });
+
+      // Ajouter la nouvelle liste
+      const newList = response.data.equipmentList;
+      setEquipmentLists(prev => [...prev, newList]);
+
+      // Pré-sélectionner la nouvelle liste
+      setFormData(prev => ({
+        ...prev,
+        equipmentListId: newList.id
+      }));
+
+      setNewEquipmentList({ name: '', items: '' });
+      setShowEquipmentListModal(false);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Erreur lors de la création de la liste de matériel');
+    } finally {
+      setCreatingEquipmentList(false);
     }
   };
 
@@ -524,6 +580,30 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           <h3>⚙️ Configuration</h3>
 
           <div className={styles.formGroup}>
+            <label>Liste de matériel à apporter</label>
+            <select
+              name="equipmentListId"
+              value={formData.equipmentListId}
+              onChange={handleChange}
+            >
+              <option value="">-- Aucune liste --</option>
+              {equipmentLists.map(list => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={styles.btnAddCategory}
+              onClick={() => setShowEquipmentListModal(true)}
+            >
+              + Créer une nouvelle liste
+            </button>
+            <small>Sélectionnez ou créez une liste de matériel que les clients devront apporter</small>
+          </div>
+
+          <div className={styles.formGroup}>
             <label>Fermeture auto (heures avant)</label>
             <input
               type="number"
@@ -622,6 +702,52 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
                 disabled={creatingCategory}
               >
                 {creatingCategory ? 'Création...' : 'Créer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de création de liste de matériel */}
+      {showEquipmentListModal && (
+        <div className={styles.modal} onClick={() => setShowEquipmentListModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2>Créer une liste de matériel</h2>
+            <div className={styles.formGroup}>
+              <label>Nom de la liste *</label>
+              <input
+                type="text"
+                value={newEquipmentList.name}
+                onChange={(e) => setNewEquipmentList(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Ex: Matériel Canyon Découverte"
+                autoFocus
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Liste du matériel à apporter *</label>
+              <textarea
+                value={newEquipmentList.items}
+                onChange={(e) => setNewEquipmentList(prev => ({ ...prev, items: e.target.value }))}
+                placeholder="Ex:&#10;- Maillot de bain&#10;- Serviette&#10;- Chaussures de sport fermées&#10;- Bouteille d'eau"
+                rows="8"
+              />
+              <small>Entrez chaque élément sur une ligne séparée</small>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnCancel}
+                onClick={() => setShowEquipmentListModal(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className={styles.btnSubmit}
+                onClick={handleCreateEquipmentList}
+                disabled={creatingEquipmentList}
+              >
+                {creatingEquipmentList ? 'Création...' : 'Créer'}
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
-import { stripeAPI, settingsAPI } from '../../services/api';
+import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 
@@ -14,26 +14,17 @@ const PaymentSuccess = () => {
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('Vérification du paiement...');
   const [bookingId, setBookingId] = useState(null);
-  const [clientColor, setClientColor] = useState('#3498db');
+  const colorFromUrl = searchParams.get('color');
+  const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
   const [attempts, setAttempts] = useState(0);
   const maxAttempts = 20; // 20 tentatives = 20 secondes max
 
   useEffect(() => {
-    loadSettings();
-    verifyPayment();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const response = await settingsAPI.get();
-      const settings = response.data.settings;
-      if (settings?.clientButtonColor) {
-        setClientColor(settings.clientButtonColor);
-      }
-    } catch (error) {
-      console.error('Erreur chargement settings:', error);
+    if (colorFromUrl) {
+      localStorage.setItem('clientThemeColor', colorFromUrl);
     }
-  };
+    verifyPayment();
+  }, [colorFromUrl]);
 
   const verifyPayment = async () => {
     try {

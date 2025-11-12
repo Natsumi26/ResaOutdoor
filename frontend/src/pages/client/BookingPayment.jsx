@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { stripeAPI, settingsAPI } from '../../services/api';
+import { stripeAPI } from '../../services/api';
 import styles from './ClientPages.module.css';
 import { useTranslation } from 'react-i18next';
 
@@ -37,7 +37,8 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
           // Rediriger vers la confirmation après un court délai
           setTimeout(() => {
             // Récupérer l'ID de réservation depuis les métadonnées ou l'API
-            navigate(`/client/booking-confirmation/${paymentIntent.metadata.bookingId}`);
+            const colorParam = clientColor !== '#3498db' ? `?color=${encodeURIComponent(clientColor)}` : '';
+            navigate(`/client/booking-confirmation/${paymentIntent.metadata.bookingId}${colorParam}`);
           }, 2000);
           break;
         case 'processing':
@@ -76,7 +77,8 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
       setIsLoading(false);
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Paiement réussi, naviguer vers la page de succès SANS sortir de l'iframe
-      navigate(`/client/payment-confirmation?payment_intent=${paymentIntent.id}&payment_intent_client_secret=${paymentIntent.client_secret}`);
+      const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
+      navigate(`/client/payment-confirmation?payment_intent=${paymentIntent.id}&payment_intent_client_secret=${paymentIntent.client_secret}${colorParam}`);
     }
   };
 
@@ -108,9 +110,6 @@ const BookingPayment = () => {
   const [error, setError] = useState(null);
   const [amountToPay, setAmountToPay] = useState(0);
   const [isDeposit, setIsDeposit] = useState(false);
-  const [clientColor, setClientColor] = useState(() => {
-    return localStorage.getItem('clientThemeColor') || '#3498db';
-  });
 
   // Récupérer les paramètres de l'URL
   const sessionId = searchParams.get('sessionId');
@@ -119,10 +118,14 @@ const BookingPayment = () => {
   const amountDue = parseFloat(searchParams.get('amountDue'));
   const participants = searchParams.get('participants') ? JSON.parse(decodeURIComponent(searchParams.get('participants'))) : null;
   const payFullAmount = searchParams.get('payFullAmount') === 'true';
+  const colorFromUrl = searchParams.get('color');
+  const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
 
   useEffect(() => {
-    loadClientColor();
-  }, []);
+    if (colorFromUrl) {
+      localStorage.setItem('clientThemeColor', colorFromUrl);
+    }
+  }, [colorFromUrl]);
 
   useEffect(() => {
     if (!sessionId || !productId || !bookingData || !amountDue) {
@@ -133,19 +136,6 @@ const BookingPayment = () => {
 
     createPaymentIntent();
   }, [sessionId, productId]);
-
-  const loadClientColor = async () => {
-    try {
-      const response = await settingsAPI.get();
-      const settings = response.data.settings;
-      if (settings?.clientButtonColor) {
-        setClientColor(settings.clientButtonColor);
-        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
-      }
-    } catch (error) {
-      console.error('Erreur chargement couleur client:', error);
-    }
-  };
 
   const createPaymentIntent = async () => {
     try {

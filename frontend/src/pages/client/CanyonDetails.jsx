@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { productsAPI, sessionsAPI, settingsAPI } from '../../services/api';
+import { productsAPI, sessionsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -16,6 +16,7 @@ const CanyonDetails = () => {
   const [searchParams] = useSearchParams();
   const startDateParam = searchParams.get('startDate');
   const participantsParam = searchParams.get('participants');
+  const colorFromUrl = searchParams.get('color');
   const [product, setProduct] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -23,10 +24,7 @@ const CanyonDetails = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [dateAvailability, setDateAvailability] = useState({});
   const [dateInfo, setDateInfo] = useState({}); // Stocke les infos détaillées par date
-  const [clientColor, setClientColor] = useState(() => {
-    // Essayer de récupérer depuis localStorage d'abord
-    return localStorage.getItem('clientThemeColor') || '#3498db';
-  });
+  const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
 
   // Vérifie que la date est bien définie et valide
   let formattedDate = '';
@@ -43,25 +41,13 @@ const CanyonDetails = () => {
   useEffect(() => {
     loadProduct();
     loadMonthAvailability();
-    loadClientColor();
+    if (colorFromUrl) {
+      localStorage.setItem('clientThemeColor', colorFromUrl);
+    }
     // Initialiser la date sélectionnée
     const initialDate = startDateParam ? new Date(startDateParam) : new Date();
     setSelectedDate(initialDate);
-  }, [id]);
-
-  const loadClientColor = async () => {
-    try {
-      const response = await settingsAPI.get();
-      const settings = response.data.settings;
-      if (settings?.clientButtonColor) {
-        setClientColor(settings.clientButtonColor);
-        // Sauvegarder dans localStorage pour éviter le flash au prochain chargement
-        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
-      }
-    } catch (error) {
-      console.error('Erreur chargement couleur client:', error);
-    }
-  };
+  }, [id, colorFromUrl]);
 
   useEffect(() => {
     if (selectedDate) {

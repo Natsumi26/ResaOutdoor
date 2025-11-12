@@ -82,6 +82,9 @@ export const getBookingById = async (req, res, next) => {
           }
         },
         product: {
+          include: {
+            equipmentList: true
+          }
         },
         reseller: {
           select: {

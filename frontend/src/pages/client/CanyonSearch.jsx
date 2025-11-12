@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { sessionsAPI, settingsAPI } from '../../services/api';
+import { sessionsAPI } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
 import { Trans, useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ const CanyonSearch = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const startDateParam = queryParams.get('startDate'); // format attendu : yyyy-MM-dd
+  const colorFromUrl = queryParams.get('color');
   const [selectedDate, setSelectedDate] = useState(null);
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]); // Tous les produits avant filtrage
@@ -33,8 +34,8 @@ const CanyonSearch = () => {
   });
   const [showCalendar, setShowCalendar] = useState(false);
   const [clientColor, setClientColor] = useState(() => {
-    // Essayer de récupérer depuis localStorage d'abord
-    return localStorage.getItem('clientThemeColor') || '#3498db';
+    // Priorité: URL > localStorage > défaut
+    return colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
   });
 
   // État pour le calendrier
@@ -59,24 +60,13 @@ const CanyonSearch = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 console.log(isMobile)
-  // Charger la couleur client depuis les settings
+  // Sauvegarder la couleur dans localStorage si elle vient de l'URL
   useEffect(() => {
-    const loadClientColor = async () => {
-      try {
-        const response = await settingsAPI.get();
-        const settings = response.data.settings;
-        if (settings?.clientButtonColor) {
-          setClientColor(settings.clientButtonColor);
-          // Sauvegarder dans localStorage pour éviter le flash au prochain chargement
-          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
-        }
-      } catch (error) {
-        console.error('Erreur chargement couleur client:', error);
-      }
-    };
-    loadClientColor();
+    if (colorFromUrl) {
+      localStorage.setItem('clientThemeColor', colorFromUrl);
+    }
     loadCalendarAvailability();
-  }, []);
+  }, [colorFromUrl]);
 
   // Retirer le chargement automatique au démarrage
   useEffect(() => {
@@ -978,7 +968,8 @@ console.log(isMobile)
                                               e.preventDefault();
                                               e.stopPropagation();
                                               const sessionId = session.sessionId || session.id;
-                                              navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}`);
+                                              const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
+                                              navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}${colorParam}`);
                                             }}
                                             style={{ borderColor: clientColor }}
                                             onMouseEnter={(e) => {

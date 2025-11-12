@@ -115,7 +115,8 @@ export const getProductById = async (req, res, next) => {
           include: {
             category: true
           }
-        }
+        },
+        equipmentList: true
       }
     });
     console.log(product)
@@ -154,7 +155,8 @@ export const createProduct = async (req, res, next) => {
       images,
       guideId: bodyGuideId,
       activityTypeId, // Type d'activité principal (obligatoire)
-      categoryIds // Tableau d'IDs de catégories (peut être vide)
+      categoryIds, // Tableau d'IDs de catégories (peut être vide)
+      equipmentListId // ID de la liste de matériel (optionnel)
     } = req.body;
 
     if (!name || !priceIndividual || !duration || !level || !maxCapacity || !activityTypeId) {
@@ -188,7 +190,8 @@ export const createProduct = async (req, res, next) => {
       websiteLink,
       images: images || [],
       activityTypeId,
-      guideId
+      guideId,
+      equipmentListId: equipmentListId || null
     };
 
     // Ajouter les catégories si fournies
@@ -231,7 +234,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { categoryIds, activityTypeId, ...updateData } = req.body;
+    const { categoryIds, activityTypeId, equipmentListId, ...updateData } = req.body;
 
     // Vérifier que le produit existe et appartient au guide (sauf si admin)
     const existingProduct = await prisma.product.findUnique({
@@ -254,6 +257,7 @@ export const updateProduct = async (req, res, next) => {
     delete updateData.guide;
     delete updateData.category;
     delete updateData.categories;
+    delete updateData.equipmentList;
 
     // Convertir les types si nécessaire
     if (updateData.priceIndividual) {
@@ -270,6 +274,9 @@ export const updateProduct = async (req, res, next) => {
     }
     if (activityTypeId !== undefined) {
       updateData.activityTypeId = activityTypeId;
+    }
+    if (equipmentListId !== undefined) {
+      updateData.equipmentListId = equipmentListId || null;
     }
 
     // Gérer la mise à jour des catégories si fournie
@@ -305,7 +312,8 @@ export const updateProduct = async (req, res, next) => {
           include: {
             category: true
           }
-        }
+        },
+        equipmentList: true
       }
     });
 

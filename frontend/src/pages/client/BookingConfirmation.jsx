@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { bookingsAPI, settingsAPI } from '../../services/api';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { bookingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -9,13 +9,13 @@ import {Trans, useTranslation } from 'react-i18next';
 const BookingConfirmation = () => {
   const { t } = useTranslation();
   const { bookingId } = useParams();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const colorFromUrl = queryParams.get('color');
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [clientColor, setClientColor] = useState(() => {
-    // Essayer de récupérer depuis localStorage d'abord
-    return localStorage.getItem('clientThemeColor') || '#3498db';
-  });
+  const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
 
   useEffect(() => {
     loadBooking();
@@ -24,17 +24,12 @@ const BookingConfirmation = () => {
   const loadBooking = async () => {
     try {
       setLoading(true);
-      const [bookingRes, settingsRes] = await Promise.all([
-        bookingsAPI.getById(bookingId),
-        settingsAPI.get()
-      ]);
+      const bookingRes = await bookingsAPI.getById(bookingId);
       setBooking(bookingRes.data.booking);
 
-      // Charger la couleur client
-      const settings = settingsRes.data.settings;
-      if (settings?.clientButtonColor) {
-        setClientColor(settings.clientButtonColor);
-        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+      // Sauvegarder la couleur dans localStorage si elle vient de l'URL
+      if (colorFromUrl) {
+        localStorage.setItem('clientThemeColor', colorFromUrl);
       }
     } catch (error) {
       console.error('Erreur chargement réservation:', error);
@@ -196,6 +191,25 @@ const BookingConfirmation = () => {
               </p>
             </div>
           </div>
+
+          {/* Liste de matériel à apporter */}
+          {booking.product.equipmentList && (
+            <div className={styles.confirmationSection}>
+              <h3>🎒 Matériel à apporter</h3>
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#f9f9f9',
+                borderRadius: '8px',
+                border: '1px solid #e0e0e0',
+                whiteSpace: 'pre-wrap',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                color: '#555'
+              }}>
+                {booking.product.equipmentList.items}
+              </div>
+            </div>
+          )}
 
           {/* Liens utiles */}
           {(booking.product.wazeLink || booking.product.googleMapsLink) && (

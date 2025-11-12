@@ -192,6 +192,15 @@ export const newsletterAPI = {
   sendTestEmail: (data) => api.post('/newsletter/test-send', data)
 };
 
+// Equipment Lists
+export const equipmentListsAPI = {
+  getAll: () => api.get('/equipment-lists'),
+  getById: (id) => api.get(`/equipment-lists/${id}`),
+  create: (data) => api.post('/equipment-lists', data),
+  update: (id, data) => api.put(`/equipment-lists/${id}`, data),
+  delete: (id) => api.delete(`/equipment-lists/${id}`)
+};
+
 // Upload
 export const uploadAPI = {
   images: (formData) => {

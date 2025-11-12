@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI, settingsAPI } from '../../services/api';
+import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -12,6 +12,7 @@ const BookingForm = () => {
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('productId');
   const participantsFromUrl = searchParams.get('participants');
+  const colorFromUrl = searchParams.get('color');
   const navigate = useNavigate();
 
   const [session, setSession] = useState(null);
@@ -20,8 +21,8 @@ const BookingForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [modePayment, setModePayment] = useState('')
   const [clientColor, setClientColor] = useState(() => {
-    // Essayer de récupérer depuis localStorage d'abord
-    return localStorage.getItem('clientThemeColor') || '#3498db';
+    // Priorité: URL > localStorage > défaut
+    return colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
   });
 
   // Déterminer la langue initiale basée sur la langue de l'interface
@@ -112,10 +113,9 @@ const BookingForm = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [sessionRes, productRes, settingsRes, capacityRes] = await Promise.all([
+        const [sessionRes, productRes, capacityRes] = await Promise.all([
           sessionsAPI.getById(sessionId),
           productsAPI.getById(productId),
-          settingsAPI.get(),
           sessionsAPI.getAvailableCapacity(sessionId, productId)
         ]);
         setSession(sessionRes.data.session);
@@ -131,11 +131,9 @@ const BookingForm = () => {
           }));
         }
 
-        // Charger la couleur client
-        const settings = settingsRes.data.settings;
-        if (settings?.clientButtonColor) {
-          setClientColor(settings.clientButtonColor);
-          localStorage.setItem('clientThemeColor', settings.clientButtonColor);
+        // Sauvegarder la couleur dans localStorage si elle vient de l'URL
+        if (colorFromUrl) {
+          localStorage.setItem('clientThemeColor', colorFromUrl);
         }
       } catch (error) {
         console.error('Erreur chargement données:', error);
@@ -375,7 +373,8 @@ const BookingForm = () => {
         }
 
         // Préparer l'URL de redirection vers la page de paiement
-        const paymentUrl = `/client/payment?sessionId=${session.id}&productId=${productId}&bookingData=${encodeURIComponent(JSON.stringify(bookingData))}&amountDue=${amountDue}&participants=${encodeURIComponent(JSON.stringify(participants.length > 0 ? participants : []))}&payFullAmount=${formData.payFullAmount || false}`;
+        const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
+        const paymentUrl = `/client/payment?sessionId=${session.id}&productId=${productId}&bookingData=${encodeURIComponent(JSON.stringify(bookingData))}&amountDue=${amountDue}&participants=${encodeURIComponent(JSON.stringify(participants.length > 0 ? participants : []))}&payFullAmount=${formData.payFullAmount || false}${colorParam}`;
 
         // Rediriger vers la page de paiement
         navigate(paymentUrl);
@@ -398,7 +397,8 @@ const BookingForm = () => {
         }
 
         // Rediriger vers la confirmation
-        navigate(`/client/booking-confirmation/${booking.id}`);
+        const colorParam = clientColor !== '#3498db' ? `?color=${encodeURIComponent(clientColor)}` : '';
+        navigate(`/client/booking-confirmation/${booking.id}${colorParam}`);
       }
     } catch (error) {
       console.error('Erreur création réservation:', error);
@@ -544,6 +544,35 @@ const BookingForm = () => {
                 alt={product.name}
                 className={styles.summaryImage}
               />
+            )}
+
+            {/* Liste de matériel à apporter */}
+            {product.equipmentList && (
+              <div style={{
+                marginTop: '20px',
+                padding: '15px',
+                backgroundColor: '#f9f9f9',
+                borderRadius: '8px',
+                border: `1px solid ${clientColor}20`
+              }}>
+                <h4 style={{
+                  marginBottom: '10px',
+                  color: clientColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🎒 Matériel à apporter
+                </h4>
+                <div style={{
+                  whiteSpace: 'pre-wrap',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: '#555'
+                }}>
+                  {product.equipmentList.items}
+                </div>
+              </div>
             )}
           </div>
 

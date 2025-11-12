@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI } from '../services/api';
+import { productsAPI, settingsAPI } from '../services/api';
 import styles from './SiteIntegration.module.css';
 
 const SiteIntegration = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [clientColor, setClientColor] = useState('#3498db');
 
   // Configuration de l'iframe
   const [iframeType, setIframeType] = useState('search'); // search, calendar-only
@@ -15,6 +16,7 @@ const SiteIntegration = () => {
   useEffect(() => {
     loadProducts();
     loadUser();
+    loadSettings();
   }, []);
 
   const loadProducts = async () => {
@@ -41,6 +43,18 @@ const SiteIntegration = () => {
     }
   };
 
+  const loadSettings = async () => {
+    try {
+      const response = await settingsAPI.get();
+      const settings = response.data.settings;
+      if (settings?.clientButtonColor) {
+        setClientColor(settings.clientButtonColor);
+      }
+    } catch (error) {
+      console.error('Erreur chargement settings:', error);
+    }
+  };
+
   const getIframeUrl = () => {
     const baseUrl = window.location.origin;
 
@@ -55,6 +69,11 @@ const SiteIntegration = () => {
     // Ajouter le produit sélectionné si nécessaire
     if (selectedProduct && iframeType === 'search') {
       filterParams.push(`productId=${selectedProduct}`);
+    }
+
+    // Ajouter la couleur client si elle est différente de la valeur par défaut
+    if (clientColor && clientColor !== '#3498db') {
+      filterParams.push(`color=${encodeURIComponent(clientColor)}`);
     }
 
     const queryString = filterParams.length > 0 ? `?${filterParams.join('&')}` : '';

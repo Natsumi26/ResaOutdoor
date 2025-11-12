@@ -43,6 +43,7 @@ model User {
   resellers             Reseller[]
   newsletters           Newsletter[]
   settings              Settings?
+  equipmentLists        EquipmentList[] @relation("UserEquipmentLists")
 
   @@map("users")
 }
@@ -84,6 +85,9 @@ model Product {
 
   guideId               String
   guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  equipmentListId       String?
+  equipmentList         EquipmentList? @relation(fields: [equipmentListId], references: [id], onDelete: SetNull)
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -408,4 +412,20 @@ model Newsletter {
   @@map("newsletter")
 }
 
-// Ajouter la relation dans le modèle User
+// Listes de matériel à apporter
+model EquipmentList {
+  id          String    @id @default(uuid())
+  name        String    // Nom de la liste (ex: "Matériel Canyon débutant")
+  items       String    @db.Text // Contenu de la liste (texte multi-lignes)
+
+  // Propriétaire de la liste
+  userId      String
+  user        User      @relation("UserEquipmentLists", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[] // Produits utilisant cette liste
+
+  @@map("equipment_lists")
+}

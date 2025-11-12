@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { productsAPI, sessionsAPI, settingsAPI } from '../../services/api';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { productsAPI, sessionsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './CalendarEmbed.module.css';
@@ -11,40 +11,29 @@ const CalendarEmbed = () => {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const colorFromUrl = searchParams.get('color');
   const [product, setProduct] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateAvailability, setDateAvailability] = useState({});
   const [dateInfo, setDateInfo] = useState({});
-  const [clientColor, setClientColor] = useState(() => {
-    return localStorage.getItem('clientThemeColor') || '#3498db';
-  });
+  const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
 
   useEffect(() => {
     loadProduct();
     loadMonthAvailability();
-    loadClientColor();
-  }, [id]);
+    if (colorFromUrl) {
+      localStorage.setItem('clientThemeColor', colorFromUrl);
+    }
+  }, [id, colorFromUrl]);
 
   useEffect(() => {
     if (selectedDate) {
       loadSessions();
     }
   }, [selectedDate]);
-
-  const loadClientColor = async () => {
-    try {
-      const response = await settingsAPI.get();
-      const settings = response.data.settings;
-      if (settings?.clientButtonColor) {
-        setClientColor(settings.clientButtonColor);
-        localStorage.setItem('clientThemeColor', settings.clientButtonColor);
-      }
-    } catch (error) {
-      console.error('Erreur chargement couleur client:', error);
-    }
-  };
 
   const loadMonthAvailability = async () => {
     try {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { stripeAPI, settingsAPI } from '../../services/api';
 import { Trans, useTranslation } from 'react-i18next';
 import GiftVoucherPreview from '../../components/GiftVoucherPreview';
@@ -8,9 +8,12 @@ import modalStyles from '../../components/GiftVoucherModal.module.css';
 const GiftVoucherPurchase = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const colorFromUrl = queryParams.get('color');
 
   const [clientColor, setClientColor] = useState(() => {
-    return localStorage.getItem('clientThemeColor') || '#3498db';
+    return colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
   });
 
   const [formData, setFormData] = useState({
@@ -47,7 +50,10 @@ const GiftVoucherPurchase = () => {
         const response = await settingsAPI.get();
         const settings = response.data.settings;
 
-        if (settings?.clientButtonColor) {
+        // Priorité à la couleur de l'URL, sinon celle des settings
+        if (colorFromUrl) {
+          localStorage.setItem('clientThemeColor', colorFromUrl);
+        } else if (settings?.clientButtonColor) {
           setClientColor(settings.clientButtonColor);
           localStorage.setItem('clientThemeColor', settings.clientButtonColor);
         }
