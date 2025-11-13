@@ -132,7 +132,7 @@ const GiftVouchers = () => {
           border: '1px solid #dee2e6'
         }}>
           <h3 style={{ marginTop: 0 }}>Vérifier un code promo</h3>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+          <div className={styles.checkCode}>
             <input
               type="text"
               placeholder="Entrez le code..."

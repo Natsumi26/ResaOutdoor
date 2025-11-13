@@ -360,7 +360,7 @@
   padding: 1rem 0;
   background: #f5f5f5;
   display: grid;
-  grid-template-columns: 2.38% 57.82% 2.38% 37.41%;
+  grid-template-columns: 1.99% 57% 1.99% 37% 1.99%;
   align-items: start;
   max-width: 100%;
 }
@@ -872,6 +872,7 @@
   padding: 1rem 1.25rem;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  margin-top: 0.75rem;
 }
 
 .historyList {
@@ -1535,101 +1536,6 @@
 }
 
 /* ============================================ */
-/* RESPONSIVE */
-/* ============================================ */
-@media (max-width: 768px) {
-  .modalOverlay {
-    padding: 0.5rem;
-  }
-
-  .modal {
-    max-height: 95vh;
-  }
-
-  .header {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .headerRight {
-    width: 100%;
-  }
-
-  .contactBox {
-    width: 100%;
-  }
-
-  .content {
-    padding: 0.75rem;
-    grid-template-columns: 1fr;
-  }
-
-  .leftColumn {
-    grid-column: 1;
-    width: 100%;
-  }
-
-  .rightColumn {
-    grid-column: 1;
-    width: 100%;
-  }
-
-  .fullWidthSection {
-    grid-column: 1;
-    padding: 0 0 0.75rem 0;
-  }
-
-  .blockActions {
-    flex-direction: column;
-  }
-
-  .btnBlue,
-  .btnGray,
-  .btnGreen,
-  .btnAddPayment,
-  .btnStripe,
-  .btnRotation,
-  .btnModifyBooking,
-  .btnDeleteBooking {
-    width: 100%;
-  }
-
-  /* Tables à 2 lignes en mode mobile */
-  .groupInfoContent,
-  .activityContent {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .groupInfoButtons,
-  .activityButtons {
-    width: 100%;
-  }
-
-  .groupInfoButtons button,
-  .activityButtons button {
-    width: 100%;
-  }
-
-  .formRow {
-    grid-template-columns: 1fr;
-  }
-
-  .paymentAmounts {
-    flex-direction: column;
-  }
-
-  .pricingTable {
-    font-size: 0.75rem;
-  }
-
-  .pricingTable thead th,
-  .pricingTable tbody td {
-    padding: 0.5rem 0.25rem;
-  }
-}
-
-/* ============================================ */
 /* MODAL DES PAIEMENTS */
 /* ============================================ */
 .paymentsModalOverlay {
@@ -1835,8 +1741,99 @@
   gap: 1rem;
 }
 
-/* Responsive */
+/* ============================================ */
+/* RESPONSIVE */
+/* ============================================ */
 @media (max-width: 768px) {
+  .modalOverlay {
+    padding: 0.5rem;
+  }
+
+  .modal {
+    max-height: 95vh;
+  }
+
+  .header {
+    padding: 1rem;
+  }
+
+  .headerRight {
+    width: 100%;
+  }
+
+  .contactBox {
+    width: 100%;
+  }
+
+  .content {
+    padding: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+
+  .leftColumn {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .rightColumn {
+    margin-top: 0.75rem;
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .fullWidthSection {
+    grid-column: 1;
+    padding: 0 0 0.75rem 0;
+  }
+
+  .blockActions {
+    flex-direction: column;
+  }
+
+  .btnBlue,
+  .btnGray,
+  .btnGreen,
+  .btnAddPayment,
+  .btnStripe,
+  .btnModifyBooking,
+  .btnDeleteBooking {
+    width: 100%;
+  }
+
+  /* Tables à 2 lignes en mode mobile */
+  .groupInfoContent,
+  .activityContent {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .groupInfoButtons,
+  .activityButtons {
+    width: 100%;
+  }
+
+  .groupInfoButtons button,
+  .activityButtons button {
+    width: 100%;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentAmounts {
+    flex-direction: column;
+  }
+
+  .pricingTable {
+    font-size: 0.75rem;
+  }
+
+  .pricingTable thead th,
+  .pricingTable tbody td {
+    padding: 0.5rem 0.25rem;
+  }
+
   .paymentsModalContent {
     max-width: 100%;
     max-height: 95vh;
@@ -1875,5 +1872,12 @@
 
   .paymentDetailValue {
     font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 425px) {
+
+  .headerRight {
+    align-items: center;
   }
 }

@@ -407,7 +407,7 @@
   margin-top: 1.5rem;
 }
 
-/* Responsive */
+/* Responsive Tablet */
 @media (max-width: 768px) {
   .formGrid {
     grid-template-columns: 1fr;
@@ -419,5 +419,269 @@
 
   .form {
     padding: 1rem;
+  }
+
+  .form h2 {
+    font-size: 1.4rem;
+  }
+
+  .section h3 {
+    font-size: 1.1rem;
+  }
+
+  .formGroup label {
+    font-size: 0.9rem;
+  }
+
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+
+  .imagePreview {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .btnCancel,
+  .btnSubmit {
+    width: 100%;
+    padding: 0.7rem 1.5rem;
+  }
+
+  .modalContent {
+    padding: 1.5rem;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  .modalActions button {
+    width: 100%;
+  }
+}
+
+/* Responsive Mobile */
+@media (max-width: 480px) {
+  .form {
+    padding: 0.75rem;
+  }
+
+  .form h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .formGroup {
+    margin-bottom: 1rem;
+  }
+
+  .formGroup label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .formGroup small {
+    font-size: 0.75rem;
+  }
+
+  .imagePreview {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .removeImage {
+    width: 22px;
+    height: 22px;
+    font-size: 0.9rem;
+  }
+
+  .formActions {
+    padding-top: 1.2rem;
+  }
+
+  .btnCancel,
+  .btnSubmit {
+    padding: 0.65rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .modalContent {
+    padding: 1.2rem;
+  }
+
+  .modalContent h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .formWrapper {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .colorSwatch {
+    width: 35px;
+    height: 35px;
+  }
+
+  .colorPicker {
+    top: 50px;
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Responsive Mobile Small (max-width: 425px) */
+@media (max-width: 425px) {
+  .form {
+    padding: 0.65rem;
+  }
+
+  .form h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .section {
+    padding: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .formGroup {
+    margin-bottom: 0.85rem;
+  }
+
+  .formGroup label {
+    font-size: 0.8rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .formGroup input,
+  .formGroup textarea,
+  .formGroup select {
+    padding: 0.55rem;
+    font-size: 0.8rem;
+    border-radius: 5px;
+  }
+
+  .formGroup textarea {
+    min-height: 70px;
+  }
+
+  .formGroup small {
+    font-size: 0.7rem;
+  }
+
+  .formGrid {
+    gap: 0.85rem;
+  }
+
+  .imagePreview {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .removeImage {
+    width: 20px;
+    height: 20px;
+    font-size: 0.85rem;
+    top: 0.2rem;
+    right: 0.2rem;
+  }
+
+  .formActions {
+    padding-top: 1rem;
+    gap: 0.6rem;
+  }
+
+  .btnCancel,
+  .btnSubmit {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 5px;
+  }
+
+  .modalContent {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .modalContent h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .modalActions {
+    margin-top: 1.2rem;
+    gap: 0.6rem;
+  }
+
+  .formWrapper {
+    padding: 0.65rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .colorSwatch {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .colorPicker {
+    top: 45px;
+    left: -10px;
+  }
+
+  .checkbox {
+    width: 16px;
+    height: 16px;
+  }
+
+  .uploading {
+    font-size: 0.8rem;
+  }
+
+  .btnAddCategory {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
   }
 }

@@ -215,6 +215,7 @@ const SiteIntegration = () => {
               </button>
             </div>
           </div>
+        </div>
 
         {/* Preview */}
         <div className={styles.previewSection}>
@@ -237,7 +238,6 @@ const SiteIntegration = () => {
         </div>
       </div>
     </div>
-  </div>
   );
 };
 

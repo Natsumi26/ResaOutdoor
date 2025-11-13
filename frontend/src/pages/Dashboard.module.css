@@ -330,4 +330,150 @@
   .sidebar.mobile {
     width: 240px;
   }
+
+  .sidebarHeader {
+    padding: 20px 16px;
+  }
+
+  .sidebarHeader h2 {
+    font-size: 16px;
+  }
+
+  .navItem {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .subMenuItem {
+    padding: 10px 16px 10px 36px;
+    font-size: 13px;
+  }
+
+  .userInfo {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .userAvatar {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .userName {
+    font-size: 13px;
+  }
+
+  .userRole {
+    font-size: 11px;
+  }
+
+  .logoutBtn {
+    padding: 9px;
+    font-size: 13px;
+  }
+}
+
+/* Responsive pour très petits écrans (max-width: 425px) */
+@media (max-width: 425px) {
+  .dashboard {
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 260px;
+  }
+
+  .sidebar.mobile {
+    width: 260px;
+  }
+
+  .sidebar.closed {
+    width: 260px;
+  }
+
+  .main {
+    padding: 12px 8px;
+  }
+
+  .mainHeader {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+  }
+
+  .headerRight {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sidebarHeader {
+    padding: 18px 14px;
+  }
+
+  .sidebarHeader h2 {
+    font-size: 16px;
+  }
+
+  .toggleBtn {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .nav {
+    padding: 16px 0;
+  }
+
+  .navItem {
+    padding: 10px 12px;
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  .icon {
+    font-size: 17px;
+    min-width: 22px;
+  }
+
+  .subMenuItem {
+    padding: 9px 14px 9px 32px;
+    font-size: 12px;
+    gap: 10px;
+  }
+
+  .subMenuItem .icon {
+    font-size: 15px;
+  }
+
+  .sidebarFooter {
+    padding: 16px 12px;
+  }
+
+  .userInfo {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .userAvatar {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+
+  .userName {
+    font-size: 12px;
+  }
+
+  .userRole {
+    font-size: 10px;
+  }
+
+  .logoutBtn {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .dropdownArrow {
+    font-size: 11px;
+  }
 }
