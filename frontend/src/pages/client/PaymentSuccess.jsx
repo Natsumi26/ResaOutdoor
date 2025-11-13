@@ -9,7 +9,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const PaymentSuccess = () => {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('Vérification du paiement...');
@@ -74,7 +74,15 @@ const PaymentSuccess = () => {
 
         // Rediriger vers la page de confirmation
         setTimeout(() => {
-          navigate(`/client/booking-confirmation/${booking.id}`);
+          const params = new URLSearchParams();
+          const guideId = searchParams.get('guideId');
+          const teamName = searchParams.get('teamName');
+
+          if (guideId) params.set('guideId', guideId);
+          if (teamName) params.set('teamName', teamName);
+          const color = searchParams.get('color');
+          if (color) params.set('color', color);
+          navigate(`/client/booking-confirmation/${booking.id}?${params.toString()}`);
         }, 1500);
       } else {
         // Pas encore trouvée, réessayer
@@ -142,7 +150,17 @@ const PaymentSuccess = () => {
             </p>
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
               <button
-                onClick={() => navigate('/client/search')}
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  const guideId = searchParams.get('guideId');
+                  const teamName = searchParams.get('teamName');
+
+                  if (guideId) params.set('guideId', guideId);
+                  if (teamName) params.set('teamName', teamName);
+                  const color = searchParams.get('color');
+                  if (color) params.set('color', color);
+                  navigate(`/client/search?${params.toString()}`)}}
+
                 className={styles.btn}
                 style={{ backgroundColor: clientColor }}
               >

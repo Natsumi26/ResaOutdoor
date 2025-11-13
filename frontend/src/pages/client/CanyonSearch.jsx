@@ -5,7 +5,7 @@ import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
 import { Trans, useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
-import { format, addDays} from 'date-fns';
+import { format, addDays, subDays, parseISO } from 'date-fns';
 import { useLocation } from 'react-router-dom';
 
 
@@ -59,7 +59,7 @@ const CanyonSearch = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-console.log(isMobile)
+
   // Sauvegarder la couleur dans localStorage si elle vient de l'URL
   useEffect(() => {
     if (colorFromUrl) {
@@ -388,6 +388,34 @@ console.log(isMobile)
 
   const canSearch = filters.participants && (filters.date || (filters.startDate && filters.endDate));
 
+  // Navigation entre les jours
+  const navigateDay = (direction) => {
+    if (!filters.date) return;
+
+    const currentDate = parseISO(filters.date);
+    const newDate = direction === 'next' ? addDays(currentDate, 1) : subDays(currentDate, 1);
+    const formattedDate = format(newDate, 'yyyy-MM-dd');
+
+    const newFilters = {
+      ...filters,
+      date: formattedDate,
+      startDate: '',
+      endDate: ''
+    };
+
+    setFilters(newFilters);
+
+    // Mettre à jour les paramètres URL
+    const params = new URLSearchParams(searchParams);
+    params.set('date', formattedDate);
+    params.delete('startDate');
+    params.delete('endDate');
+    setSearchParams(params);
+
+    // Lancer automatiquement la recherche
+    loadProducts(newFilters);
+  };
+
   const getDurationLabel = (minutes) => {
     const hours = minutes / 60;
     if (hours < 1) return `${minutes} min`;
@@ -601,19 +629,90 @@ console.log(isMobile)
 
       {/* Résultats en dessous */}
       {hasSearched && (
-        <div id="results" style={{ marginTop: '2rem', width: '100%', maxWidth: '1200px', background: 'white', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div id="results" style={{ marginTop: '2rem', width: '100%', maxWidth: '1200px', background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           {products.length > 0 ? (
             <>
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
-                    {products.length} canyon{products.length > 1 ? 's' : ''} {t('Find')}{products.length > 1 ? 's' : ''}
-                    {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
-                      <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
-                        (sur {allProducts.length})
-                      </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
+                      {products.length} canyon{products.length > 1 ? 's' : ''} {t('Find')}{products.length > 1 ? 's' : ''}
+                      {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
+                        <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
+                          (sur {allProducts.length})
+                        </span>
+                      )}
+                    </h2>
+
+                    {/* Navigation de dates (seulement si recherche par date unique) */}
+                    {filters.date && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '1rem' }}>
+                        <button
+                          onClick={() => navigateDay('previous')}
+                          style={{
+                            padding: '0.4rem 0.7rem',
+                            border: `1px solid ${clientColor}`,
+                            borderRadius: '6px',
+                            background: 'white',
+                            color: clientColor,
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = clientColor;
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'white';
+                            e.currentTarget.style.color = clientColor;
+                          }}
+                          title="Jour précédent"
+                        >
+                          ‹
+                        </button>
+                        <span style={{
+                          fontSize: '0.9rem',
+                          color: '#495057',
+                          fontWeight: '500',
+                          minWidth: '100px',
+                          textAlign: 'center'
+                        }}>
+                          {format(parseISO(filters.date), 'dd/MM/yyyy')}
+                        </span>
+                        <button
+                          onClick={() => navigateDay('next')}
+                          style={{
+                            padding: '0.4rem 0.7rem',
+                            border: `1px solid ${clientColor}`,
+                            borderRadius: '6px',
+                            background: 'white',
+                            color: clientColor,
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = clientColor;
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'white';
+                            e.currentTarget.style.color = clientColor;
+                          }}
+                          title="Jour suivant"
+                        >
+                          ›
+                        </button>
+                      </div>
                     )}
-                  </h2>
+                  </div>
 
                   {/* Filtres supplémentaires */}
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -718,7 +817,16 @@ console.log(isMobile)
                             }}
                           >
                             <button
-                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}`)}
+                              onClick={() => {
+                                const params = new URLSearchParams();
+                                const guideId = searchParams.get('guideId');
+                                const teamName = searchParams.get('teamName');
+
+                                if (guideId) params.set('guideId', guideId);
+                                if (teamName) params.set('teamName', teamName);
+                                const color = searchParams.get('color');
+                                if (color) params.set('color', color);
+                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -756,7 +864,17 @@ console.log(isMobile)
                             justifyContent: 'center'
                           }}>
                             <button
-                              onClick={() => navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}`)}
+                              onClick={() => {
+                                const params = new URLSearchParams();
+                                const guideId = searchParams.get('guideId');
+                                const teamName = searchParams.get('teamName');
+
+                                if (guideId) params.set('guideId', guideId);
+                                if (teamName) params.set('teamName', teamName);
+                                const color = searchParams.get('color');
+                                if (color) params.set('color', color);
+
+                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -791,11 +909,11 @@ console.log(isMobile)
                       <div className={styles.canyonCardContent}>
                         {/* Titre avec prix */}
                         <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '1.3rem' }}>
+                          <div className={styles.headerCard}>
+                            <h3>
                               {product.name.toUpperCase()}
                             </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <div className={styles.priceBlock}>
                               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2c3e50', lineHeight: 1 }}>
                                 {product.priceIndividual}€
                               </div>
@@ -864,7 +982,15 @@ console.log(isMobile)
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}`);
+                                    const params = new URLSearchParams();
+                                    const guideId = searchParams.get('guideId');
+                                    const teamName = searchParams.get('teamName');
+
+                                    if (guideId) params.set('guideId', guideId);
+                                    if (teamName) params.set('teamName', teamName);
+                                    const color = searchParams.get('color');
+                                    if (color) params.set('color', color);
+                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}&${params.toString()}`);
                                   }}
                                   style={{
                                     background: clientColor,
@@ -968,8 +1094,15 @@ console.log(isMobile)
                                               e.preventDefault();
                                               e.stopPropagation();
                                               const sessionId = session.sessionId || session.id;
-                                              const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
-                                              navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}${colorParam}`);
+                                              const params = new URLSearchParams();
+                                              const guideId = searchParams.get('guideId');
+                                              const teamName = searchParams.get('teamName');
+
+                                              if (guideId) params.set('guideId', guideId);
+                                              if (teamName) params.set('teamName', teamName);
+                                              const color = searchParams.get('color');
+                                              if (color) params.set('color', color);
+                                              navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}&${params.toString()}`);
                                             }}
                                             style={{ borderColor: clientColor }}
                                             onMouseEnter={(e) => {

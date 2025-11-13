@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { bookingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -51,7 +51,19 @@ const BookingConfirmation = () => {
   }
 
   const isPaid = (booking.amountPaid+booking.discountAmount) >= booking.totalPrice;
-  console.log(booking)
+
+  
+  const params = new URLSearchParams();
+  const guideId = queryParams.get('guideId');
+  const teamName = queryParams.get('teamName');
+  const color = queryParams.get('color');
+
+  if (guideId) params.set('guideId', guideId);
+  if (teamName) params.set('teamName', teamName);
+  if (color) params.set('color', color);
+
+  const queryString = params.toString();
+
   return (
     <div className={styles.clientContainerIframe}>
       <div className={styles.confirmationContainer}>
@@ -243,14 +255,14 @@ const BookingConfirmation = () => {
           {/* Actions */}
           <div className={styles.confirmationActions}>
             <Link
-              to={`/client/my-booking/${booking.id}`}
+              to={`/client/my-booking/${booking.id}?${queryString}`}
               className={styles.btnPrimary}
               style={{ backgroundColor: clientColor, borderColor: clientColor }}
             >
               {t('InfosPart')}
             </Link>
             <Link
-              to="/client/search"
+              to={`/client/search?${queryString}`}
               className={styles.btnSecondary}
             >
               {t('autreResa')}

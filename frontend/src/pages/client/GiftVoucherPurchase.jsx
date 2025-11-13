@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { stripeAPI, settingsAPI } from '../../services/api';
 import { Trans, useTranslation } from 'react-i18next';
 import GiftVoucherPreview from '../../components/GiftVoucherPreview';
@@ -9,6 +9,7 @@ const GiftVoucherPurchase = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const queryParams = new URLSearchParams(location.search);
   const colorFromUrl = queryParams.get('color');
 
@@ -80,7 +81,15 @@ const GiftVoucherPurchase = () => {
   };
 
   const handleClose = () => {
-    navigate('/client/search');
+    const params = new URLSearchParams();
+    const guideId = searchParams.get('guideId');
+    const teamName = searchParams.get('teamName');
+
+    if (guideId) params.set('guideId', guideId);
+    if (teamName) params.set('teamName', teamName);
+    const color = searchParams.get('color');
+    if (color) params.set('color', color);
+    navigate(`/client/search?${params.toString()}`);
   };
 
   const handleSubmit = async (e) => {
@@ -237,7 +246,7 @@ const GiftVoucherPurchase = () => {
             </div>
 
             {/* Infos Acheteur & Bénéficiaire */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className={modalStyles.buyerInfo}>
               <div className={modalStyles.formSection}>
                 <h2>{t('yoursInfos')}</h2>
                 <div className={modalStyles.formGroup}>

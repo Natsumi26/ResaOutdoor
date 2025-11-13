@@ -137,7 +137,16 @@ const BookingForm = () => {
         }
       } catch (error) {
         console.error('Erreur chargement données:', error);
-        navigate('/client/search');
+        const params = new URLSearchParams();
+        const guideId = searchParams.get('guideId');
+        const teamName = searchParams.get('teamName');
+
+        if (guideId) params.set('guideId', guideId);
+        if (teamName) params.set('teamName', teamName);
+        const color = searchParams.get('color');
+        if (color) params.set('color', color);
+
+        navigate(`/client/search?${params.toString()}`);
       } finally {
         setLoading(false);
       }
@@ -373,8 +382,15 @@ const BookingForm = () => {
         }
 
         // Préparer l'URL de redirection vers la page de paiement
-        const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
-        const paymentUrl = `/client/payment?sessionId=${session.id}&productId=${productId}&bookingData=${encodeURIComponent(JSON.stringify(bookingData))}&amountDue=${amountDue}&participants=${encodeURIComponent(JSON.stringify(participants.length > 0 ? participants : []))}&payFullAmount=${formData.payFullAmount || false}${colorParam}`;
+        const params = new URLSearchParams();
+        const guideId = searchParams.get('guideId');
+        const teamName = searchParams.get('teamName');
+
+        if (guideId) params.set('guideId', guideId);
+        if (teamName) params.set('teamName', teamName);
+        const color = searchParams.get('color');
+        if (color) params.set('color', color);
+        const paymentUrl = `/client/payment?sessionId=${session.id}&productId=${productId}&bookingData=${encodeURIComponent(JSON.stringify(bookingData))}&amountDue=${amountDue}&participants=${encodeURIComponent(JSON.stringify(participants.length > 0 ? participants : []))}&payFullAmount=${formData.payFullAmount || false}&${params.toString()}`;
 
         // Rediriger vers la page de paiement
         navigate(paymentUrl);

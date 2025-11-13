@@ -16,6 +16,7 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
   const { t } = useTranslation();
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!stripe) {
@@ -37,8 +38,15 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
           // Rediriger vers la confirmation après un court délai
           setTimeout(() => {
             // Récupérer l'ID de réservation depuis les métadonnées ou l'API
-            const colorParam = clientColor !== '#3498db' ? `?color=${encodeURIComponent(clientColor)}` : '';
-            navigate(`/client/booking-confirmation/${paymentIntent.metadata.bookingId}${colorParam}`);
+            const params = new URLSearchParams();
+            const guideId = searchParams.get('guideId');
+            const teamName = searchParams.get('teamName');
+
+            if (guideId) params.set('guideId', guideId);
+            if (teamName) params.set('teamName', teamName);
+            const color = searchParams.get('color');
+            if (color) params.set('color', color);
+            navigate(`/client/booking-confirmation/${paymentIntent.metadata.bookingId}?${params.toString()}`);
           }, 2000);
           break;
         case 'processing':
@@ -77,8 +85,15 @@ const CheckoutForm = ({ sessionId, productId, bookingData, amountDue, participan
       setIsLoading(false);
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Paiement réussi, naviguer vers la page de succès SANS sortir de l'iframe
-      const colorParam = clientColor !== '#3498db' ? `&color=${encodeURIComponent(clientColor)}` : '';
-      navigate(`/client/payment-confirmation?payment_intent=${paymentIntent.id}&payment_intent_client_secret=${paymentIntent.client_secret}${colorParam}`);
+      const params = new URLSearchParams();
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+
+      if (guideId) params.set('guideId', guideId);
+      if (teamName) params.set('teamName', teamName);
+      const color = searchParams.get('color');
+      if (color) params.set('color', color);
+      navigate(`/client/payment-confirmation?payment_intent=${paymentIntent.id}&payment_intent_client_secret=${paymentIntent.client_secret}&${params.toString()}`);
     }
   };
 
@@ -197,7 +212,46 @@ const BookingPayment = () => {
   };
 
   return (
+    
     <div className={styles.searchPageContainerIframe}>
+      {/* Bouton retour */}
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          background: 'white',
+          border: '2px solid #2c3e50',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s',
+          padding: 0
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.target.style.background = '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.target.style.background = 'white';
+        }}
+        title="Retour"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
       <div className={styles.paymentContainer}>
         <h1>{t('payment.title') || 'Paiement'}</h1>
 

@@ -207,7 +207,16 @@ const GiftVoucherSuccess = () => {
 
         <div className={styles.formActions}>
           <button
-            onClick={() => navigate('/client/search')}
+            onClick={() => {
+              const params = new URLSearchParams();
+              const guideId = searchParams.get('guideId');
+              const teamName = searchParams.get('teamName');
+
+              if (guideId) params.set('guideId', guideId);
+              if (teamName) params.set('teamName', teamName);
+              const color = searchParams.get('color');
+              if (color) params.set('color', color);
+              navigate(`/client/search?${params.toString()}`)}}
             className={styles.btnPrimary}
           >
             {t('SaveActivity')}

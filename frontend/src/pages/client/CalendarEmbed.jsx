@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { productsAPI, sessionsAPI } from '../../services/api';
 import { format, addDays } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import styles from './CalendarEmbed.module.css';
 import DateRangePicker from '../../components/DateRangePicker';
 import { useTranslation } from 'react-i18next';
@@ -200,7 +199,15 @@ const CalendarEmbed = () => {
   };
 
   const handleBookSession = (sessionId) => {
-    const url = `/client/book/${sessionId}?productId=${product.id}`;
+    const params = new URLSearchParams();
+    const guideId = searchParams.get('guideId');
+    const teamName = searchParams.get('teamName');
+
+    if (guideId) params.set('guideId', guideId);
+    if (teamName) params.set('teamName', teamName);
+    const color = searchParams.get('color');
+    if (color) params.set('color', color);
+    const url = `/client/book/${sessionId}?productId=${product.id}&${params.toString()}`;
     navigate(url);
   };
 
@@ -303,7 +310,16 @@ const CalendarEmbed = () => {
                     <div key={otherProduct.id} className={styles.otherProductItem}>
                       <span>{otherProduct.name}</span>
                       <button
-                        onClick={() => navigate(`/client/canyon/${otherProduct.id}`)}
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            const guideId = searchParams.get('guideId');
+                            const teamName = searchParams.get('teamName');
+
+                            if (guideId) params.set('guideId', guideId);
+                            if (teamName) params.set('teamName', teamName);
+                            const color = searchParams.get('color');
+                            if (color) params.set('color', color);
+                          navigate(`/client/canyon/${otherProduct.id}?${params.toString()}`)}}
                         className={styles.otherProductButton}
                       >
                         {t('calendarEmbed.viewThisCanyon')}

@@ -205,7 +205,16 @@ const CanyonDetails = () => {
       setProduct(response.data.product);
     } catch (error) {
       console.error('Erreur chargement produit:', error);
-      navigate('/client/search');
+      const params = new URLSearchParams();
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+
+      if (guideId) params.set('guideId', guideId);
+      if (teamName) params.set('teamName', teamName);
+      const color = searchParams.get('color');
+      if (color) params.set('color', color);
+
+      navigate(`/client/search?${params.toString()}`);
     } finally {
       setLoading(false);
     }
@@ -265,7 +274,15 @@ const CanyonDetails = () => {
   };
 
   const handleBookSession = (sessionId) => {
-    const url = `/client/book/${sessionId}?productId=${product.id}${participantsParam ? `&participants=${participantsParam}` : ''}`;
+    const params = new URLSearchParams();
+    const guideId = searchParams.get('guideId');
+    const teamName = searchParams.get('teamName');
+
+    if (guideId) params.set('guideId', guideId);
+    if (teamName) params.set('teamName', teamName);
+    const color = searchParams.get('color');
+    if (color) params.set('color', color);
+    const url = `/client/book/${sessionId}?productId=${product.id}${participantsParam ? `&participants=${participantsParam}` : ''}&${params.toString()}`;
     navigate(url);
   };
 
@@ -569,7 +586,16 @@ const CanyonDetails = () => {
                       >
                         <span style={{ fontWeight: '500' }}>{otherProduct.name}</span>
                         <button
-                          onClick={() => navigate(`/client/canyon/${otherProduct.id}`)}
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            const guideId = searchParams.get('guideId');
+                            const teamName = searchParams.get('teamName');
+
+                            if (guideId) params.set('guideId', guideId);
+                            if (teamName) params.set('teamName', teamName);
+                            const color = searchParams.get('color');
+                            if (color) params.set('color', color);
+                            navigate(`/client/canyon/${otherProduct.id}?${params.toString()}`)}}
                           style={{
                             backgroundColor: '#ffc107',
                             color: '#000',

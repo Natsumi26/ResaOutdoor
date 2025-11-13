@@ -574,6 +574,26 @@
   margin-bottom: 0;
 }
 
+.headerCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.headerCard h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+}
+.headerCard .priceBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 /* Mobile: disposition verticale */
 @media (max-width: 768px) {
   .topDetailsContainer {
@@ -3474,6 +3494,26 @@ input[type="number"] {
   .paymentSummary {
     padding: 1rem;
   }
+}
+@media (max-width: 425px) {
+  .formActions {
+    flex-direction: column;
+  }
+
+  .headerCard {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .headerCard h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .headerCard .priceBlock {
+    align-items: center;
+  }
+
 }
 
 /* ========== SPINNER DE CHARGEMENT ========== */

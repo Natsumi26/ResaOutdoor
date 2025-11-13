@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { bookingsAPI, participantsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -16,6 +16,7 @@ const MyBooking = () => {
   const [saving, setSaving] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState({});
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
 
   useEffect(() => {
@@ -123,7 +124,15 @@ const MyBooking = () => {
       }
 
       alert(t('SaveInfos'));
-      navigate('/client/search');
+      const params = new URLSearchParams();
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+
+      if (guideId) params.set('guideId', guideId);
+      if (teamName) params.set('teamName', teamName);
+      const color = searchParams.get('color');
+      if (color) params.set('color', color);
+      navigate(`/client/search?${params.toString()}`);
 
     } catch (error) {
       console.error('Erreur sauvegarde participants:', error);

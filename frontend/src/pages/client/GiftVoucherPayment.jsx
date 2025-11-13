@@ -64,7 +64,7 @@ const CheckoutForm = ({ amount, buyerEmail, recipientEmail, recipientName, messa
           top: '20px',
           left: '20px',
           background: 'white',
-          border: '2px solid #2c3e50',
+          border: `2px solid ${clientColor}`,
           cursor: 'pointer',
           borderRadius: '50%',
           width: '50px',
@@ -150,7 +150,7 @@ const GiftVoucherPayment = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const color = urlParams.get('color');
     if (color) {
-      setClientColor(`#${color}`);
+      setClientColor(`${color}`);
     }
   }, []);
 
