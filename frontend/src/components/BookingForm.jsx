@@ -319,8 +319,48 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
-      <h2>📝 Nouvelle réservation</h2>
+    <>
+      {/* Bouton retour */}
+      <button
+        onClick={onCancel}
+        type="button"
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '290px',
+          background: 'white',
+          border: '2px solid #2c3e50',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s',
+          padding: 0
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.currentTarget.style.background = '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.currentTarget.style.background = 'white';
+        }}
+        title="Retour"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      <form onSubmit={handleSubmit} className={styles.form}>
+      <h2>Nouvelle réservation</h2>
 
       <div className={styles.sessionInfo}>
         <h3>Session : {new Date(session.date).toLocaleDateString('fr-FR', {
@@ -336,7 +376,7 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
       <div className={styles.formGrid}>
         {/* Canyon */}
         <div className={styles.section}>
-          <h3>🏞️ Canyon</h3>
+          <h3>Canyon</h3>
 
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
@@ -680,6 +720,7 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
         </button>
       </div>
     </form>
+    </>
   );
 };
 

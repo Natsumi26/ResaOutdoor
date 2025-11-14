@@ -34,7 +34,8 @@
   overflow: hidden;
 }
 
-.sidebar.closed .sidebarHeader h2 {
+.sidebar.closed .sidebarHeader h2,
+.sidebar.closed .sidebarHeader .logo {
   display: none;
 }
 

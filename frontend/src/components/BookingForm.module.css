@@ -11,6 +11,7 @@
   color: #2c3e50;
   font-size: 1.25rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .sessionInfo {
@@ -62,10 +63,14 @@
 }
 
 .section h3 {
-  margin: 0 0 0.75rem 0;
-  color: #2c3e50;
-  font-size: 0.95rem;
+  margin: -1rem -1rem 1rem -1rem;
+  color: white;
+  background: #6c757d;
+  font-size: 1rem;
   font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-radius: 8px 8px 0 0;
+  text-align: center;
 }
 
 .formGroup {

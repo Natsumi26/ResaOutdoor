@@ -48,7 +48,12 @@ const CalendarEmbed = () => {
       const allSessions = response.data.sessions || [];
       const availability = {};
       const info = {};
-      const currentProductId = String(id);
+      // Extraire le vrai productId si c'est un uniqueId
+      let realProductId = id;
+      if (id.includes('_override_')) {
+        realProductId = id.split('_override_')[0];
+      }
+      const currentProductId = String(realProductId);
       const now = new Date();
 
       allSessions.forEach(session => {
@@ -59,6 +64,11 @@ const CalendarEmbed = () => {
         const isSessionPast = sessionDate <= now;
 
         if (isSessionPast) {
+          return;
+        }
+
+        // Ne pas inclure les sessions fermées dans le calendrier
+        if (session.status === 'closed') {
           return;
         }
 
@@ -161,8 +171,14 @@ const CalendarEmbed = () => {
         const sessionResponse = await sessionsAPI.getById(sessionId);
         const session = sessionResponse.data.session;
 
+        // Extraire le vrai productId si c'est un uniqueId
+        let realProductId = id;
+        if (id.includes('_override_')) {
+          realProductId = id.split('_override_')[0];
+        }
+
         // Trouver le produit dans la session (les overrides sont déjà appliqués par le backend)
-        const sessionProduct = session.products?.find(sp => sp.product.id === id);
+        const sessionProduct = session.products?.find(sp => sp.product.id === realProductId);
 
         if (sessionProduct) {
           setProduct(sessionProduct.product);
@@ -170,8 +186,14 @@ const CalendarEmbed = () => {
           throw new Error('Produit non trouvé dans cette session');
         }
       } else {
-        // Sinon, charger le produit normalement
-        const response = await productsAPI.getById(id);
+        // Extraire le vrai productId si c'est un uniqueId
+        let realProductId = id;
+        if (id.includes('_override_')) {
+          realProductId = id.split('_override_')[0];
+        }
+
+        // Charger le produit normalement
+        const response = await productsAPI.getById(realProductId);
         setProduct(response.data.product);
       }
     } catch (error) {
@@ -205,18 +227,30 @@ const CalendarEmbed = () => {
   };
 
   const getAvailableSpots = (session) => {
-    const currentProduct = session.products.find(p => p.product.id === product.id);
+    if (!product) return 0;
+    // Extraire le vrai productId si c'est un uniqueId
+    let realProductId = id;
+    if (id.includes('_override_')) {
+      realProductId = id.split('_override_')[0];
+    }
+    const currentProduct = session.products.find(p => p.product.id === realProductId);
     if (!currentProduct) return 0;
 
     const total = currentProduct.product.maxCapacity;
     const booked = session.bookings
-      .filter(b => b.productId === product.id)
+      .filter(b => b.productId === realProductId)
       .reduce((sum, b) => sum + b.numberOfPeople, 0);
 
     return total - booked;
   };
 
   const handleBookSession = (sessionId) => {
+    if (!product) return;
+    // Extraire le vrai productId si c'est un uniqueId
+    let realProductId = id;
+    if (id.includes('_override_')) {
+      realProductId = id.split('_override_')[0];
+    }
     const params = new URLSearchParams();
     const guideId = searchParams.get('guideId');
     const teamName = searchParams.get('teamName');
@@ -225,7 +259,7 @@ const CalendarEmbed = () => {
     if (teamName) params.set('teamName', teamName);
     const color = searchParams.get('color');
     if (color) params.set('color', color);
-    const url = `/client/book/${sessionId}?productId=${product.id}&${params.toString()}`;
+    const url = `/client/book/${sessionId}?productId=${realProductId}&${params.toString()}`;
     navigate(url);
   };
 
@@ -242,15 +276,39 @@ const CalendarEmbed = () => {
   };
 
   const isSessionReservedByOtherProduct = (session) => {
-    return session.bookings.some(b => b.productId !== product.id);
+    if (!product) return false;
+    // Extraire le vrai productId si c'est un uniqueId
+    let realProductId = id;
+    if (id.includes('_override_')) {
+      realProductId = id.split('_override_')[0];
+    }
+    return session.bookings.some(b => b.productId !== realProductId);
   };
-  console.log(sessions)
+
   const visibleSessions = sessions.filter(s => {
-    const hasThisProduct = s.products?.some(p => {
-      return String(p.product?.id) === String(product.id);
+    if (!product) return false;
+    // Extraire le vrai productId si c'est un uniqueId
+    let realProductId = id;
+    if (id.includes('_override_')) {
+      realProductId = id.split('_override_')[0];
+    }
+
+    // Trouver le produit dans la session
+    const sessionProduct = s.products?.find(p => {
+      return String(p.product?.id) === String(realProductId);
     });
 
-    if (!hasThisProduct) return false;
+    if (!sessionProduct) return false;
+
+    // Ne pas afficher les sessions fermées (vérifier le statut de la session ET les overrides)
+    if (s.status === 'closed') {
+      return false;
+    }
+
+    // Vérifier si le produit a un override de statut "closed"
+    if (sessionProduct.productOverrides && sessionProduct.productOverrides.status === 'closed') {
+      return false;
+    }
 
     const now = new Date();
     const sessionDate = new Date(s.date);
@@ -366,7 +424,12 @@ const CalendarEmbed = () => {
             ) : (
               visibleSessions.map((session) => {
                 const availableSpots = getAvailableSpots(session);
-                const currentProductInSession = session.products.find(p => p.product.id === product.id);
+                // Extraire le vrai productId si c'est un uniqueId
+                let realProductId = id;
+                if (id.includes('_override_')) {
+                  realProductId = id.split('_override_')[0];
+                }
+                const currentProductInSession = session.products.find(p => p.product.id === realProductId);
                 const isAutoClosed = currentProductInSession?.product?.isAutoClosed || false;
                 const isAvailable = session.status === 'open' && availableSpots > 0 && !isAutoClosed;
 

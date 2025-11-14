@@ -949,8 +949,8 @@
 
 .btnAdd {
   padding: 0.4rem 0.85rem;
-  background: #3b82f6;
-  color: white;
+  background: #e5e7eb;
+  color: #4b5563;
   border: none;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -961,7 +961,7 @@
 }
 
 .btnAdd:hover {
-  background: #2563eb;
+  background: #d1d5db;
 }
 
 /* ============================================ */
@@ -1152,7 +1152,7 @@
 /* ============================================ */
 .btnBlue {
   padding: 0.5rem 0.85rem;
-  background: #3b82f6;
+  background: #4b5563;
   color: white;
   border: none;
   border-radius: 5px;
@@ -1163,7 +1163,7 @@
 }
 
 .btnBlue:hover {
-  background: #2563eb;
+  background: #374151;
   transform: translateY(-1px);
 }
 

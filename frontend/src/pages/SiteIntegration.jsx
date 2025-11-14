@@ -13,6 +13,37 @@ const SiteIntegration = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [filterMode, setFilterMode] = useState('individual'); // 'individual' ou 'team'
 
+  // Modal preview
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [modalSize, setModalSize] = useState({ width: 90, height: 90 }); // en pourcentage
+  const [devicePreset, setDevicePreset] = useState('desktop');
+
+  // Préréglages pour différents appareils
+  const devicePresets = {
+    desktop: { width: 90, height: 90, label: '💻 Desktop' },
+    tablet: { width: 768, height: 1024, label: '📱 Tablette', fixed: true },
+    mobile: { width: 375, height: 667, label: '📱 Mobile', fixed: true }
+  };
+
+  const applyDevicePreset = (preset) => {
+    setDevicePreset(preset);
+    if (devicePresets[preset].fixed) {
+      // Pour mobile et tablette, on utilise des pixels fixes
+      setModalSize({
+        width: devicePresets[preset].width,
+        height: devicePresets[preset].height,
+        fixed: true
+      });
+    } else {
+      // Pour desktop, on utilise des pourcentages
+      setModalSize({
+        width: devicePresets[preset].width,
+        height: devicePresets[preset].height,
+        fixed: false
+      });
+    }
+  };
+
   useEffect(() => {
     loadProducts();
     loadUser();
@@ -217,26 +248,135 @@ const SiteIntegration = () => {
           </div>
         </div>
 
-        {/* Preview */}
+        {/* Bouton pour ouvrir l'aperçu */}
         <div className={styles.previewSection}>
           <h2>👁️ Aperçu</h2>
-          <div className={styles.previewContainer}>
-            {iframeType !== 'calendar-only' || selectedProduct ? (
-              <iframe
-                src={getIframeUrl()}
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
-                allow="payment"
-                allowFullScreen
-                title="Preview"
-              />
-            ) : (
-              <div className={styles.previewPlaceholder}>
-                Veuillez sélectionner un canyon pour voir l'aperçu
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => {
+              setShowPreviewModal(true);
+              applyDevicePreset('desktop');
+            }}
+            className={styles.openPreviewButton}
+            disabled={iframeType === 'calendar-only' && !selectedProduct}
+          >
+            Ouvrir l'aperçu
+          </button>
+          {iframeType === 'calendar-only' && !selectedProduct && (
+            <small className={styles.description}>
+              Veuillez sélectionner un canyon pour voir l'aperçu
+            </small>
+          )}
         </div>
       </div>
+
+      {/* Modal d'aperçu redimensionnable */}
+      {showPreviewModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPreviewModal(false)}>
+          <div
+            className={styles.modalContainer}
+            style={{
+              width: modalSize.fixed ? `${modalSize.width}px` : `${modalSize.width}vw`,
+              height: modalSize.fixed ? `${modalSize.height}px` : `${modalSize.height}vh`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalHeaderLeft}>
+                <h3>👁️ Aperçu de l'intégration</h3>
+                {modalSize.fixed && (
+                  <span className={styles.dimensions}>
+                    {modalSize.width} × {modalSize.height} px
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className={styles.closeButton}
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.devicePresets}>
+              <button
+                onClick={() => applyDevicePreset('desktop')}
+                className={`${styles.presetButton} ${devicePreset === 'desktop' ? styles.active : ''}`}
+              >
+                💻 Desktop
+              </button>
+              <button
+                onClick={() => applyDevicePreset('tablet')}
+                className={`${styles.presetButton} ${devicePreset === 'tablet' ? styles.active : ''}`}
+              >
+                📱 Tablette
+              </button>
+              <button
+                onClick={() => applyDevicePreset('mobile')}
+                className={`${styles.presetButton} ${devicePreset === 'mobile' ? styles.active : ''}`}
+              >
+                📱 Mobile
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <iframe
+                src={getIframeUrl()}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '4px' }}
+                allow="payment"
+                allowFullScreen
+                title="Preview Modal"
+              />
+            </div>
+            <div
+              className={styles.resizeHandle}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = modalSize.width;
+                const startHeight = modalSize.height;
+                const isFixedSize = modalSize.fixed;
+
+                const handleMouseMove = (moveEvent) => {
+                  const deltaX = moveEvent.clientX - startX;
+                  const deltaY = moveEvent.clientY - startY;
+
+                  if (isFixedSize) {
+                    // Redimensionnement en pixels
+                    const newWidth = startWidth + deltaX;
+                    const newHeight = startHeight + deltaY;
+
+                    setModalSize({
+                      width: Math.max(300, Math.min(window.innerWidth - 40, newWidth)),
+                      height: Math.max(300, Math.min(window.innerHeight - 40, newHeight)),
+                      fixed: true
+                    });
+                  } else {
+                    // Redimensionnement en pourcentage
+                    const newWidth = startWidth + (deltaX / window.innerWidth) * 100;
+                    const newHeight = startHeight + (deltaY / window.innerHeight) * 100;
+
+                    setModalSize({
+                      width: Math.max(30, Math.min(95, newWidth)),
+                      height: Math.max(30, Math.min(95, newHeight)),
+                      fixed: false
+                    });
+                  }
+
+                  // Passer en mode custom lors du redimensionnement manuel
+                  setDevicePreset('custom');
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

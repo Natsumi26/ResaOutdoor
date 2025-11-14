@@ -178,14 +178,14 @@ const MyBooking = () => {
           padding: 0
         }}
         onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1)';
-          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-          e.target.style.background = '#f8f9fa';
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.currentTarget.style.background = '#f8f9fa';
         }}
         onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-          e.target.style.background = 'white';
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.currentTarget.style.background = 'white';
         }}
         title="Retour"
       >

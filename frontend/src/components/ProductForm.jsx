@@ -24,6 +24,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
     maxCapacity: '',
     autoCloseHoursBefore: '',
     postBookingMessage: '',
+    meetingPoint: '',
     websiteLink: '',
     wazeLink: '',
     googleMapsLink: '',
@@ -319,7 +320,47 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
+    <>
+      {/* Bouton retour */}
+      <button
+        onClick={onCancel}
+        type="button"
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '290px',
+          background: 'white',
+          border: '2px solid #2c3e50',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          transition: 'all 0.2s',
+          padding: 0
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.currentTarget.style.background = '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.currentTarget.style.background = 'white';
+        }}
+        title="Retour"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.formGrid}>
         {/* Informations de base */}
         <div className={styles.section}>
@@ -640,6 +681,18 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
           </div>
 
           <div className={styles.formGroup}>
+            <label>Lieu de départ</label>
+            <input
+              type="text"
+              name="meetingPoint"
+              value={formData.meetingPoint}
+              onChange={handleChange}
+              placeholder="Ex: Devant la mairie de Thônes"
+            />
+            <small>Point de rendez-vous pour les participants (affiché dans la page client)</small>
+          </div>
+
+          <div className={styles.formGroup}>
             <label>Lien Waze</label>
             <input
               type="url"
@@ -754,6 +807,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         </div>
       )}
     </form>
+    </>
   );
 };
 

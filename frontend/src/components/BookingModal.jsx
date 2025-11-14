@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { bookingsAPI, emailAPI, stripeAPI, participantsAPI, giftVouchersAPI, settingsAPI } from '../services/api';
+import { bookingsAPI, emailAPI, stripeAPI, participantsAPI, giftVouchersAPI } from '../services/api';
 import ParticipantForm from './ParticipantForm';
 import MoveBookingModal from './MoveBookingModal';
 import styles from './BookingModal.module.css';
@@ -47,23 +47,6 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
     numberOfPeople: 0,
     totalPrice: 0
   });
-  const [primaryColor, setPrimaryColor] = useState('#3b82f6');
-
-  // Charger la couleur primary depuis les settings
-  useEffect(() => {
-    const loadThemeColor = async () => {
-      try {
-        const response = await settingsAPI.get();
-        const settings = response.data.settings;
-        if (settings?.primaryColor) {
-          setPrimaryColor(settings.primaryColor);
-        }
-      } catch (error) {
-        console.error('Erreur chargement couleur thème:', error);
-      }
-    };
-    loadThemeColor();
-  }, []);
 
   useEffect(() => {
     loadBooking();
@@ -742,7 +725,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 <button
                   className={styles.btnBlue}
                   onClick={() => setShowParticipantForm(true)}
-                  style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                 >
                   📋 {booking.participantsFormCompleted ? 'Voir le formulaire' : 'Saisir à la main'}
                 </button>
@@ -819,7 +801,6 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   className={styles.btnBlue}
                   onClick={handleSendEmail}
                   disabled={!booking.clientEmail}
-                  style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                 >
                   📧 Envoyer par email
                 </button>
@@ -1227,7 +1208,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
               <div className={styles.blockNotesCompact}>
                 <span className={styles.blockIcon}>📝</span>
                 <span className={styles.blockTitle}>Note</span>
-                <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)} style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
+                <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
                   Ajouter
                 </button>
               </div>
@@ -1236,7 +1217,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 <div className={styles.blockHeader}>
                   <span className={styles.blockIcon}>📝</span>
                   <span className={styles.blockTitle}>Notes ({notes.length})</span>
-                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)} style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
+                  <button className={styles.btnAdd} onClick={() => setShowNoteForm(true)}>
                     + Ajouter
                   </button>
                 </div>

@@ -109,7 +109,6 @@ export const getProductById = async (req, res, next) => {
             id: true,
             login: true,
             email: true,
-            phone: true,
             settings: {
               select: {
                 companyPhone: true,
@@ -156,6 +155,7 @@ export const createProduct = async (req, res, next) => {
       maxCapacity,
       autoCloseHoursBefore,
       postBookingMessage,
+      meetingPoint,
       wazeLink,
       googleMapsLink,
       websiteLink,
@@ -192,6 +192,7 @@ export const createProduct = async (req, res, next) => {
       maxCapacity: parseInt(maxCapacity),
       autoCloseHoursBefore: autoCloseHoursBefore ? parseInt(autoCloseHoursBefore) : null,
       postBookingMessage,
+      meetingPoint,
       wazeLink,
       googleMapsLink,
       websiteLink,
@@ -217,8 +218,7 @@ export const createProduct = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true,
-            phone: true
+            email: true
           }
         },
         categories: {
@@ -313,8 +313,7 @@ export const updateProduct = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true,
-            phone: true
+            email: true
           }
         },
         categories: {

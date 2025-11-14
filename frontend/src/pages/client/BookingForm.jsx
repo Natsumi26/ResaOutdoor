@@ -39,7 +39,8 @@ const BookingForm = () => {
     paymentMethod: 'onsite', // 'online' ou 'onsite'
     fillParticipantsNow: true, // Toujours afficher le formulaire des participants
     payFullAmount: false, // Payer la totalité (si acompte requis)
-    acceptNewsletterTerms: false // Accepter les conditions et s'inscrire à la newsletter
+    acceptTerms: false, // Accepter les conditions de confidentialité (obligatoire)
+    subscribeNewsletter: true // S'inscrire à la newsletter (optionnel, pré-coché)
   });
 
   const [participants, setParticipants] = useState([]);
@@ -48,6 +49,8 @@ const BookingForm = () => {
   const [showParticipantsForm, setShowParticipantsForm] = useState(true);
   const [isUrgent, setIsUrgent] = useState(false); // Pour forcer le re-render
   const [availableCapacity, setAvailableCapacity] = useState(null);
+  const [showDescription, setShowDescription] = useState(false); // Pour afficher/masquer la description sur mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
 
 
@@ -93,6 +96,16 @@ const BookingForm = () => {
       }
     }
   }, [formData.clientNationality, i18n]);
+
+  // Détection du mode mobile pour l'affichage de la description
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Vérifier si la session est dans moins de 24h
   const isLessThan24Hours = () => {
@@ -372,7 +385,7 @@ const BookingForm = () => {
       };
 
       // Enregistrer l'email à la newsletter si accepté
-      if (formData.acceptNewsletterTerms) {
+      if (formData.subscribeNewsletter) {
         try {
           await newsletterAPI.subscribe({
             email: formData.clientEmail,
@@ -521,6 +534,11 @@ const BookingForm = () => {
           .${styles.loader} {
             border-top-color: ${clientColor} !important;
           }
+          /* Couleur personnalisée pour les cases à cocher et radio buttons */
+          input[type="checkbox"],
+          input[type="radio"] {
+            accent-color: ${clientColor} !important;
+          }
         `}
       </style>
       {/* Bouton retour */}
@@ -545,14 +563,14 @@ const BookingForm = () => {
           padding: 0
         }}
         onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1)';
-          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
-          e.target.style.background = '#f8f9fa';
+          e.currentTarget.style.transform = 'scale(1.1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+          e.currentTarget.style.background = '#f8f9fa';
         }}
         onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-          e.target.style.background = 'white';
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          e.currentTarget.style.background = 'white';
         }}
         title="Retour"
       >
@@ -581,6 +599,37 @@ const BookingForm = () => {
                 alt={product.name}
                 className={styles.summaryImage}
               />
+            )}
+
+            {/* Description du produit */}
+            {product.longDescription && (
+              <div className={styles.descriptionSection}>
+                {isMobile ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowDescription(!showDescription)}
+                      className={styles.toggleDescriptionButton}
+                      style={{
+                        backgroundColor: clientColor,
+                        borderColor: clientColor
+                      }}
+                    >
+                      {showDescription ? '▲ Masquer la description' : '▼ Voir la description'}
+                    </button>
+                    {showDescription && (
+                      <div className={styles.descriptionContent}>
+                        {product.longDescription}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className={styles.descriptionContent}>
+                    <h4 style={{ color: clientColor }}>📝 Description</h4>
+                    {product.longDescription}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Liste de matériel à apporter */}
@@ -796,7 +845,7 @@ const BookingForm = () => {
                 <p style={{ margin: 0, fontWeight: '500' }}>
                   {isUrgent ? (
                     <Trans i18nKey="participantInfo.urgent">
-                      🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.
+                      🔴 <strong>À COMPLÉTER :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires</strong>.
                     </Trans>
                   ) : (
                     <Trans i18nKey="participantInfo.required">
@@ -812,9 +861,6 @@ const BookingForm = () => {
                   </p>
                 )}
               </div>
-              {session.shoeRentalAvailable && (
-                <small className={styles.infoNote} style={{ backgroundColor: `${clientColor}15`, borderLeft: `3px solid ${clientColor}` }}>ℹ️ {t('AskLaterShoesLoc')}</small>
-              )}
 
               {/* Bouton pour basculer l'affichage du formulaire - caché si moins de 24h */}
               {!isUrgent && (
@@ -1107,19 +1153,20 @@ const BookingForm = () => {
               )}
             </div>
 
-            {/* Acceptation des conditions de confidentialité et newsletter */}
-            <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+            {/* Acceptation des conditions et newsletter (séparés) */}
+            <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Case à cocher pour les conditions de confidentialité (obligatoire) */}
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
-                  checked={formData.acceptNewsletterTerms}
-                  onChange={(e) => handleChange('acceptNewsletterTerms', e.target.checked)}
+                  checked={formData.acceptTerms}
+                  onChange={(e) => handleChange('acceptTerms', e.target.checked)}
                   required
                   style={{ marginTop: '0.25rem', width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
                 />
                 <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
                   <span>
-                    <Trans i18nKey="consent.newsletter">
+                    <Trans i18nKey="consent.terms">
                       J'accepte les
                       <a
                         href={session.guide.confidentialityPolicy}
@@ -1128,9 +1175,25 @@ const BookingForm = () => {
                         style={{ color: clientColor, textDecoration: 'underline' }}
                       >
                         conditions de confidentialité
-                      </a>{' '}
-                      et souhaite recevoir la newsletter avec les actualités et offres spéciales. *
-                  </Trans>
+                      </a>. *
+                    </Trans>
+                  </span>
+                </div>
+              </label>
+
+              {/* Case à cocher pour la newsletter (optionnelle, pré-cochée) */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.subscribeNewsletter}
+                  onChange={(e) => handleChange('subscribeNewsletter', e.target.checked)}
+                  style={{ marginTop: '0.25rem', width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
+                  <span>
+                    <Trans i18nKey="consent.newsletterOnly">
+                      Je souhaite recevoir la newsletter avec les actualités et offres spéciales.
+                    </Trans>
                   </span>
                 </div>
               </label>

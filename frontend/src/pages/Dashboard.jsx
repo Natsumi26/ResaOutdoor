@@ -90,7 +90,12 @@ const Dashboard = () => {
         style={{ background: 'linear-gradient(180deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)' }}
       >
         <div className={styles.sidebarHeader}>
-          <h2>🏔️ CanyonLife</h2>
+          <img
+            src="/flags/logo.png"
+            alt="RésaOutdoor"
+            className={styles.logo}
+            style={{ height: '120px', objectFit: 'contain' }}
+          />
           <button
             className={styles.toggleBtn}
             onClick={() => setSidebarOpen(!sidebarOpen)}

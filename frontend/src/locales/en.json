@@ -308,7 +308,7 @@
   },
 
   "participantInfo": {
-    "urgent": "🔴 <strong>URGENT:</strong> Your session is in less than 24 hours. Participant information is <strong>now mandatory</strong>.",
+    "urgent": "🔴 <strong>TO COMPLETE:</strong> Your session is in less than 24 hours. Participant information is <strong>mandatory</strong>.",
     "required": "⚠️ This information is <strong>required</strong> to participate in the activity.",
     "later": "You can fill it out now or later. Your <strong>confirmation email</strong> will contain a link to <strong>complete or edit</strong> this information before the activity."
   },
@@ -318,7 +318,9 @@
   },
 
   "consent": {
-    "newsletter": "I accept the <1>privacy policy</1> and wish to receive the newsletter with updates and special offers. *"
+    "newsletter": "I accept the <1>privacy policy</1> and wish to receive the newsletter with updates and special offers. *",
+    "terms": "I accept the <1>privacy policy</1>. *",
+    "newsletterOnly": "I wish to receive the newsletter with updates and special offers."
   },
 
   "booking": {

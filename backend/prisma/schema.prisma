@@ -77,6 +77,7 @@ model Product {
   maxCapacity           Int
   autoCloseHoursBefore  Int?     // Fermeture auto X heures avant
   postBookingMessage    String?
+  meetingPoint          String?  // Lieu de départ/rendez-vous
   wazeLink              String?
   googleMapsLink        String?
   websiteLink           String?  // Lien vers la page internet du produit

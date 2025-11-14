@@ -266,6 +266,8 @@
         "viewThisCanyon": "Voir ce canyon →",
         "noSessionsAvailable": "Aucune session disponible pour cette date",
         "noSessionsAvailableForPeriode": "Aucune session disponible pour cette période",
+        "noActivityAvailable": "Aucune activité n'est disponible pour cette date.",
+        "contactUsToOpen": "N'hésitez pas à nous appeler, il est toujours possible d'ouvrir de nouveaux créneaux !",
         "tryAnotherDate": "Essayez une autre date",
         "availableSpots": "Places disponibles:",
         "shoeRental": "Location chaussures:",
@@ -306,7 +308,7 @@
     },
 
     "participantInfo": {
-        "urgent": "🔴 <strong>URGENT :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires maintenant</strong>.",
+        "urgent": "🔴 <strong>À COMPLÉTER :</strong> Votre session est dans moins de 24h. Les informations de tous les participants sont <strong>obligatoires</strong>.",
         "required": "⚠️ Ces informations sont <strong>obligatoires</strong> pour participer à l'activité.",
         "later": "Vous pouvez les remplir maintenant ou plus tard. Votre <strong>email de confirmation</strong> contiendra un lien pour <strong>compléter ou modifier</strong> ces informations avant l'activité."
     },
@@ -316,7 +318,9 @@
     },
 
     "consent": {
-        "newsletter": "J'accepte les <1>conditions de confidentialité</1> et souhaite recevoir la newsletter avec les actualités et offres spéciales. *"
+        "newsletter": "J'accepte les <1>conditions de confidentialité</1> et souhaite recevoir la newsletter avec les actualités et offres spéciales. *",
+        "terms": "J'accepte les <1>conditions de confidentialité</1>. *",
+        "newsletterOnly": "Je souhaite recevoir la newsletter avec les actualités et offres spéciales."
     },
 
     "booking": {

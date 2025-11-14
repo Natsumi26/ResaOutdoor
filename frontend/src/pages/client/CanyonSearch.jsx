@@ -882,6 +882,13 @@ const CanyonSearch = () => {
                           >
                             <button
                               onClick={() => {
+                                // Si le produit a un websiteLink, ouvrir ce lien dans une nouvelle page
+                                if (product.websiteLink) {
+                                  window.open(product.websiteLink, '_blank', 'noopener,noreferrer');
+                                  return;
+                                }
+
+                                // Sinon, naviguer vers /client/canyon
                                 const params = new URLSearchParams();
                                 const guideId = searchParams.get('guideId');
                                 const teamName = searchParams.get('teamName');
@@ -936,6 +943,13 @@ const CanyonSearch = () => {
                           }}>
                             <button
                               onClick={() => {
+                                // Si le produit a un websiteLink, ouvrir ce lien dans une nouvelle page
+                                if (product.websiteLink) {
+                                  window.open(product.websiteLink, '_blank', 'noopener,noreferrer');
+                                  return;
+                                }
+
+                                // Sinon, naviguer vers /client/canyon
                                 const params = new URLSearchParams();
                                 const guideId = searchParams.get('guideId');
                                 const teamName = searchParams.get('teamName');
@@ -1011,17 +1025,32 @@ const CanyonSearch = () => {
                               <span>{t('filters.difficultyShort')} : {product.level}</span>
                             </div>
                           </div>
+
+                          {/* Description courte */}
+                          {product.shortDescription && (
+                            <div style={{
+                              marginTop: '0.75rem',
+                              color: '#6c757d',
+                              fontSize: '0.9rem',
+                              lineHeight: '1.5',
+                              fontStyle: 'italic'
+                            }}>
+                              {product.shortDescription}
+                            </div>
+                          )}
                         </div>
 
-                        {/* Lieu de départ */}
-                        <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.25rem' }}>
-                            {t('DepartPlace')}
+                        {/* Lieu de départ - Afficher uniquement si renseigné */}
+                        {product.meetingPoint && (
+                          <div style={{ marginBottom: '1rem' }}>
+                            <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.25rem' }}>
+                              {t('DepartPlace')}
+                            </div>
+                            <div style={{ color: clientColor, fontSize: '0.95rem' }}>
+                              {product.meetingPoint}
+                            </div>
                           </div>
-                          <div style={{ color: clientColor, fontSize: '0.95rem' }}>
-                            {product.meetingPoint || (product.region === 'annecy' ? 'Devant la mairie de Thônes' : 'Parking canyon')}
-                          </div>
-                        </div>
+                        )}
 
                         {/* Créneaux disponibles - Affichage conditionnel selon le nombre de jours */}
                         {hasSessions ? (
