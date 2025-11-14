@@ -10,6 +10,7 @@ export const getAllUsers = async (req, res, next) => {
         id: true,
         login: true,
         email: true,
+        phone: true,
         role: true,
         confidentialityPolicy: true,
         stripeAccount: true,
@@ -38,7 +39,7 @@ export const getAllUsers = async (req, res, next) => {
 export const createUser = async (req, res, next) => {
   try {
     const {
-      login, password, email, stripeAccount, role, confidentialityPolicy,
+      login, password, email, phone, stripeAccount, role, confidentialityPolicy,
       teamName, teamLeaderId, paymentMode, depositType, depositAmount, practiceActivities
     } = req.body;
 
@@ -64,6 +65,7 @@ export const createUser = async (req, res, next) => {
         login,
         password: hashedPassword,
         email,
+        phone,
         stripeAccount,
         role: role || 'employee',
         confidentialityPolicy,
@@ -81,6 +83,7 @@ export const createUser = async (req, res, next) => {
         id: true,
         login: true,
         email: true,
+        phone: true,
         role: true,
         confidentialityPolicy: true,
         stripeAccount: true,
@@ -107,11 +110,12 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { login, password, email, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId, paymentMode, depositType, depositAmount, practiceActivities } = req.body;
+    const { login, password, email, phone, stripeAccount, role, confidentialityPolicy, teamName, teamLeaderId, paymentMode, depositType, depositAmount, practiceActivities } = req.body;
 
     const updateData = {
       ...(login && { login }),
       ...(email && { email }),
+      ...(phone && { phone }),
       ...(stripeAccount !== undefined && { stripeAccount }),
       ...(role && { role }),
       ...(confidentialityPolicy && { confidentialityPolicy }),
@@ -135,6 +139,7 @@ export const updateUser = async (req, res, next) => {
         id: true,
         login: true,
         email: true,
+        phone: true,
         role: true,
         confidentialityPolicy: true,
         stripeAccount: true,

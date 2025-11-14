@@ -187,6 +187,7 @@ const CalendarEmbed = () => {
       const response = await sessionsAPI.getAll({
         date: formattedDate
       });
+      console.log(response.data)
       setSessions(response.data.sessions || []);
     } catch (error) {
       console.error('Erreur chargement sessions:', error);
@@ -243,7 +244,7 @@ const CalendarEmbed = () => {
   const isSessionReservedByOtherProduct = (session) => {
     return session.bookings.some(b => b.productId !== product.id);
   };
-
+  console.log(sessions)
   const visibleSessions = sessions.filter(s => {
     const hasThisProduct = s.products?.some(p => {
       return String(p.product?.id) === String(product.id);

@@ -14,6 +14,7 @@ const Team = () => {
     login: '',
     password: '',
     email: '',
+    phone: '',
     role: 'employee',
     stripeAccount: '',
     confidentialityPolicy: '',
@@ -101,6 +102,7 @@ const Team = () => {
         login: member.login,
         password: '',
         email: member.email || '',
+        phone: member.phone || '',
         role: member.role,
         stripeAccount: member.stripeAccount || '',
         confidentialityPolicy: member.confidentialityPolicy || '',
@@ -326,6 +328,15 @@ const Team = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Téléphone</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
 
@@ -580,6 +591,15 @@ const Team = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Téléphone</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
 

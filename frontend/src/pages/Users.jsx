@@ -13,6 +13,7 @@ const Users = () => {
     login: '',
     password: '',
     email: '',
+    phone: '',
     stripeAccount: '',
     role: 'employee',
     confidentialityPolicy: '',
@@ -75,6 +76,7 @@ const Users = () => {
       const userData = {
         login: formData.login,
         email: formData.email,
+        phone: formData.phone,
         stripeAccount: formData.stripeAccount,
         role: formData.role,
         confidentialityPolicy: formData.confidentialityPolicy
@@ -134,6 +136,7 @@ const Users = () => {
         login: user.login,
         password: '',
         email: user.email || '',
+        phone: user.phone || '',
         stripeAccount: user.stripeAccount || '',
         role: user.role,
         confidentialityPolicy: user.confidentialityPolicy,
@@ -146,6 +149,7 @@ const Users = () => {
         login: '',
         password: '',
         email: '',
+        phone: '',
         stripeAccount: '',
         role: 'employee',
         confidentialityPolicy: '',
@@ -270,6 +274,15 @@ console.log(users)
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Téléphone</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
 

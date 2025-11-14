@@ -15,6 +15,7 @@ model User {
   login                 String    @unique
   password              String
   email                 String?
+  phone                 String?
   stripeAccount         String?   // Compte Stripe associé
   role                  String    @default("employee") // "super_admin", "leader", "employee", "trainee"
   confidentialityPolicy String?   // Lien vers la politique de confidentialité

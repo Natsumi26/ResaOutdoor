@@ -23,6 +23,7 @@ export const getTeamMembers = async (req, res) => {
           id: true,
           login: true,
           email: true,
+          phone: true,
           role: true,
           teamLeaderId: true,
           stripeAccount: true,
@@ -43,6 +44,7 @@ export const getTeamMembers = async (req, res) => {
           id: true,
           login: true,
           email: true,
+          phone: true,
           role: true,
           teamLeaderId: true,
           stripeAccount: true,
@@ -72,7 +74,7 @@ export const addTeamMember = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const userRole = req.user.role;
-    const { login, email, password, role } = req.body;
+    const { login, email, phone, password, role } = req.body;
 
     // Seuls les leaders et super_admin peuvent ajouter des membres
     if (userRole !== 'leader' && userRole !== 'super_admin') {
@@ -101,6 +103,7 @@ export const addTeamMember = async (req, res) => {
       data: {
         login,
         email: email || null,
+        phone: phone || null,
         password: hashedPassword,
         role: role || 'employee',
         teamLeaderId: userId
@@ -109,6 +112,7 @@ export const addTeamMember = async (req, res) => {
         id: true,
         login: true,
         email: true,
+        phone: true,
         role: true,
         teamLeaderId: true,
         createdAt: true
@@ -133,6 +137,7 @@ export const updateTeamMember = async (req, res) => {
     const {
       login,
       email,
+      phone,
       role,
       password,
       stripeAccount,
@@ -165,6 +170,7 @@ export const updateTeamMember = async (req, res) => {
     const updateData = {};
     if (login) updateData.login = login;
     if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
     if (role && (role === 'employee' || role === 'trainee' || role === 'leader')) updateData.role = role;
 
     // Si un nouveau mot de passe est fourni
@@ -189,6 +195,7 @@ export const updateTeamMember = async (req, res) => {
         id: true,
         login: true,
         email: true,
+        phone: true,
         role: true,
         teamLeaderId: true,
         stripeAccount: true,
@@ -267,6 +274,7 @@ export const getMyLeader = async (req, res) => {
             id: true,
             login: true,
             email: true,
+            phone: true,
             role: true
           }
         }
