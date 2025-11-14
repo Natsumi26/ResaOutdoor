@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from './DateRangePicker.module.css';
 import { useTranslation } from 'react-i18next';
 
-const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideRangeMode = false, dateAvailability = {}, accentColor = '#3498db' }) => {
+const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideRangeMode = false, dateAvailability = {}, accentColor = '#3498db', onClosedDateClick = null }) => {
   const { t } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectionMode, setSelectionMode] = useState('single'); // 'single' ou 'range' - par défaut 'single'
@@ -49,10 +49,18 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
     // Ne pas permettre de sélectionner des dates passées
     if (clickedDate < today) return;
 
-    // Ne pas permettre de sélectionner des dates avec statut 'past', 'closed' ou 'full'
+    // Gérer le clic sur les dates fermées/complètes
     const dateKey = formatDateISO(clickedDate);
     const status = dateAvailability[dateKey];
-    if (status === 'past' || status === 'closed' || status === 'full') return;
+    if (status === 'past') return;
+
+    if (status === 'closed' || status === 'full') {
+      // Si un callback est fourni, l'appeler au lieu de bloquer
+      if (onClosedDateClick) {
+        onClosedDateClick(clickedDate, status);
+      }
+      return;
+    }
 
     if (selectionMode === 'single') {
       // Mode date unique - un seul clic suffit
@@ -172,11 +180,26 @@ const DateRangePicker = ({ onDateChange, initialStartDate, initialEndDate, hideR
 
     if (!status) return {};
 
+    // Vérifier si c'est aujourd'hui
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    const isToday = checkDate.getTime() === today.getTime();
+
     if (status === 'available') {
       return { backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '2px solid #28a745', cursor: 'pointer' };
     } else if (status === 'otherProduct') {
-      return { backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '2px solid #ffc107' };
-    } else if (status === 'past' || status === 'full' || status === 'closed') {
+      return { backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '2px solid #ffc107', cursor: 'pointer' };
+    } else if (status === 'full' || status === 'closed') {
+      // Exception : aujourd'hui fermé = gris, autres jours fermés = rouge
+      if (isToday) {
+        return { backgroundColor: '#e9ecef', border: '2px solid #adb5bd', opacity: 0.5, cursor: 'not-allowed' };
+      } else {
+        // Cases rouges cliquables pour afficher le modal de contact
+        return { backgroundColor: 'rgba(220, 53, 69, 0.2)', border: '2px solid #dc3545', cursor: onClosedDateClick ? 'pointer' : 'not-allowed' };
+      }
+    } else if (status === 'past') {
       return { backgroundColor: '#e9ecef', border: '2px solid #adb5bd', opacity: 0.5, cursor: 'not-allowed' };
     }
 

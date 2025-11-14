@@ -1,5 +1,38 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+//
+
+// Utility function to merge productOverrides with base product data
+const applyProductOverrides = (sessions) => {
+  if (!sessions) return sessions;
+
+  // Handle single session or array
+  const sessionsArray = Array.isArray(sessions) ? sessions : [sessions];
+
+  const processed = sessionsArray.map(session => {
+    if (!session.products) return session;
+
+    return {
+      ...session,
+      products: session.products.map(sp => {
+        if (!sp.productOverrides || !sp.product) {
+          return sp;
+        }
+
+        // Merge overrides with product data
+        return {
+          ...sp,
+          product: {
+            ...sp.product,
+            ...sp.productOverrides
+          }
+        };
+      })
+    };
+  });
+
+  return Array.isArray(sessions) ? processed : processed[0];
+};
 
 // Obtenir les prochaines dates disponibles
 export const getNextAvailableDates = async (req, res, next) => {
@@ -33,7 +66,12 @@ export const getNextAvailableDates = async (req, res, next) => {
       where: sessionWhere,
       include: {
         products: {
-          include: {
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
             product: true
           }
         },
@@ -52,11 +90,14 @@ export const getNextAvailableDates = async (req, res, next) => {
       take: 50 // Limiter pour optimiser la performance
     });
 
+    // Apply product overrides
+    const sessionsWithOverrides = applyProductOverrides(sessions);
+
     // Analyser les sessions pour trouver celles avec disponibilité
     const availableDates = [];
     const seenDates = new Set();
 
-    for (const session of sessions) {
+    for (const session of sessionsWithOverrides) {
       // Si on a déjà 2 dates, on arrête
       if (availableDates.length >= 2) break;
 
@@ -136,7 +177,12 @@ export const getAvailableCapacity = async (req, res, next) => {
       where: { id: sessionId },
       include: {
         products: {
-          include: {
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
             product: true
           }
         },
@@ -155,8 +201,11 @@ export const getAvailableCapacity = async (req, res, next) => {
       });
     }
 
+    // Apply product overrides
+    const sessionWithOverrides = applyProductOverrides(session);
+
     // Trouver le produit dans la session
-    const sessionProduct = session.products.find(sp => String(sp.product.id) === String(productId));
+    const sessionProduct = sessionWithOverrides.products.find(sp => String(sp.product.id) === String(productId));
 
     if (!sessionProduct) {
       return res.status(404).json({
@@ -168,7 +217,7 @@ export const getAvailableCapacity = async (req, res, next) => {
     const product = sessionProduct.product;
 
     // Calculer les places réservées pour ce produit
-    const bookedForProduct = session.bookings
+    const bookedForProduct = sessionWithOverrides.bookings
       .filter(b => String(b.productId) === String(productId))
       .reduce((sum, b) => sum + b.numberOfPeople, 0);
 
@@ -231,7 +280,12 @@ export const searchAvailableProducts = async (req, res, next) => {
       where: sessionWhere,
       include: {
         products: {
-          include: {
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
             product: true
           }
         },
@@ -243,12 +297,15 @@ export const searchAvailableProducts = async (req, res, next) => {
       }
     });
 
+    // Apply product overrides
+    const sessionsWithOverrides = applyProductOverrides(sessions);
+
     // Construire un dictionnaire de disponibilités par produit
     const productAvailability = {};
 
     const now = new Date();
 
-    sessions.forEach(session => {
+    sessionsWithOverrides.forEach(session => {
       // Déterminer le produit verrouillé par la première réservation (rotation magique)
       const lockedProductId = session.bookings.length > 0
         ? session.bookings[0].productId
@@ -257,6 +314,10 @@ export const searchAvailableProducts = async (req, res, next) => {
       session.products.forEach(sp => {
         const product = sp.product;
         const productId = product.id;
+
+        // Si le produit a des overrides, créer une clé unique pour le traiter comme un produit distinct
+        const hasOverrides = sp.productOverrides && Object.keys(sp.productOverrides).length > 0;
+        const uniqueKey = hasOverrides ? `${productId}_override_${sp.id}` : productId;
 
             // Si un produit est verrouillé, ignorer les autres
           if (lockedProductId && productId !== lockedProductId) {
@@ -301,14 +362,14 @@ export const searchAvailableProducts = async (req, res, next) => {
         // - Il y a assez de places pour le nombre de participants demandé (ou pas de filtre participants)
         // - Même si fermée automatiquement (pour afficher le message)
         if (!participants || availableCapacity >= parseInt(participants)) {
-          if (!productAvailability[productId]) {
-            productAvailability[productId] = {
+          if (!productAvailability[uniqueKey]) {
+            productAvailability[uniqueKey] = {
               product: product,
               availableSessions: []
             };
           }
 
-          productAvailability[productId].availableSessions.push({
+          productAvailability[uniqueKey].availableSessions.push({
             sessionId: session.id,
             date: session.date,
             timeSlot: session.timeSlot,
@@ -321,10 +382,12 @@ export const searchAvailableProducts = async (req, res, next) => {
     });
 
     // Convertir en tableau et ne garder que les produits avec au moins une session disponible
-    const availableProducts = Object.values(productAvailability)
-      .filter(item => item.availableSessions.length > 0)
-      .map(item => ({
+    const availableProducts = Object.entries(productAvailability)
+      .filter(([key, item]) => item.availableSessions.length > 0)
+      .map(([uniqueKey, item]) => ({
         ...item.product,
+        // Garder l'ID unique pour différencier les produits avec overrides
+        uniqueId: uniqueKey,
         availableSessions: item.availableSessions.sort((a, b) => {
           // Trier par date d'abord
           const dateCompare = new Date(a.date) - new Date(b.date);
@@ -413,9 +476,13 @@ console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)')
       where,
       include: {
         products: {
-          include: {
-            product: {
-            }
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
+            product: true
           }
         },
         guide: {
@@ -450,9 +517,12 @@ console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)')
       );
     }
 
+    // Apply product overrides
+    const sessionsWithOverrides = applyProductOverrides(filteredSessions);
+
     // Ajouter le flag isAutoClosed pour chaque produit dans chaque session
     const now = new Date();
-    const sessionsWithAutoClose = filteredSessions.map(session => {
+    const sessionsWithAutoClose = sessionsWithOverrides.map(session => {
       return {
         ...session,
         products: session.products.map(sp => {
@@ -504,9 +574,13 @@ export const getSessionById = async (req, res, next) => {
       where: { id },
       include: {
         products: {
-          include: {
-            product: {
-            }
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
+            product: true
           }
         },
         guide: {
@@ -534,9 +608,12 @@ export const getSessionById = async (req, res, next) => {
       throw new AppError('Session non trouvée', 404);
     }
 
+    // Apply product overrides
+    const sessionWithOverrides = applyProductOverrides(session);
+
     res.json({
       success: true,
-      session
+      session: sessionWithOverrides
     });
   } catch (error) {
     next(error);
@@ -622,9 +699,13 @@ export const createSession = async (req, res, next) => {
         where: { id: newSession.id },
         include: {
           products: {
-            include: {
-              product: {
-              }
+            select: {
+              id: true,
+              sessionId: true,
+              productId: true,
+              productOverrides: true,
+              createdAt: true,
+              product: true
             }
           },
           guide: {
@@ -637,9 +718,12 @@ export const createSession = async (req, res, next) => {
       });
     });
 
+    // Apply product overrides
+    const sessionWithOverrides = applyProductOverrides(session);
+
     res.status(201).json({
       success: true,
-      session
+      session: sessionWithOverrides
     });
   } catch (error) {
     next(error);
@@ -728,9 +812,13 @@ export const updateSession = async (req, res, next) => {
         where: { id },
         include: {
           products: {
-            include: {
-              product: {
-              }
+            select: {
+              id: true,
+              sessionId: true,
+              productId: true,
+              productOverrides: true,
+              createdAt: true,
+              product: true
             }
           },
           guide: {
@@ -748,9 +836,12 @@ export const updateSession = async (req, res, next) => {
       });
     });
 
+    // Apply product overrides
+    const sessionWithOverrides = applyProductOverrides(updatedSession);
+
     res.json({
       success: true,
-      session: updatedSession
+      session: sessionWithOverrides
     });
   } catch (error) {
     if (error.code === 'P2025') {
@@ -771,7 +862,12 @@ export const getAlternativeSessions = async (req, res, next) => {
       where: { id },
       include: {
         products: {
-          include: {
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
             product: true
           }
         },
@@ -787,6 +883,9 @@ export const getAlternativeSessions = async (req, res, next) => {
       throw new AppError('Session non trouvée', 404);
     }
 
+    // Apply product overrides to current session
+    const currentSessionWithOverrides = applyProductOverrides(currentSession);
+
     // Chercher d'autres sessions du même guide (peu importe les produits)
     const alternativeSessions = await prisma.session.findMany({
       where: {
@@ -797,7 +896,12 @@ export const getAlternativeSessions = async (req, res, next) => {
       },
       include: {
         products: {
-          include: {
+          select: {
+            id: true,
+            sessionId: true,
+            productId: true,
+            productOverrides: true,
+            createdAt: true,
             product: true
           }
         },
@@ -814,8 +918,11 @@ export const getAlternativeSessions = async (req, res, next) => {
       take: 20 // Limiter à 20 résultats
     });
 
+    // Apply product overrides to alternative sessions
+    const alternativeSessionsWithOverrides = applyProductOverrides(alternativeSessions);
+
     // Enrichir les sessions alternatives avec les infos de compatibilité
-    const enrichedSessions = alternativeSessions
+    const enrichedSessions = alternativeSessionsWithOverrides
       .map(session => {
         // 🔒 Rotation magique : si la session alternative a déjà des réservations,
         // on verrouille sur le produit de la première réservation
@@ -824,7 +931,7 @@ export const getAlternativeSessions = async (req, res, next) => {
           : null;
 
         // Calculer le nombre total de personnes à déplacer depuis la session actuelle
-        const totalPeopleToMove = currentSession.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
+        const totalPeopleToMove = currentSessionWithOverrides.bookings.reduce((sum, b) => sum + b.numberOfPeople, 0);
 
         // Vérifier la disponibilité de TOUS les produits de la session (pas seulement ceux en commun)
         const availableProducts = [];
@@ -886,12 +993,12 @@ export const getAlternativeSessions = async (req, res, next) => {
     res.json({
       success: true,
       currentSession: {
-        id: currentSession.id,
-        date: currentSession.date,
-        timeSlot: currentSession.timeSlot,
-        startTime: currentSession.startTime,
-        bookingsCount: currentSession.bookings.length,
-        products: currentSession.products.map(sp => sp.product)
+        id: currentSessionWithOverrides.id,
+        date: currentSessionWithOverrides.date,
+        timeSlot: currentSessionWithOverrides.timeSlot,
+        startTime: currentSessionWithOverrides.startTime,
+        bookingsCount: currentSessionWithOverrides.bookings.length,
+        products: currentSessionWithOverrides.products.map(sp => sp.product)
       },
       alternativeSessions: enrichedSessions
     });
@@ -1100,6 +1207,132 @@ export const deleteSession = async (req, res, next) => {
   } catch (error) {
     if (error.code === 'P2025') {
       next(new AppError('Session non trouvée', 404));
+    } else {
+      next(error);
+    }
+  }
+};
+
+// Mettre à jour le produit et ses paramètres pour une session spécifique
+export const updateSessionProduct = async (req, res, next) => {
+  try {
+    const { id: sessionId } = req.params;
+    const { productId, productOverrides, sessionStatus, startTime, sendConfirmationEmail } = req.body;
+
+    if (!productId) {
+      throw new AppError('L\'ID du produit est requis', 400);
+    }
+
+    // Vérifier que la session existe
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: {
+        products: {
+          include: {
+            product: true
+          }
+        },
+        bookings: {
+          where: { status: { not: 'cancelled' } },
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!session) {
+      throw new AppError('Session non trouvée', 404);
+    }
+
+    // Vérifier que le produit existe
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!product) {
+      throw new AppError('Produit non trouvé', 404);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Mettre à jour le statut et l'heure de départ de la session si fournis
+      const updateData = {};
+      if (sessionStatus && ['open', 'closed', 'full'].includes(sessionStatus)) {
+        updateData.status = sessionStatus;
+      }
+      if (startTime) {
+        updateData.startTime = startTime;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await tx.session.update({
+          where: { id: sessionId },
+          data: updateData
+        });
+      }
+
+      // 2. Supprimer tous les SessionProduct existants pour cette session
+      await tx.sessionProduct.deleteMany({
+        where: { sessionId }
+      });
+
+      // 3. Créer un nouveau SessionProduct avec le productId choisi et les overrides
+      await tx.sessionProduct.create({
+        data: {
+          sessionId,
+          productId,
+          productOverrides: productOverrides || null
+        }
+      });
+
+      // 4. Si des réservations existent, mettre à jour leur productId
+      if (session.bookings.length > 0) {
+        for (const booking of session.bookings) {
+          const oldProductId = booking.productId;
+          const productChanged = oldProductId !== productId;
+
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: { productId }
+          });
+
+          // Ajouter une entrée dans l'historique
+          const historyDetails = productChanged
+            ? `Produit modifié de ${booking.product.name} vers ${product.name} pour cette session`
+            : `Paramètres du produit ${product.name} modifiés pour cette session`;
+
+          await tx.bookingHistory.create({
+            data: {
+              bookingId: booking.id,
+              action: 'modified',
+              details: historyDetails
+            }
+          });
+        }
+      }
+    });
+
+    // 5. Si demandé, envoyer les emails de confirmation aux participants
+    if (sendConfirmationEmail && session.bookings.length > 0) {
+      // TODO: Implémenter l'envoi d'emails de confirmation
+      // Pour l'instant, on log juste que ça devrait être envoyé
+      console.log(`📧 Emails de confirmation à envoyer à ${session.bookings.length} participant(s)`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Produit et statut de la session mis à jour avec succès',
+      session: {
+        id: sessionId,
+        productId,
+        status: sessionStatus || session.status,
+        hasOverrides: !!productOverrides,
+        bookingsUpdated: session.bookings.length
+      }
+    });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      next(new AppError('Session ou produit non trouvé', 404));
     } else {
       next(error);
     }

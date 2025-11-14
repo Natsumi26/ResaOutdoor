@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { sessionsAPI } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
@@ -51,6 +51,13 @@ const CanyonSearch = () => {
   // Détecter si on est sur mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // Ref pour le calendrier
+  const calendarRef = useRef(null);
+
+  // État pour le modal de validation
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -59,6 +66,18 @@ const CanyonSearch = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Fermer le calendrier quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCalendar && calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar]);
 
   // Sauvegarder la couleur dans localStorage si elle vient de l'URL
   useEffect(() => {
@@ -513,7 +532,7 @@ const CanyonSearch = () => {
         </div>
 
           {/* Section Date */}
-          <div style={{ marginBottom: '1.5rem', position: 'relative', maxWidth: '300px', margin: '0 auto 1.5rem auto' }}>
+          <div ref={calendarRef} style={{ marginBottom: '1.5rem', position: 'relative', maxWidth: '300px', margin: '0 auto 1.5rem auto' }}>
             <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: '#495057', textAlign: 'center' }}>
               Date
             </label>
@@ -580,10 +599,37 @@ const CanyonSearch = () => {
         {/* Bouton de recherche */}
         <div style={{ maxWidth: '300px', margin: '0 auto' }}>
           <button
-            onClick={handleSearch}
-            className={styles.searchButton}
-            disabled={!canSearch || loading}
-            style={{ width: '100%', backgroundColor: clientColor, borderColor: clientColor }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!canSearch && !loading) {
+                let message = '';
+                if (!filters.participants && !filters.date && !filters.startDate) {
+                  message = t('alerts.missingDateAndParticipants') || 'Veuillez sélectionner une date et indiquer le nombre de participants';
+                } else if (!filters.participants) {
+                  message = t('alerts.missingParticipantCount') || 'Veuillez indiquer le nombre de participants';
+                } else if (!filters.date && !filters.startDate) {
+                  message = t('alerts.missingDate') || 'Veuillez sélectionner une date';
+                }
+                setValidationMessage(message);
+                setShowValidationModal(true);
+              } else if (!loading) {
+                handleSearch();
+              }
+            }}
+            className={`${styles.searchButton} ${(!canSearch || loading) ? styles.searchButtonDisabled : ''}`}
+            title={!canSearch && !loading ? (
+              !filters.participants && !filters.date && !filters.startDate
+                ? t('alerts.missingDateAndParticipants') || 'Veuillez sélectionner une date et indiquer le nombre de participants'
+                : !filters.participants
+                ? t('alerts.missingParticipantCount') || 'Veuillez indiquer le nombre de participants'
+                : t('alerts.missingDate') || 'Veuillez sélectionner une date'
+            ) : ''}
+            style={{
+              width: '100%',
+              backgroundColor: canSearch && !loading ? clientColor : undefined,
+              borderColor: canSearch && !loading ? clientColor : undefined,
+              cursor: (!canSearch || loading) ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? t('RechercheLoading') || 'Recherche en cours...' : t('Rechercher')}
           </button>
@@ -646,29 +692,38 @@ const CanyonSearch = () => {
 
                     {/* Navigation de dates (seulement si recherche par date unique) */}
                     {filters.date && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem' }}>
                         <button
                           onClick={() => navigateDay('previous')}
                           style={{
-                            padding: '0.4rem 0.7rem',
-                            border: `1px solid ${clientColor}`,
-                            borderRadius: '6px',
+                            width: '36px',
+                            height: '36px',
+                            padding: '0',
+                            border: `2px solid ${clientColor}`,
+                            borderRadius: '50%',
                             background: 'white',
                             color: clientColor,
                             cursor: 'pointer',
-                            fontSize: '1.2rem',
+                            fontSize: '1.5rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            lineHeight: '1',
+                            fontFamily: 'Arial, sans-serif'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = clientColor;
                             e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                            e.currentTarget.style.boxShadow = `0 4px 8px ${clientColor}40`;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'white';
                             e.currentTarget.style.color = clientColor;
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                           }}
                           title="Jour précédent"
                         >
@@ -686,25 +741,34 @@ const CanyonSearch = () => {
                         <button
                           onClick={() => navigateDay('next')}
                           style={{
-                            padding: '0.4rem 0.7rem',
-                            border: `1px solid ${clientColor}`,
-                            borderRadius: '6px',
+                            width: '36px',
+                            height: '36px',
+                            padding: '0',
+                            border: `2px solid ${clientColor}`,
+                            borderRadius: '50%',
                             background: 'white',
                             color: clientColor,
                             cursor: 'pointer',
-                            fontSize: '1.2rem',
+                            fontSize: '1.5rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            lineHeight: '1',
+                            fontFamily: 'Arial, sans-serif'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = clientColor;
                             e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                            e.currentTarget.style.boxShadow = `0 4px 8px ${clientColor}40`;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'white';
                             e.currentTarget.style.color = clientColor;
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                           }}
                           title="Jour suivant"
                         >
@@ -803,7 +867,7 @@ const CanyonSearch = () => {
                   const hasSessions = Object.keys(sessionsByDate).length > 0;
 
                   return (
-                    <div key={product.id} className={styles.canyonCard}>
+                    <div key={product.uniqueId || product.id} className={styles.canyonCard}>
                       {/* Image à gauche/haut */}
                       <div className={styles.canyonCardImage}>
                         {product.images && product.images.length > 0 ? (
@@ -826,7 +890,14 @@ const CanyonSearch = () => {
                                 if (teamName) params.set('teamName', teamName);
                                 const color = searchParams.get('color');
                                 if (color) params.set('color', color);
-                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}`)}}
+
+                                // Si le produit a des overrides, passer la sessionId de la première session disponible
+                                const hasOverrides = product.uniqueId && product.uniqueId !== product.id;
+                                const sessionIdParam = hasOverrides && product.availableSessions?.[0]?.sessionId
+                                  ? `&sessionId=${product.availableSessions[0].sessionId}`
+                                  : '';
+
+                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -874,7 +945,13 @@ const CanyonSearch = () => {
                                 const color = searchParams.get('color');
                                 if (color) params.set('color', color);
 
-                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}`)}}
+                                // Si le produit a des overrides, passer la sessionId de la première session disponible
+                                const hasOverrides = product.uniqueId && product.uniqueId !== product.id;
+                                const sessionIdParam = hasOverrides && product.availableSessions?.[0]?.sessionId
+                                  ? `&sessionId=${product.availableSessions[0].sessionId}`
+                                  : '';
+
+                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -990,7 +1067,14 @@ const CanyonSearch = () => {
                                     if (teamName) params.set('teamName', teamName);
                                     const color = searchParams.get('color');
                                     if (color) params.set('color', color);
-                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}&${params.toString()}`);
+
+                                    // Si le produit a des overrides, passer la sessionId de la première session disponible
+                                    const hasOverrides = product.uniqueId && product.uniqueId !== product.id;
+                                    const sessionIdParam = hasOverrides && product.availableSessions?.[0]?.sessionId
+                                      ? `&sessionId=${product.availableSessions[0].sessionId}`
+                                      : '';
+
+                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}&${params.toString()}${sessionIdParam}`);
                                   }}
                                   style={{
                                     background: clientColor,
@@ -1106,12 +1190,12 @@ const CanyonSearch = () => {
                                             }}
                                             style={{ borderColor: clientColor }}
                                             onMouseEnter={(e) => {
-                                              e.target.style.backgroundColor = clientColor;
-                                              e.target.style.color = 'white';
+                                              e.currentTarget.style.backgroundColor = clientColor;
+                                              e.currentTarget.style.color = 'white';
                                             }}
                                             onMouseLeave={(e) => {
-                                              e.target.style.backgroundColor = 'white';
-                                              e.target.style.color = '#2c3e50';
+                                              e.currentTarget.style.backgroundColor = 'white';
+                                              e.currentTarget.style.color = '#2c3e50';
                                             }}
                                           >
                                             <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
@@ -1294,6 +1378,39 @@ const CanyonSearch = () => {
 
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de validation */}
+      {showValidationModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowValidationModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h2>⚠️ {t('alerts.incompleteForm') || 'Formulaire incomplet'}</h2>
+              <button
+                className={styles.closeButton}
+                onClick={() => setShowValidationModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalMessage}>{validationMessage}</p>
+              <button
+                className={styles.modalButton}
+                onClick={() => setShowValidationModal(false)}
+                style={{ backgroundColor: clientColor, borderColor: clientColor }}
+              >
+                {t('alerts.understood') || 'J\'ai compris'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

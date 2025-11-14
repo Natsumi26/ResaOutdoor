@@ -74,8 +74,17 @@ export const getBookingById = async (req, res, next) => {
         session: {
           include: {
             products: {
-              include: {
-                product: true
+              select: {
+                id: true,
+                sessionId: true,
+                productId: true,
+                productOverrides: true,
+                createdAt: true,
+                product: {
+                  include: {
+                    equipmentList: true
+                  }
+                }
               }
             },
             guide: true,
@@ -107,6 +116,28 @@ export const getBookingById = async (req, res, next) => {
 
     if (!booking) {
       throw new AppError('Réservation non trouvée', 404);
+    }
+
+    // Appliquer les overrides au produit de la session
+    if (booking.session?.products) {
+      booking.session.products = booking.session.products.map(sp => {
+        if (sp.productOverrides && sp.product && Object.keys(sp.productOverrides).length > 0) {
+          return {
+            ...sp,
+            product: {
+              ...sp.product,
+              ...sp.productOverrides
+            }
+          };
+        }
+        return sp;
+      });
+
+      // Trouver le produit de cette réservation dans la session (avec overrides appliqués)
+      const sessionProduct = booking.session.products.find(sp => sp.product.id === booking.productId);
+      if (sessionProduct) {
+        booking.product = sessionProduct.product;
+      }
     }
 
     res.json({

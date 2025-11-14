@@ -108,7 +108,14 @@ export const getProductById = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true
+            email: true,
+            phone: true,
+            settings: {
+              select: {
+                companyPhone: true,
+                companyEmail: true
+              }
+            }
           }
         },
         categories: {
@@ -210,7 +217,8 @@ export const createProduct = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true
+            email: true,
+            phone: true
           }
         },
         categories: {
@@ -305,7 +313,8 @@ export const updateProduct = async (req, res, next) => {
           select: {
             id: true,
             login: true,
-            email: true
+            email: true,
+            phone: true
           }
         },
         categories: {

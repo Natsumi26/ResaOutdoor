@@ -19,6 +19,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   const [alternativeSessions, setAlternativeSessions] = useState([]);
   const [selectedTargetSession, setSelectedTargetSession] = useState(null);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [showProductEditModal, setShowProductEditModal] = useState(false);
 
   if (!session) return null;
   const { bookings = [], startTime, date, guide, products } = session;
@@ -331,6 +332,27 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
     setSelectionMode(false);
     setShowBulkMoveModal(false);
     onUpdate?.();
+  };
+
+  // Déterminer si on utilise le nouveau mode d'édition produit
+  // Condition: session NON magic rotation OU session magic rotation avec réservations
+  const shouldUseProductEditMode = () => {
+    const hasConfirmedBookings = confirmedBookings.length > 0;
+    const isMagicRotation = session.isMagicRotation;
+
+    // Si ce n'est pas une rotation magique, ou si c'est une rotation magique avec réservations
+    return !isMagicRotation || hasConfirmedBookings;
+  };
+
+  // Handler pour le bouton Modifier
+  const handleModifyClick = () => {
+    if (shouldUseProductEditMode()) {
+      // Nouveau mode: édition des paramètres du produit pour cette session
+      setShowProductEditModal(true);
+    } else {
+      // Mode classique: édition de la session (pour rotation magique sans réservations)
+      onEdit(session);
+    }
   };
 
   return (
@@ -647,7 +669,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
           <button className={styles.btnSecondary} onClick={handleDuplicateSession}>
             📋 Dupliquer
           </button>
-          <span className={styles.textLink} onClick={() => onEdit(session)}>
+          <span className={styles.textLink} onClick={handleModifyClick}>
             Modifier
           </span>
           <span className={styles.textLinkDanger} onClick={handleDeleteSession}>
@@ -682,6 +704,19 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
               setDeleteAction(null);
               setSelectedTargetSession(null);
               setAlternativeSessions([]);
+            }}
+          />
+        )}
+
+        {/* Modal d'édition des paramètres du produit pour cette session */}
+        {showProductEditModal && (
+          <ProductEditModal
+            session={session}
+            confirmedBookings={confirmedBookings}
+            onClose={() => setShowProductEditModal(false)}
+            onSuccess={() => {
+              setShowProductEditModal(false);
+              onUpdate?.();
             }}
           />
         )}
@@ -1137,6 +1172,475 @@ const BulkMoveModal = ({ bookingIds, currentSession, onClose, onSuccess }) => {
             disabled={loading || !selectedSessionId || (needsProductSelection && !selectedProductId)}
           >
             {loading ? 'Déplacement...' : 'Déplacer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Composant pour l'édition des paramètres du produit pour une session spécifique
+const ProductEditModal = ({ session, confirmedBookings, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [sendConfirmationEmail, setSendConfirmationEmail] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState(session?.status || 'open');
+  const [startTime, setStartTime] = useState(session?.startTime || '');
+
+  // État du formulaire avec tous les champs éditables
+  const [formData, setFormData] = useState({
+    name: '',
+    shortDescription: '',
+    longDescription: '',
+    priceIndividual: '',
+    duration: '',
+    color: '#93C5FD',
+    level: 'découverte',
+    region: 'annecy',
+    maxCapacity: '',
+    autoCloseHoursBefore: '',
+    postBookingMessage: '',
+    wazeLink: '',
+    googleMapsLink: '',
+    websiteLink: ''
+  });
+
+  // Récupérer le produit actuel de la session
+  const getCurrentProduct = () => {
+    if (session.products?.length === 1) {
+      return session.products[0].product;
+    }
+    if (session.bookings?.length > 0) {
+      return session.bookings[0].product;
+    }
+    return null;
+  };
+
+  const currentProduct = getCurrentProduct();
+  const hasBookings = confirmedBookings.length > 0;
+
+  // Charger les produits disponibles du guide
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const guideId = session.guide?.id;
+
+        if (!guideId) return;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products?guideId=${guideId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableProducts(data.products || []);
+        }
+      } catch (error) {
+        console.error('Erreur chargement produits:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [session.guide?.id]);
+
+  // Initialiser le formulaire avec les données du produit actuel
+  useEffect(() => {
+    if (currentProduct) {
+      setSelectedProductId(currentProduct.id);
+      setFormData({
+        name: currentProduct.name || '',
+        shortDescription: currentProduct.shortDescription || '',
+        longDescription: currentProduct.longDescription || '',
+        priceIndividual: currentProduct.priceIndividual || '',
+        duration: currentProduct.duration || '',
+        color: currentProduct.color || '#93C5FD',
+        level: currentProduct.level || 'découverte',
+        region: currentProduct.region || 'annecy',
+        maxCapacity: currentProduct.maxCapacity || '',
+        autoCloseHoursBefore: currentProduct.autoCloseHoursBefore || '',
+        postBookingMessage: currentProduct.postBookingMessage || '',
+        wazeLink: currentProduct.wazeLink || '',
+        googleMapsLink: currentProduct.googleMapsLink || '',
+        websiteLink: currentProduct.websiteLink || ''
+      });
+    }
+  }, [currentProduct]);
+
+  // Mettre à jour le formulaire quand le produit sélectionné change
+  const handleProductChange = (productId) => {
+    setSelectedProductId(productId);
+    const product = availableProducts.find(p => p.id === productId);
+
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        shortDescription: product.shortDescription || '',
+        longDescription: product.longDescription || '',
+        priceIndividual: product.priceIndividual || '',
+        duration: product.duration || '',
+        color: product.color || '#93C5FD',
+        level: product.level || 'découverte',
+        region: product.region || 'annecy',
+        maxCapacity: product.maxCapacity || '',
+        autoCloseHoursBefore: product.autoCloseHoursBefore || '',
+        postBookingMessage: product.postBookingMessage || '',
+        wazeLink: product.wazeLink || '',
+        googleMapsLink: product.googleMapsLink || '',
+        websiteLink: product.websiteLink || ''
+      });
+    }
+  };
+
+  // Handler pour les changements de champs
+  const handleFieldChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Sauvegarder les modifications
+  const handleSave = async () => {
+    if (!selectedProductId) {
+      alert('Veuillez sélectionner un produit');
+      return;
+    }
+
+    if (!formData.name || !formData.priceIndividual || !formData.duration || !formData.maxCapacity) {
+      alert('Veuillez remplir tous les champs obligatoires (nom, prix, durée, capacité)');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+
+      const payload = {
+        productId: selectedProductId,
+        productOverrides: formData,
+        sessionStatus: sessionStatus,
+        startTime: startTime,
+        sendConfirmationEmail: hasBookings ? sendConfirmationEmail : false
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}/product`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (response.ok) {
+        alert('Modifications enregistrées avec succès !');
+        onSuccess?.();
+      } else {
+        const data = await response.json();
+        alert(`Erreur: ${data.error || 'Impossible de sauvegarder les modifications'}`);
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde des modifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.bulkMoveOverlay} onClick={onClose}>
+      <div className={styles.bulkMoveModal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div className={styles.bulkMoveHeader}>
+          <h3>✏️ Modifier le produit pour cette session</h3>
+          <button className={styles.closeButton} onClick={onClose}>×</button>
+        </div>
+
+        <div className={styles.bulkMoveBody}>
+          {loading && <div className={styles.loading}>Chargement...</div>}
+
+          {!loading && (
+            <>
+              {/* Sélection du produit */}
+              <div className={styles.formGroup}>
+                <label style={{ fontWeight: 'bold' }}>Produit *</label>
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => handleProductChange(e.target.value)}
+                  className={styles.select}
+                >
+                  <option value="">-- Sélectionner un produit --</option>
+                  {availableProducts.map(product => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                  Vous pouvez changer de produit ou modifier les paramètres ci-dessous pour cette session uniquement
+                </p>
+              </div>
+
+              {/* Statut de la session et heure de départ */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                <div className={styles.formGroup}>
+                  <label style={{ fontWeight: 'bold' }}>Statut du créneau *</label>
+                  <select
+                    value={sessionStatus}
+                    onChange={(e) => setSessionStatus(e.target.value)}
+                    className={styles.select}
+                  >
+                    <option value="open">✅ Ouvert aux réservations</option>
+                    <option value="closed">🔒 Fermé aux réservations</option>
+                  </select>
+                  <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                    {sessionStatus === 'closed' && '⚠️ Les clients ne pourront pas réserver ce créneau'}
+                    {sessionStatus === 'open' && '✓ Les clients peuvent réserver ce créneau normalement'}
+                  </p>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label style={{ fontWeight: 'bold' }}>Heure de départ *</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className={styles.input}
+                  />
+                  <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                    Heure de RDV
+                  </p>
+                </div>
+              </div>
+
+              {selectedProductId && (
+                <>
+                  {/* Nom */}
+                  <div className={styles.formGroup}>
+                    <label style={{ fontWeight: 'bold' }}>Nom de l'activité *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      className={styles.input}
+                      placeholder="Ex: Canyon du Furon"
+                    />
+                  </div>
+
+                  {/* Description courte */}
+                  <div className={styles.formGroup}>
+                    <label>Description courte</label>
+                    <input
+                      type="text"
+                      value={formData.shortDescription}
+                      onChange={(e) => handleFieldChange('shortDescription', e.target.value)}
+                      className={styles.input}
+                      placeholder="Description résumée"
+                    />
+                  </div>
+
+                  {/* Description longue */}
+                  <div className={styles.formGroup}>
+                    <label>Description complète</label>
+                    <textarea
+                      value={formData.longDescription}
+                      onChange={(e) => handleFieldChange('longDescription', e.target.value)}
+                      className={styles.textarea}
+                      rows="3"
+                      placeholder="Description détaillée de l'activité"
+                    />
+                  </div>
+
+                  {/* Prix et durée sur la même ligne */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className={styles.formGroup}>
+                      <label style={{ fontWeight: 'bold' }}>Prix individuel (€) *</label>
+                      <input
+                        type="number"
+                        value={formData.priceIndividual}
+                        onChange={(e) => handleFieldChange('priceIndividual', parseFloat(e.target.value))}
+                        className={styles.input}
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label style={{ fontWeight: 'bold' }}>Durée (minutes) *</label>
+                      <input
+                        type="number"
+                        value={formData.duration}
+                        onChange={(e) => handleFieldChange('duration', parseInt(e.target.value))}
+                        className={styles.input}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Niveau, région, capacité */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                    <div className={styles.formGroup}>
+                      <label style={{ fontWeight: 'bold' }}>Niveau *</label>
+                      <select
+                        value={formData.level}
+                        onChange={(e) => handleFieldChange('level', e.target.value)}
+                        className={styles.select}
+                      >
+                        <option value="découverte">Découverte</option>
+                        <option value="aventure">Aventure</option>
+                        <option value="sportif">Sportif</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label>Région</label>
+                      <select
+                        value={formData.region}
+                        onChange={(e) => handleFieldChange('region', e.target.value)}
+                        className={styles.select}
+                      >
+                        <option value="annecy">Annecy</option>
+                        <option value="grenoble">Grenoble</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label style={{ fontWeight: 'bold' }}>Capacité max *</label>
+                      <input
+                        type="number"
+                        value={formData.maxCapacity}
+                        onChange={(e) => handleFieldChange('maxCapacity', parseInt(e.target.value))}
+                        className={styles.input}
+                        min="1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Couleur et fermeture auto */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className={styles.formGroup}>
+                      <label>Couleur</label>
+                      <input
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => handleFieldChange('color', e.target.value)}
+                        className={styles.input}
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label>Fermeture auto (heures avant)</label>
+                      <input
+                        type="number"
+                        value={formData.autoCloseHoursBefore}
+                        onChange={(e) => handleFieldChange('autoCloseHoursBefore', e.target.value ? parseInt(e.target.value) : '')}
+                        className={styles.input}
+                        min="0"
+                        placeholder="Ex: 24"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Message post-réservation */}
+                  <div className={styles.formGroup}>
+                    <label>Message après réservation</label>
+                    <textarea
+                      value={formData.postBookingMessage}
+                      onChange={(e) => handleFieldChange('postBookingMessage', e.target.value)}
+                      className={styles.textarea}
+                      rows="2"
+                      placeholder="Message affiché après la réservation"
+                    />
+                  </div>
+
+                  {/* Liens */}
+                  <div className={styles.formGroup}>
+                    <label>Lien Waze</label>
+                    <input
+                      type="url"
+                      value={formData.wazeLink}
+                      onChange={(e) => handleFieldChange('wazeLink', e.target.value)}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Lien Google Maps</label>
+                    <input
+                      type="url"
+                      value={formData.googleMapsLink}
+                      onChange={(e) => handleFieldChange('googleMapsLink', e.target.value)}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Lien site web</label>
+                    <input
+                      type="url"
+                      value={formData.websiteLink}
+                      onChange={(e) => handleFieldChange('websiteLink', e.target.value)}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  {/* Option de renvoi d'email si réservations */}
+                  {hasBookings && (
+                    <div style={{
+                      padding: '1rem',
+                      backgroundColor: '#fff3cd',
+                      border: '1px solid #ffc107',
+                      borderRadius: '4px',
+                      marginTop: '1rem'
+                    }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={sendConfirmationEmail}
+                          onChange={(e) => setSendConfirmationEmail(e.target.checked)}
+                        />
+                        <span>
+                          <strong>Renvoyer l'email de confirmation</strong> aux {confirmedBookings.length} participant(s) avec les nouvelles informations
+                        </span>
+                      </label>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className={styles.bulkMoveFooter}>
+          <button
+            className={styles.btnSecondary}
+            onClick={onClose}
+            disabled={loading}
+          >
+            Annuler
+          </button>
+          <button
+            className={styles.btnPrimary}
+            onClick={handleSave}
+            disabled={loading || !selectedProductId}
+            style={{ backgroundColor: 'var(--guide-primary)' }}
+          >
+            {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
           </button>
         </div>
       </div>

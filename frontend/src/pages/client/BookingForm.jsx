@@ -83,6 +83,17 @@ const BookingForm = () => {
     }
   }, [formData.clientFirstName]);
 
+  // Changer la langue de l'interface quand la langue parlée change
+  useEffect(() => {
+    if (formData.clientNationality) {
+      const newLanguage = formData.clientNationality === 'EN' ? 'en' : 'fr';
+      if (i18n.language !== newLanguage) {
+        i18n.changeLanguage(newLanguage);
+        localStorage.setItem('i18nextLng', newLanguage);
+      }
+    }
+  }, [formData.clientNationality, i18n]);
+
   // Vérifier si la session est dans moins de 24h
   const isLessThan24Hours = () => {
     if (!session) {
@@ -113,14 +124,24 @@ const BookingForm = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [sessionRes, productRes, capacityRes] = await Promise.all([
+        const [sessionRes, capacityRes] = await Promise.all([
           sessionsAPI.getById(sessionId),
-          productsAPI.getById(productId),
           sessionsAPI.getAvailableCapacity(sessionId, productId)
         ]);
         setSession(sessionRes.data.session);
         setModePayment(sessionRes.data.session.guide.paymentMode);
-        setProduct(productRes.data.product);
+
+        // Récupérer le produit depuis la session (avec les overrides déjà appliqués)
+        const sessionProduct = sessionRes.data.session.products?.find(
+          sp => sp.product.id === productId
+        );
+
+        if (sessionProduct) {
+          setProduct(sessionProduct.product);
+        } else {
+          throw new Error('Produit non trouvé dans cette session');
+        }
+
         setAvailableCapacity(capacityRes.data.availableCapacity);
 
         // Si le nombre de participants de l'URL dépasse la capacité disponible, le limiter

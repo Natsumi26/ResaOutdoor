@@ -18,6 +18,7 @@ const CalendarEmbed = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateAvailability, setDateAvailability] = useState({});
   const [dateInfo, setDateInfo] = useState({});
+  const [showContactModal, setShowContactModal] = useState(false);
   const clientColor = colorFromUrl || localStorage.getItem('clientThemeColor') || '#3498db';
 
   useEffect(() => {
@@ -49,7 +50,6 @@ const CalendarEmbed = () => {
       const info = {};
       const currentProductId = String(id);
       const now = new Date();
-      const datesWithSessions = new Set();
 
       allSessions.forEach(session => {
         const dateKey = format(new Date(session.date), 'yyyy-MM-dd');
@@ -58,30 +58,29 @@ const CalendarEmbed = () => {
         sessionDate.setHours(hours, minutes, 0, 0);
         const isSessionPast = sessionDate <= now;
 
-        const hasThisProduct = session.products.some(p => String(p.product.id) === currentProductId);
-
-        if (hasThisProduct) {
-          datesWithSessions.add(dateKey);
-        }
-
         if (isSessionPast) {
           return;
         }
 
+        const hasThisProduct = session.products.some(p => String(p.product.id) === currentProductId);
+
+        // Traiter le produit actuel s'il est dans cette session
         if (hasThisProduct) {
-          const hasBookingForOtherProduct = session.bookings.some(
-            b => String(b.productId) !== currentProductId && b.status !== 'cancelled'
-          );
+          const productInSession = session.products.find(p => String(p.product.id) === currentProductId);
+          if (productInSession) {
+            const maxCapacity = productInSession.product.maxCapacity;
+            const booked = session.bookings
+              .filter(b => String(b.productId) === currentProductId && b.status !== 'cancelled')
+              .reduce((sum, b) => sum + b.numberOfPeople, 0);
+            const availablePlaces = maxCapacity - booked;
 
-          if (!hasBookingForOtherProduct) {
-            const productInSession = session.products.find(p => String(p.product.id) === currentProductId);
-            if (productInSession) {
-              const maxCapacity = productInSession.product.maxCapacity;
-              const booked = session.bookings
-                .filter(b => String(b.productId) === currentProductId && b.status !== 'cancelled')
-                .reduce((sum, b) => sum + b.numberOfPeople, 0);
-              const availablePlaces = maxCapacity - booked;
+            // Vérifier s'il y a une réservation pour un autre produit dans cette session
+            const hasBookingForOtherProduct = session.bookings.some(
+              b => String(b.productId) !== currentProductId && b.status !== 'cancelled'
+            );
 
+            // Ne marquer comme disponible/full QUE si pas de réservation pour autre produit
+            if (!hasBookingForOtherProduct) {
               if (session.status === 'open' && availablePlaces > 0) {
                 availability[dateKey] = 'available';
                 info[dateKey] = { type: 'available', places: availablePlaces };
@@ -93,55 +92,54 @@ const CalendarEmbed = () => {
           }
         }
 
-        if (!hasThisProduct || session.bookings.some(b => String(b.productId) !== currentProductId && b.status !== 'cancelled')) {
-          const bookedProductIds = session.bookings
-            .filter(b => b.status !== 'cancelled')
-            .map(b => String(b.productId));
+        // Vérifier s'il y a d'autres produits RÉSERVÉS dans cette session
+        // On ne veut afficher que les produits qui ont effectivement des réservations
+        const bookedProductIds = session.bookings
+          .filter(b => b.status !== 'cancelled')
+          .map(b => String(b.productId));
 
-          const otherProducts = session.products
-            .filter(sp => {
-              const productId = String(sp.product.id);
-              return productId !== currentProductId && bookedProductIds.includes(productId);
-            })
-            .map(sp => ({
-              id: sp.product.id,
-              name: sp.product.name
-            }));
+        const otherProductsWithBookings = session.products
+          .filter(sp => {
+            const productId = String(sp.product.id);
+            return productId !== currentProductId && bookedProductIds.includes(productId);
+          })
+          .map(sp => ({
+            id: sp.product.id,
+            name: sp.product.name
+          }));
 
-          if (otherProducts.length > 0) {
-            if (!info[dateKey] || info[dateKey].type !== 'available') {
-              if (!info[dateKey]) {
-                availability[dateKey] = 'otherProduct';
-                info[dateKey] = { type: 'otherProduct', sessions: [] };
-              } else if (info[dateKey].type === 'otherProduct') {
-                // Ajouter à la liste existante
-              } else if (info[dateKey].type === 'full' || info[dateKey].type === 'closed') {
-                availability[dateKey] = 'otherProduct';
-                info[dateKey] = { type: 'otherProduct', sessions: [] };
-              }
-
-              info[dateKey].sessions.push({
-                timeSlot: session.timeSlot,
-                startTime: session.startTime,
-                products: otherProducts
-              });
+        if (otherProductsWithBookings.length > 0) {
+          // Ne marquer en jaune que si on n'a pas déjà marqué comme "available" (vert)
+          if (!info[dateKey] || info[dateKey].type !== 'available') {
+            if (!info[dateKey]) {
+              availability[dateKey] = 'otherProduct';
+              info[dateKey] = { type: 'otherProduct', sessions: [] };
+            } else if (info[dateKey].type === 'otherProduct') {
+              // Continuer à ajouter à la liste
+            } else if (info[dateKey].type === 'full' || info[dateKey].type === 'closed') {
+              // Remplacer par otherProduct si c'était full ou closed
+              availability[dateKey] = 'otherProduct';
+              info[dateKey] = { type: 'otherProduct', sessions: [] };
             }
+
+            info[dateKey].sessions = info[dateKey].sessions || [];
+            info[dateKey].sessions.push({
+              timeSlot: session.timeSlot,
+              startTime: session.startTime,
+              products: otherProductsWithBookings
+            });
           }
         }
       });
 
+      // Marquer les dates sans sessions comme "closed"
       for (let i = 0; i < 60; i++) {
         const date = addDays(today, i);
         const dateKey = format(date, 'yyyy-MM-dd');
 
         if (!availability[dateKey]) {
-          if (datesWithSessions.has(dateKey)) {
-            availability[dateKey] = 'past';
-            info[dateKey] = { type: 'past' };
-          } else {
-            availability[dateKey] = 'closed';
-            info[dateKey] = { type: 'closed' };
-          }
+          availability[dateKey] = 'closed';
+          info[dateKey] = { type: 'closed' };
         }
       }
 
@@ -155,8 +153,27 @@ const CalendarEmbed = () => {
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getById(id);
-      setProduct(response.data.product);
+
+      // Si sessionId est fourni, charger le produit depuis cette session (avec overrides appliqués)
+      const sessionId = searchParams.get('sessionId');
+
+      if (sessionId) {
+        const sessionResponse = await sessionsAPI.getById(sessionId);
+        const session = sessionResponse.data.session;
+
+        // Trouver le produit dans la session (les overrides sont déjà appliqués par le backend)
+        const sessionProduct = session.products?.find(sp => sp.product.id === id);
+
+        if (sessionProduct) {
+          setProduct(sessionProduct.product);
+        } else {
+          throw new Error('Produit non trouvé dans cette session');
+        }
+      } else {
+        // Sinon, charger le produit normalement
+        const response = await productsAPI.getById(id);
+        setProduct(response.data.product);
+      }
     } catch (error) {
       console.error('Erreur chargement produit:', error);
     } finally {
@@ -217,6 +234,10 @@ const CalendarEmbed = () => {
     } else {
       setSelectedDate(null);
     }
+  };
+
+  const handleClosedDateClick = (date, status) => {
+    setShowContactModal(true);
   };
 
   const isSessionReservedByOtherProduct = (session) => {
@@ -290,6 +311,7 @@ const CalendarEmbed = () => {
             hideRangeMode={true}
             dateAvailability={dateAvailability}
             accentColor={clientColor}
+            onClosedDateClick={handleClosedDateClick}
           />
         </div>
 
@@ -363,11 +385,6 @@ const CalendarEmbed = () => {
                       </div>
                       <div className={styles.sessionDetails}>
                         <p>{t('calendarEmbed.availableSpots')} <strong>{availableSpots}</strong></p>
-                        {session.shoeRentalAvailable && (
-                          <p className={styles.shoeRental}>
-                            {t('calendarEmbed.shoeRental')} {session.shoeRentalPrice}€
-                          </p>
-                        )}
                         {isAutoClosed && (
                           <p className={styles.autoClosedWarning}>
                             ⚠️ {t('calendarEmbed.closedOnline')}
@@ -406,6 +423,60 @@ const CalendarEmbed = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de contact */}
+      {showContactModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowContactModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h2>📞 Contactez-nous</h2>
+              <button
+                className={styles.closeButton}
+                onClick={() => setShowContactModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalMessage}>
+                {t('calendarEmbed.noActivityAvailable')}
+              </p>
+              <p className={styles.modalSubMessage}>
+                {t('calendarEmbed.contactUsToOpen')}
+              </p>
+
+              {product?.guide && (
+                <div className={styles.contactButtons}>
+                  {product.guide.settings?.companyPhone && (
+                    <a
+                      href={`tel:${product.guide.settings.companyPhone}`}
+                      className={styles.contactButton}
+                      style={{ backgroundColor: clientColor, borderColor: clientColor }}
+                    >
+                      📞 {product.guide.settings.companyPhone}
+                    </a>
+                  )}
+                  {product.guide.settings?.companyEmail && (
+                    <a
+                      href={`mailto:${product.guide.settings.companyEmail}`}
+                      className={styles.contactButton}
+                      style={{ backgroundColor: clientColor, borderColor: clientColor }}
+                    >
+                      📧 {product.guide.settings.companyEmail}
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

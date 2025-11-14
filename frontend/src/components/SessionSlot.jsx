@@ -20,6 +20,11 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
   const totalPeople = bookings.reduce((sum, booking) =>
     booking.status !== 'cancelled' ? sum + (booking.numberOfPeople || 0) : sum, 0
   );
+
+  // Calculer le pourcentage de remplissage
+  const fillPercentage = (totalPeople / maxCapacity) * 100;
+  const emptyPercentage = 100 - fillPercentage;
+
   // Nom de la session / du produit
   const getSessionName = () => {
     if (session.products?.length === 1) {
@@ -85,6 +90,13 @@ const SessionSlot = ({ session, onClick, onBookingClick, onCreateBooking, filter
                   </div>
                 );
               })}
+              {/* Zone vide hachurée si session fermée et pas complète */}
+              {session.status === 'closed' && emptyPercentage > 0 && (
+                <div
+                  className={styles.closedZone}
+                  style={{ width: `${emptyPercentage}%` }}
+                />
+              )}
               {provided.placeholder}
             </div>
           )}

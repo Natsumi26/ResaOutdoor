@@ -126,15 +126,19 @@ model Session {
 // Table de jonction : Produits disponibles dans une session
 // Permet la rotation magique (plusieurs produits par session)
 model SessionProduct {
-  id        String   @id @default(uuid())
+  id                String   @id @default(uuid())
 
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  // Surcharges des paramètres du produit pour cette session spécifique (JSON)
+  // Permet de modifier ponctuellement les détails d'un produit pour une session donnée
+  productOverrides  Json?
+
+  createdAt         DateTime @default(now())
 
   @@unique([sessionId, productId])
   @@map("session_products")

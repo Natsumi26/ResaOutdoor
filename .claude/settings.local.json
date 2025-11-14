@@ -35,7 +35,11 @@
       "Bash(find:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(dir:*)",
+      "Bash(\"D:\\Users\\Gamer\\Documents\\GitHub\\logiciel-de-resa\\frontend\\src\\pages\\client\\ClientPages.module.css\")",
+      "Bash(server.js)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

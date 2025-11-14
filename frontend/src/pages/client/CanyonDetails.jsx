@@ -201,8 +201,27 @@ const CanyonDetails = () => {
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const response = await productsAPI.getById(id);
-      setProduct(response.data.product);
+
+      // Si sessionId est fourni, charger le produit depuis cette session (avec overrides appliqués)
+      const sessionId = searchParams.get('sessionId');
+
+      if (sessionId) {
+        const sessionResponse = await sessionsAPI.getById(sessionId);
+        const session = sessionResponse.data.session;
+
+        // Trouver le produit dans la session (les overrides sont déjà appliqués par le backend)
+        const sessionProduct = session.products?.find(sp => sp.product.id === id);
+
+        if (sessionProduct) {
+          setProduct(sessionProduct.product);
+        } else {
+          throw new Error('Produit non trouvé dans cette session');
+        }
+      } else {
+        // Sinon, charger le produit normalement
+        const response = await productsAPI.getById(id);
+        setProduct(response.data.product);
+      }
     } catch (error) {
       console.error('Erreur chargement produit:', error);
       const params = new URLSearchParams();
