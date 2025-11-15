@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import TwoFactorVerify from './pages/TwoFactorVerify';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
 import Users from './pages/Users';
@@ -48,6 +51,9 @@ const AppRoutes = () => {
         path="/login"
         element={isAuthenticated ? <Navigate to="/" /> : <Login />}
       />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-2fa" element={<TwoFactorVerify />} />
 
       {/* Routes client - accessibles sans authentification (pour iframe WordPress) */}
       <Route path="/client/search" element={<CanyonSearch />} />

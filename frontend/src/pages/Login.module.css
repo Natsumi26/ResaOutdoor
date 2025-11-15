@@ -3,7 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: url('/flags/outdoor-bg.png') center/cover no-repeat;
+  background-color: #f5f0e8;
   padding: 20px;
 }
 
@@ -17,10 +18,16 @@
 }
 
 .logo {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a5f7a;
   color: white;
-  padding: 40px 30px;
+  padding: 30px 20px 20px 20px;
   text-align: center;
+}
+
+.logo img {
+  height: 180px;
+  width: auto;
+  margin-bottom: 10px;
 }
 
 .logo h1 {
@@ -54,6 +61,16 @@
   border: 1px solid #fcc;
 }
 
+.success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border: 1px solid #c3e6cb;
+}
+
 .formGroup {
   margin-bottom: 20px;
 }
@@ -77,14 +94,14 @@
 
 .formGroup input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #1a5f7a;
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
 }
 
 .submitBtn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a5f7a;
   color: white;
   border: none;
   border-radius: 8px;
@@ -97,7 +114,7 @@
 
 .submitBtn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(26, 95, 122, 0.4);
 }
 
 .submitBtn:active:not(:disabled) {

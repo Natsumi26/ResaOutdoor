@@ -16,6 +16,7 @@ model User {
   password              String
   email                 String?
   phone                 String?
+  twoFactorEnabled      Boolean   @default(true) // 2FA activé par défaut
   stripeAccount         String?   // Compte Stripe associé
   role                  String    @default("employee") // "super_admin", "leader", "employee", "trainee"
   confidentialityPolicy String?   // Lien vers la politique de confidentialité
@@ -45,6 +46,9 @@ model User {
   newsletters           Newsletter[]
   settings              Settings?
   equipmentLists        EquipmentList[] @relation("UserEquipmentLists")
+  passwordResets        PasswordReset[]
+  twoFactorCodes        TwoFactorCode[]
+  trustedDevices        TrustedDevice[]
 
   @@map("users")
 }
@@ -434,4 +438,47 @@ model EquipmentList {
   products    Product[] // Produits utilisant cette liste
 
   @@map("equipment_lists")
+}
+
+// Tokens de réinitialisation de mot de passe
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
+
+  @@map("password_resets")
+}
+
+// Codes de vérification 2FA par email
+model TwoFactorCode {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code        String   // Code à 6 chiffres
+  email       String   // Email utilisé
+  expiresAt   DateTime // Expire dans 10 minutes
+  createdAt   DateTime @default(now())
+  verified    Boolean  @default(false)
+  attempts    Int      @default(0) // Nombre de tentatives
+  tempToken   String   @unique // Token temporaire pour associer la session
+
+  @@map("two_factor_codes")
+}
+
+// Appareils de confiance pour bypass 2FA
+model TrustedDevice {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceToken  String   @unique
+  deviceName   String?  // User agent ou nom de l'appareil
+  expiresAt    DateTime // Expire dans 60 jours
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+
+  @@map("trusted_devices")
 }

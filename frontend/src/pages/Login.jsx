@@ -21,7 +21,17 @@ const Login = () => {
       : await login(credentials);
 
     if (result.success) {
-      navigate('/');
+      // Si le 2FA est requis, rediriger vers la page de vérification
+      if (result.requiresTwoFactor) {
+        navigate('/verify-2fa', {
+          state: {
+            tempToken: result.tempToken,
+            message: result.message
+          }
+        });
+      } else {
+        navigate('/');
+      }
     } else {
       setError(result.error || 'Erreur de connexion');
     }
@@ -41,8 +51,8 @@ const Login = () => {
     <div className={styles.container}>
       <div className={styles.loginBox}>
         <div className={styles.logo}>
-          <h1>🏔️ CanyonLife</h1>
-          <p>Gestion des réservations</p>
+          <img src="/flags/logo.png" alt="Logo" />
+          <p>Logiciel de réservation en ligne</p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -80,11 +90,24 @@ const Login = () => {
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
-        </form>
 
-        <div className={styles.footer}>
-          <p>Compte par défaut : canyonlife / canyonlife</p>
-        </div>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#1a5f7a',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '14px'
+              }}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -1684,3 +1684,282 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     throw error;
   }
 };
+
+/**
+ * Template HTML pour email de réinitialisation de mot de passe
+ */
+const passwordResetTemplate = (resetLink, userLogin) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #667eea;
+        }
+        .button {
+          display: inline-block;
+          background: #667eea;
+          color: white;
+          padding: 12px 30px;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 20px 0;
+          font-weight: bold;
+        }
+        .warning-box {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔒 Réinitialisation de mot de passe</h1>
+        <p>RésaOutdoor</p>
+      </div>
+
+      <div class="content">
+        <p>Bonjour ${userLogin},</p>
+
+        <p>Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
+
+        <div style="text-align: center;">
+          <a href="${resetLink}" class="button">
+            Réinitialiser mon mot de passe
+          </a>
+        </div>
+
+        <div class="info-box">
+          <h3>ℹ️ Informations importantes</h3>
+          <ul>
+            <li><strong>Validité :</strong> Ce lien est valide pendant 1 heure</li>
+            <li><strong>Usage unique :</strong> Le lien ne peut être utilisé qu'une seule fois</li>
+            <li><strong>Sécurité :</strong> Si vous n'avez pas demandé cette réinitialisation, ignorez cet email</li>
+          </ul>
+        </div>
+
+        <div class="warning-box">
+          <strong>⚠️ Attention :</strong> Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet email. Votre mot de passe actuel restera inchangé.
+        </div>
+
+        <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #667eea;">${resetLink}</p>
+
+        <p>Cordialement,<br>L'équipe RésaOutdoor</p>
+      </div>
+
+      <div class="footer">
+        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+        <p>© ${new Date().getFullYear()} RésaOutdoor - Tous droits réservés</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Envoyer un email de réinitialisation de mot de passe
+ */
+export const sendPasswordResetEmail = async (email, resetToken, userLogin) => {
+  try {
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: email,
+      subject: '🔒 Réinitialisation de votre mot de passe - RésaOutdoor',
+      html: passwordResetTemplate(resetLink, userLogin)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('✅ Email de réinitialisation de mot de passe envoyé:', info.messageId, 'to:', email);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email de réinitialisation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Template HTML pour email de code 2FA
+ */
+const twoFactorCodeTemplate = (code, userLogin) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+        }
+        .content {
+          background: #f9fafb;
+          padding: 30px;
+          border-radius: 0 0 10px 10px;
+        }
+        .code-box {
+          background: white;
+          padding: 30px;
+          margin: 20px 0;
+          border-radius: 8px;
+          text-align: center;
+          border: 2px solid #667eea;
+        }
+        .code {
+          font-size: 3em;
+          color: #667eea;
+          font-weight: bold;
+          letter-spacing: 10px;
+          margin: 20px 0;
+          font-family: 'Courier New', monospace;
+        }
+        .warning-box {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+        }
+        .info-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          border-left: 4px solid #667eea;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 0.9em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔐 Code de vérification</h1>
+        <p>Authentification à 2 facteurs</p>
+      </div>
+
+      <div class="content">
+        <p>Bonjour ${userLogin},</p>
+
+        <p>Voici votre code de vérification pour vous connecter à RésaOutdoor :</p>
+
+        <div class="code-box">
+          <p style="margin: 0; color: #6b7280; font-size: 0.9em;">CODE DE VÉRIFICATION</p>
+          <div class="code">${code}</div>
+          <p style="margin: 0; color: #6b7280; font-size: 0.9em;">Entrez ce code dans la page de connexion</p>
+        </div>
+
+        <div class="info-box">
+          <h3>ℹ️ Informations importantes</h3>
+          <ul>
+            <li><strong>Validité :</strong> Ce code est valide pendant 10 minutes</li>
+            <li><strong>Usage unique :</strong> Le code ne peut être utilisé qu'une seule fois</li>
+            <li><strong>Tentatives :</strong> Vous avez 3 tentatives maximum</li>
+          </ul>
+        </div>
+
+        <div class="warning-box">
+          <strong>⚠️ Sécurité :</strong> Si vous n'êtes pas à l'origine de cette tentative de connexion, ignorez cet email et assurez-vous que votre mot de passe est sécurisé.
+        </div>
+
+        <p>Cordialement,<br>L'équipe RésaOutdoor</p>
+      </div>
+
+      <div class="footer">
+        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+        <p>© ${new Date().getFullYear()} RésaOutdoor - Tous droits réservés</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Envoyer un email avec le code 2FA
+ */
+export const sendTwoFactorCode = async (email, code, userLogin) => {
+  try {
+    const mailOptions = {
+      from: defaultFrom,
+      to: email,
+      subject: '🔐 Code de vérification - RésaOutdoor',
+      html: twoFactorCodeTemplate(code, userLogin)
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('✅ Email de code 2FA envoyé:', info.messageId, 'to:', email);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email de code 2FA:', error);
+    throw error;
+  }
+};

@@ -36,7 +36,26 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const response = await authAPI.login(credentials);
+      // Récupérer le deviceToken s'il existe
+      const deviceToken = localStorage.getItem('deviceToken');
+      const loginData = { ...credentials };
+
+      if (deviceToken) {
+        loginData.deviceToken = deviceToken;
+      }
+
+      const response = await authAPI.login(loginData);
+
+      // Si le 2FA est requis, ne pas sauvegarder le token et retourner les infos
+      if (response.data.requiresTwoFactor) {
+        return {
+          success: true,
+          requiresTwoFactor: true,
+          tempToken: response.data.tempToken,
+          message: response.data.message
+        };
+      }
+
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -56,6 +75,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('impersonated');
+    localStorage.removeItem('deviceToken');
     setUser(null);
   };
 
@@ -87,6 +107,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     superLogin,
+    setUser, // Exposer setUser pour la mise à jour directe après 2FA
     isAuthenticated: !!user,
     // Helpers pour vérifier les rôles
     isSuperAdmin: user?.role === 'super_admin',

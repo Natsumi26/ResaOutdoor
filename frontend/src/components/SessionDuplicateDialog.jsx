@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, eachWeekendOfInterval, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './SessionDuplicateDialog.module.css';
 
 const SessionDuplicateDialog = ({ session, onConfirm, onCancel }) => {
+  // Calculer la date J+1 de la session originale
+  const nextDay = session ? addDays(new Date(session.date), 1) : new Date();
+  const defaultStartDate = format(nextDay, 'yyyy-MM-dd');
+
   const [duplicateMode, setDuplicateMode] = useState('custom'); // 'daily', 'weekend', 'custom'
-  const [startDate, setStartDate] = useState('');
+  const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [calculatedDates, setCalculatedDates] = useState([]);
+
+  // Mettre à jour la date de début quand la session change
+  useEffect(() => {
+    if (session) {
+      const nextDay = addDays(new Date(session.date), 1);
+      setStartDate(format(nextDay, 'yyyy-MM-dd'));
+    }
+  }, [session]);
 
   // Générer les jours du mois
   const monthStart = startOfMonth(currentMonth);

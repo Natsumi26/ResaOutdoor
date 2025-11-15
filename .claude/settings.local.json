@@ -39,7 +39,8 @@
       "Bash(dir:*)",
       "Bash(\"D:\\Users\\Gamer\\Documents\\GitHub\\logiciel-de-resa\\frontend\\src\\pages\\client\\ClientPages.module.css\")",
       "Bash(server.js)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(npx prisma:*)"
     ],
     "deny": [],
     "ask": []
