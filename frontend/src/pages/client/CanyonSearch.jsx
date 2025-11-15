@@ -58,6 +58,12 @@ const CanyonSearch = () => {
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
 
+  // État pour savoir quels carousels ont besoin du bouton de scroll
+  const [carouselsNeedScroll, setCarouselsNeedScroll] = useState({});
+
+  // État pour savoir quels carousels peuvent revenir en arrière (ont été scrollés)
+  const [carouselsCanGoBack, setCarouselsCanGoBack] = useState({});
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -134,6 +140,66 @@ const CanyonSearch = () => {
 
     setProducts(filtered);
   }, [resultFilters, allProducts]);
+
+  // Détecter quels carousels ont besoin du bouton de scroll
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    const checkCarouselsScroll = () => {
+      const needsScroll = {};
+
+      products.forEach(product => {
+        const carousel = document.getElementById(`carousel-${product.id}`);
+        if (carousel) {
+          // Vérifier si le carousel a besoin de scroll
+          needsScroll[product.id] = carousel.scrollWidth > carousel.clientWidth;
+        }
+      });
+
+      setCarouselsNeedScroll(needsScroll);
+    };
+
+    // Attendre que le DOM soit rendu
+    const timer = setTimeout(checkCarouselsScroll, 100);
+
+    // Re-vérifier lors du redimensionnement de la fenêtre
+    window.addEventListener('resize', checkCarouselsScroll);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkCarouselsScroll);
+    };
+  }, [products, isMobile]);
+
+  // Détecter quand le carousel est scrollé pour afficher le bouton retour
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    const handleScroll = (productId) => (e) => {
+      const scrollLeft = e.target.scrollLeft;
+      setCarouselsCanGoBack(prev => ({
+        ...prev,
+        [productId]: scrollLeft > 10 // Afficher le bouton si scrollé de plus de 10px
+      }));
+    };
+
+    const listeners = [];
+
+    products.forEach(product => {
+      const carousel = document.getElementById(`carousel-${product.id}`);
+      if (carousel) {
+        const listener = handleScroll(product.id);
+        carousel.addEventListener('scroll', listener);
+        listeners.push({ carousel, listener });
+      }
+    });
+
+    return () => {
+      listeners.forEach(({ carousel, listener }) => {
+        carousel.removeEventListener('scroll', listener);
+      });
+    };
+  }, [products]);
 
   const loadProducts = async (customFilters = null) => {
     const currentFilters = customFilters || filters;
@@ -458,6 +524,82 @@ const CanyonSearch = () => {
       'sportif': '#dc3545'
     };
     return colorMap[level?.toLowerCase()] || '#6c757d';
+  };
+
+  /**
+   * Gérer le scroll du carousel de créneaux vers la droite
+   */
+  const handleCarouselScroll = (productId) => {
+    const container = document.getElementById(`carousel-${productId}`);
+    if (!container) return;
+
+    const scrollAmount = 350; // Scroll de 350px vers la droite
+    container.scrollTo({
+      left: container.scrollLeft + scrollAmount,
+      behavior: 'smooth'
+    });
+  };
+
+  /**
+   * Gérer le scroll du carousel de créneaux vers la gauche
+   */
+  const handleCarouselScrollBack = (productId) => {
+    const container = document.getElementById(`carousel-${productId}`);
+    if (!container) return;
+
+    const scrollAmount = 350; // Scroll de 350px vers la gauche
+    container.scrollTo({
+      left: container.scrollLeft - scrollAmount,
+      behavior: 'smooth'
+    });
+  };
+
+  /**
+   * Prioriser les sessions : quand plusieurs sessions existent pour le même créneau,
+   * afficher uniquement celle qui devrait être remplie en priorité
+   */
+  const prioritizeSessions = (sessions, requestedParticipants) => {
+    if (!sessions || sessions.length === 0) return [];
+
+    // Grouper les sessions par heure de début
+    const sessionsByTime = {};
+    sessions.forEach(session => {
+      const timeKey = session.startTime;
+      if (!sessionsByTime[timeKey]) {
+        sessionsByTime[timeKey] = [];
+      }
+      sessionsByTime[timeKey].push(session);
+    });
+
+    // Pour chaque créneau horaire, sélectionner la session prioritaire
+    const prioritizedSessions = [];
+    Object.values(sessionsByTime).forEach(timeSessions => {
+      if (timeSessions.length === 1) {
+        // Une seule session pour ce créneau, pas de priorisation nécessaire
+        prioritizedSessions.push(timeSessions[0]);
+      } else {
+        // Plusieurs sessions pour le même créneau
+        // Trier par places disponibles CROISSANTES (moins de places = plus remplie = plus prioritaire)
+        const sorted = [...timeSessions].sort((a, b) => {
+          return a.availablePlaces - b.availablePlaces;
+        });
+
+        // Trouver la première session (la plus remplie) qui peut encore accueillir la réservation
+        const participants = parseInt(requestedParticipants || filters.participants);
+        const suitableSession = sorted.find(s => s.availablePlaces >= participants);
+
+        if (suitableSession) {
+          // Afficher la session la plus remplie qui peut encore accueillir la réservation
+          prioritizedSessions.push(suitableSession);
+        } else {
+          // Aucune session ne peut accueillir tous les participants
+          // Afficher celle avec le plus de places disponibles (la dernière du tri)
+          prioritizedSessions.push(sorted[sorted.length - 1]);
+        }
+      }
+    });
+
+    return prioritizedSessions;
   };
 
   // Obtenir les catégories uniques des produits
@@ -1054,122 +1196,248 @@ const CanyonSearch = () => {
 
                         {/* Créneaux disponibles - Affichage conditionnel selon le nombre de jours */}
                         {hasSessions ? (
-                          Object.keys(sessionsByDate).length > 2 ? (
-                            // Période longue (> 2 jours) : Affichage résumé
+                          (() => {
+                            const numDays = Object.keys(sessionsByDate).length;
+                            console.log(`Product ${product.id}: numDays=${numDays}, isMobile=${isMobile}, window.innerWidth=${window.innerWidth}`);
+                            return numDays > 2;
+                          })() ? (
+                            // Période longue (> 2 jours) : Carousel avec défilement
                             <div style={{ marginBottom: '1rem' }}>
-                              <div style={{
-                                background: `linear-gradient(135deg, ${clientColor}20 0%, ${clientColor}40 100%)`,
-                                padding: '0.75rem 1rem',
-                                borderRadius: '8px',
-                                border: `2px solid ${clientColor}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '1rem',
-                                flexWrap: 'wrap'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '1.5rem' }}>📅</span>
-                                  <div>
-                                    <div style={{ fontWeight: '700', color: clientColor, fontSize: '1.1rem' }}>
-                                      {t("sessions.availableSlots", {
-                                        count: Object.values(sessionsByDate).flat().length
-                                      })}
-                                    </div>
-                                    <div style={{ fontSize: '0.85rem', color: clientColor, marginTop: '2px', opacity: 0.9 }}>
-                                      {t("sessions.dateRange", {
-                                          start: new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                                          end: new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-                                        })}
-                                    </div>
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const params = new URLSearchParams();
-                                    const guideId = searchParams.get('guideId');
-                                    const teamName = searchParams.get('teamName');
-
-                                    if (guideId) params.set('guideId', guideId);
-                                    if (teamName) params.set('teamName', teamName);
-                                    const color = searchParams.get('color');
-                                    if (color) params.set('color', color);
-
-                                    // Si le produit a des overrides, passer la sessionId de la première session disponible
-                                    const hasOverrides = product.uniqueId && product.uniqueId !== product.id;
-                                    const sessionIdParam = hasOverrides && product.availableSessions?.[0]?.sessionId
-                                      ? `&sessionId=${product.availableSessions[0].sessionId}`
-                                      : '';
-
-                                    navigate(`/client/canyon/${product.id}?participants=${filters.participants}&${params.toString()}${sessionIdParam}`);
-                                  }}
-                                  style={{
-                                    background: clientColor,
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '0.6rem 1.2rem',
-                                    borderRadius: '6px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    boxShadow: `0 2px 4px ${clientColor}50`
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.opacity = '0.85';
-                                    e.target.style.transform = 'translateY(-1px)';
-                                    e.target.style.boxShadow = `0 4px 8px ${clientColor}70`;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.opacity = '1';
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = `0 2px 4px ${clientColor}50`;
-                                  }}
-                                >
-                                  {t('slots.showSlots')}
-                                </button>
+                              {/* En-tête avec titre et dates */}
+                              <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span>
+                                  {t('slots.AvailableSlots')} ({Object.values(sessionsByDate).reduce((total, sessions) =>
+                                    total + prioritizeSessions(sessions, filters.participants).length, 0)})
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: '#6c757d', fontWeight: 'normal' }}>
+                                  {t("sessions.dateRange", {
+                                    start: new Date(Object.keys(sessionsByDate)[0]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+                                    end: new Date(Object.keys(sessionsByDate)[Object.keys(sessionsByDate).length - 1]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+                                  })}
+                                </span>
                               </div>
+
+                              {/* Conteneur du carousel avec bouton de navigation */}
+                              <div style={{ width: '100%' }}>
+                                {/* Boutons pour faire défiler les créneaux */}
+                                {!isMobile && carouselsNeedScroll[product.id] && (
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    {/* Bouton précédent - uniquement si le carousel a été scrollé */}
+                                    {carouselsCanGoBack[product.id] && (
+                                      <button
+                                        onClick={() => handleCarouselScrollBack(product.id)}
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          borderRadius: '8px',
+                                          background: clientColor || '#1a5f7a',
+                                          border: 'none',
+                                          color: 'white',
+                                          cursor: 'pointer',
+                                          fontSize: '1.2rem',
+                                          fontWeight: '600',
+                                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                          transition: 'all 0.3s ease',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          zIndex: 10
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.target.style.transform = 'translateY(-2px)';
+                                          e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.transform = 'translateY(0)';
+                                          e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                                        }}
+                                        title="Créneaux précédents"
+                                      >
+                                        ←
+                                      </button>
+                                    )}
+
+                                    {/* Bouton suivant */}
+                                    <button
+                                      onClick={() => handleCarouselScroll(product.id)}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '8px',
+                                        background: clientColor || '#1a5f7a',
+                                        border: 'none',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '600',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                        transition: 'all 0.3s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        whiteSpace: 'nowrap',
+                                        zIndex: 10
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.transform = 'translateY(-2px)';
+                                        e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                                      }}
+                                    >
+                                      Créneaux suivants →
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Conteneur scrollable */}
+                                <div
+                                  id={`carousel-${product.id}`}
+                                  style={{
+                                    display: 'flex',
+                                    gap: '0.75rem',
+                                    overflowX: 'auto',
+                                    scrollBehavior: 'smooth',
+                                    padding: '1rem',
+                                    background: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e9ecef',
+                                    WebkitOverflowScrolling: 'touch',
+                                    scrollbarWidth: 'none',
+                                    msOverflowStyle: 'none',
+                                    maxWidth: '100%',
+                                    width: '100%'
+                                  }}
+                                  className="hide-scrollbar"
+                                >
+                                  {/* Tous les créneaux */}
+                                  {Object.entries(sessionsByDate).map(([date, sessions]) =>
+                                    prioritizeSessions(sessions, filters.participants).map((session) => {
+                                      const isAutoClosed = session.isAutoClosed;
+                                      const dateFormatted = new Date(date).toLocaleDateString('fr-FR', {
+                                        weekday: 'short',
+                                        day: 'numeric',
+                                        month: 'short'
+                                      });
+
+                                      if (isAutoClosed) {
+                                        return (
+                                          <div
+                                            key={`${date}-${session.sessionId || session.id}`}
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              alignItems: 'center',
+                                              padding: '0.75rem 1rem',
+                                              borderRadius: '6px',
+                                              border: '2px solid #ffc107',
+                                              background: '#fff3cd',
+                                              cursor: 'default',
+                                              minWidth: '140px',
+                                              flexShrink: 0
+                                            }}
+                                          >
+                                            <span style={{ fontSize: '0.7rem', color: '#856404', marginBottom: '4px', fontWeight: '600' }}>
+                                              📅 {dateFormatted}
+                                            </span>
+                                            <span style={{ fontSize: '1.1rem', color: '#856404', fontWeight: '600' }}>
+                                              🕐 {session.startTime}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.3' }}>
+                                              {t('calendarEmbed.closedOnline')}
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', marginTop: '4px', color: '#856404', textAlign: 'center', lineHeight: '1.2' }}>
+                                              📞 {t('calendarEmbed.callGuideToBook')}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', marginTop: '2px', color: '#856404' }}>
+                                              ({session.availablePlaces} {session.availablePlaces > 1 ? 'places' : 'place'})
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <button
+                                          key={`${date}-${session.sessionId || session.id}`}
+                                          className={styles.timeSlotButton}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const sessionId = session.sessionId || session.id;
+                                            const params = new URLSearchParams();
+                                            const guideId = searchParams.get('guideId');
+                                            const teamName = searchParams.get('teamName');
+
+                                            if (guideId) params.set('guideId', guideId);
+                                            if (teamName) params.set('teamName', teamName);
+                                            const color = searchParams.get('color');
+                                            if (color) params.set('color', color);
+                                            navigate(`/client/book/${sessionId}?productId=${product.id}&participants=${filters.participants}&${params.toString()}`);
+                                          }}
+                                          style={{
+                                            borderColor: clientColor,
+                                            flexShrink: 0,
+                                            minWidth: '140px'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = clientColor;
+                                            e.currentTarget.style.color = 'white';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'white';
+                                            e.currentTarget.style.color = '#2c3e50';
+                                          }}
+                                        >
+                                          <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>📅 {dateFormatted}</span>
+                                          <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
+                                          <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
+                                            {session.availablePlaces} places
+                                          </span>
+                                        </button>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Style pour cacher la scrollbar */}
+                              <style>{`
+                                .hide-scrollbar::-webkit-scrollbar {
+                                  display: none;
+                                }
+                              `}</style>
                             </div>
                           ) : (
-                            // Période courte (1-2 jours) : Affichage détaillé
+                            // Période courte (1-2 jours) : Affichage compact horizontal
                             <div style={{ marginBottom: '1rem', flex: 1 }}>
                               <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
                                 {t('slots.AvailableSlots')}
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {Object.entries(sessionsByDate).map(([date, sessions]) => (
-                                  <div key={date} style={{
-                                    background: '#f8f9fa',
-                                    padding: '1rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid #e9ecef'
-                                  }}>
-                                    {/* Date */}
-                                    <div style={{
-                                      fontWeight: '600',
-                                      color: '#2c3e50',
-                                      marginBottom: '0.75rem',
-                                      fontSize: '0.95rem'
-                                    }}>
-                                      📅 {new Date(date).toLocaleDateString('fr-FR', {
-                                        weekday: 'long',
-                                        day: 'numeric',
-                                        month: 'long'
-                                      })}
-                                    </div>
 
-                                    {/* Créneaux horaires pour cette date */}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                      {sessions.map((session) => {
+                              {/* Tous les créneaux sur une seule rangée */}
+                              <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem',
+                                background: '#f8f9fa',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                border: '1px solid #e9ecef'
+                              }}>
+                                {Object.entries(sessionsByDate).map(([date, sessions]) => (
+                                  prioritizeSessions(sessions, filters.participants).map((session) => {
                                         const isAutoClosed = session.isAutoClosed;
+
+                                        const dateFormatted = new Date(date).toLocaleDateString('fr-FR', {
+                                          weekday: 'short',
+                                          day: 'numeric',
+                                          month: 'short'
+                                        });
 
                                         if (isAutoClosed) {
                                           // Affichage pour session fermée automatiquement
                                           return (
                                             <div
-                                              key={session.sessionId || session.id}
+                                              key={`${date}-${session.sessionId || session.id}`}
                                               style={{
                                                 display: 'flex',
                                                 flexDirection: 'column',
@@ -1182,6 +1450,9 @@ const CanyonSearch = () => {
                                                 minWidth: '140px'
                                               }}
                                             >
+                                              <span style={{ fontSize: '0.7rem', color: '#856404', marginBottom: '4px', fontWeight: '600' }}>
+                                                📅 {dateFormatted}
+                                              </span>
                                               <span style={{ fontSize: '1.1rem', color: '#856404', fontWeight: '600' }}>
                                                 🕐 {session.startTime}
                                               </span>
@@ -1201,7 +1472,7 @@ const CanyonSearch = () => {
                                         // Affichage normal pour session réservable
                                         return (
                                           <button
-                                            key={session.sessionId || session.id}
+                                            key={`${date}-${session.sessionId || session.id}`}
                                             className={styles.timeSlotButton}
                                             onClick={(e) => {
                                               e.preventDefault();
@@ -1227,15 +1498,14 @@ const CanyonSearch = () => {
                                               e.currentTarget.style.color = '#2c3e50';
                                             }}
                                           >
+                                            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>📅 {dateFormatted}</span>
                                             <span style={{ fontSize: '1.1rem' }}>🕐 {session.startTime}</span>
                                             <span style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
                                               {session.availablePlaces} places
                                             </span>
                                           </button>
                                         );
-                                      })}
-                                    </div>
-                                  </div>
+                                      })
                                 ))}
                               </div>
                             </div>
