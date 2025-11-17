@@ -338,6 +338,11 @@ export const getSessionPrintHTML = async (req, res, next) => {
                 name: true,
                 color: true
               }
+            },
+            notes: {
+              orderBy: {
+                createdAt: 'desc'
+              }
             }
           },
           orderBy: {
@@ -508,6 +513,25 @@ export const getSessionPrintHTML = async (req, res, next) => {
       font-weight: bold;
       font-size: 12pt;
     }
+    .booking-notes {
+      margin-top: 10px;
+      padding: 8px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 4px;
+    }
+    .booking-note {
+      margin-bottom: 5px;
+      font-size: 10pt;
+      color: #78350f;
+    }
+    .booking-note:last-child {
+      margin-bottom: 0;
+    }
+    .note-icon {
+      font-weight: bold;
+      margin-right: 5px;
+    }
     @media print {
       .no-print {
         display: none;
@@ -530,9 +554,9 @@ export const getSessionPrintHTML = async (req, res, next) => {
     <div class="booking">
       <div class="booking-header">
         <div class="name">
-          ${booking.clientFirstName} ${booking.clientLastName} : 
-          ${booking.amountPaid >= booking.totalPrice 
-            ? '<span style="color: green;">✓ Payé</span>' 
+          ${booking.clientFirstName} ${booking.clientLastName} :
+          ${booking.amountPaid >= booking.totalPrice
+            ? '<span style="color: green;">✓ Payé</span>'
             : `<span style="color: red;">⚠ Reste: ${(booking.totalPrice - booking.amountPaid).toFixed(2)}€ sur ${booking.totalPrice}€</span>`}
                         <img
                           src="https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png"
@@ -545,6 +569,17 @@ export const getSessionPrintHTML = async (req, res, next) => {
           Tel: ${booking.clientPhone}
         </div>
       </div>
+
+      ${booking.notes && booking.notes.length > 0 ? `
+        <div class="booking-notes">
+          ${booking.notes.map(note => `
+            <div class="booking-note">
+              <span class="note-icon">📝</span>
+              <strong>Note:</strong> ${note.content}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
 
       ${booking.participants.map((participant, idx) => `
         <div class="participant">

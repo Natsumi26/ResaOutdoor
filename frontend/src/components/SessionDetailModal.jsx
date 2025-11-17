@@ -20,6 +20,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   const [selectedTargetSession, setSelectedTargetSession] = useState(null);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
   const [showProductEditModal, setShowProductEditModal] = useState(false);
+  const [bookingNotes, setBookingNotes] = useState({}); // État pour stocker les notes de chaque réservation
 
   if (!session) return null;
   const { bookings = [], startTime, date, guide, products } = session;
@@ -186,6 +187,50 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
       fetchAlternativeSessions();
     }
   }, [deleteAction]);
+
+  // Charger les notes pour toutes les réservations confirmées
+  const loadAllNotes = async () => {
+    if (!confirmedBookings || confirmedBookings.length === 0) {
+      setBookingNotes({});
+      return;
+    }
+
+    try {
+      // Charger les notes pour chaque réservation
+      const notesPromises = confirmedBookings.map(async (booking) => {
+        try {
+          const response = await bookingsAPI.getNotes(booking.id);
+          return {
+            bookingId: booking.id,
+            notes: response.data.notes || []
+          };
+        } catch (error) {
+          console.error(`Erreur chargement notes pour réservation ${booking.id}:`, error);
+          return {
+            bookingId: booking.id,
+            notes: []
+          };
+        }
+      });
+
+      const notesResults = await Promise.all(notesPromises);
+
+      // Créer un objet avec bookingId comme clé
+      const notesMap = {};
+      notesResults.forEach(({ bookingId, notes }) => {
+        notesMap[bookingId] = notes;
+      });
+
+      setBookingNotes(notesMap);
+    } catch (error) {
+      console.error('Erreur lors du chargement des notes:', error);
+    }
+  };
+
+  // Charger les notes quand le modal s'ouvre ou quand les réservations changent
+  useEffect(() => {
+    loadAllNotes();
+  }, [session?.id, confirmedBookings.length]);
 
   const handleDeleteSession = async () => {
     // Si la session a des réservations confirmées, ouvrir le dialogue de choix
@@ -518,10 +563,47 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
                           <div className={styles.bookingPreviewLeft}>
                             <div className={styles.bookingPreviewName}>
                               {booking.clientFirstName} {booking.clientLastName}
+                              {/* Afficher l'indicateur de note si des notes existent */}
+                              {bookingNotes[booking.id] && bookingNotes[booking.id].length > 0 && (
+                                <span
+                                  style={{
+                                    marginLeft: '0.5rem',
+                                    fontSize: '0.85rem',
+                                    color: '#f59e0b',
+                                    fontWeight: 'bold'
+                                  }}
+                                  title={`${bookingNotes[booking.id].length} note(s)`}
+                                >
+                                  📝
+                                </span>
+                              )}
                             </div>
                             <div className={styles.bookingPreviewDetails}>
                               {booking.numberOfPeople} pers. • {booking.clientPhone}
                             </div>
+                            {/* Afficher les notes si elles existent */}
+                            {bookingNotes[booking.id] && bookingNotes[booking.id].length > 0 && (
+                              <div style={{
+                                marginTop: '0.5rem',
+                                padding: '0.5rem',
+                                backgroundColor: '#fffbeb',
+                                border: '1px solid #fde68a',
+                                borderRadius: '4px',
+                                fontSize: '0.85rem'
+                              }}>
+                                {bookingNotes[booking.id].map((note, index) => (
+                                  <div
+                                    key={note.id}
+                                    style={{
+                                      marginBottom: index < bookingNotes[booking.id].length - 1 ? '0.25rem' : '0',
+                                      color: '#78350f'
+                                    }}
+                                  >
+                                    <strong>📝 Note {bookingNotes[booking.id].length > 1 ? `${index + 1}` : ''}:</strong> {note.content}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className={styles.bookingPreviewRight}>
                             <div className={styles.bookingPreviewPrice}>{booking.totalPrice} €</div>

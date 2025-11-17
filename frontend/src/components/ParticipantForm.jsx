@@ -84,6 +84,50 @@ const ParticipantForm = ({
     return baseTotal + shoeTotal;
   };
 
+  // Calculer la taille de combinaison basée sur le POIDS (taille principale)
+  const calculateWetsuitSizeByWeight = (weight) => {
+    if (!weight) return '?';
+    const w = parseFloat(weight);
+
+    if (w < 25) return 'T6 ans';
+    else if (w < 30) return 'T8 ans';
+    else if (w < 35) return 'T10 ans';
+    else if (w < 40) return 'T12 ans';
+    else if (w < 45) return 'T14 ans';
+    else if (w < 55) return 'T1';
+    else if (w < 65) return 'T2';
+    else if (w < 75) return 'T3';
+    else if (w < 90) return 'T4';
+    else if (w < 105) return 'T5';
+    else if (w < 115) return 'T6';
+    else if (w < 125) return 'T7';
+    else if (w < 135) return 'T8';
+    else return 'T8+';
+  };
+
+  // Calculer la taille de combinaison basée sur la HAUTEUR (taille alternative)
+  const calculateWetsuitSizeByHeight = (height) => {
+    if (!height) return '?';
+    const h = parseInt(height);
+
+    if (h < 120) return 'T6 ans';
+    else if (h < 125) return 'T8 ans';
+    else if (h < 130) return 'T10 ans';
+    else if (h < 135) return 'T12 ans';
+    else if (h < 140) return 'T14 ans';
+    else if (h < 155) return 'T0';
+    else if (h < 160) return 'T1';
+    else if (h < 175) return 'T2';
+    else if (h < 180) return 'T3';
+    else if (h < 185) return 'T4';
+    else if (h < 190) return 'T5';
+    else if (h < 195) return 'T6';
+    else if (h < 200) return 'T7';
+    else if (h < 210) return 'T8';
+    else return 'T8+';
+  };
+
+  // Fonction de compatibilité - garde l'ancienne logique pour calculateWetsuitSize
   const calculateWetsuitSize = (height, weight) => {
     if (!height || !weight) return '?';
 
