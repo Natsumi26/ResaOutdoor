@@ -206,7 +206,6 @@ export const updateTeamMember = async (req, res) => {
         updatedAt: true
       }
     });
-
     res.json({ member: updatedMember, message: 'Membre modifié avec succès' });
   } catch (error) {
     console.error('Erreur modification membre:', error);

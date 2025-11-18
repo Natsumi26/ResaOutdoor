@@ -8,6 +8,7 @@ const Team = () => {
   const [members, setMembers] = useState([]);
   const [monCompte, setMonCompte] = useState([])
   const [allUsers, setAllUsers] = useState([]);
+  const [themeColors, setThemeColors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,10 +24,6 @@ const Team = () => {
     depositAmount: ''
   });
   const [editingId, setEditingId] = useState(null);
-  const [themeColors, setThemeColors] = useState({
-    primary: '#667eea',
-    secondary: '#764ba2'
-  });
 
   useEffect(() => {
     loadData();
@@ -72,6 +69,7 @@ const Team = () => {
     e.preventDefault();
     try {
       if (editingId) {
+        console.log(formData)
         await teamAPI.updateMember(editingId, formData);
       } else {
         await teamAPI.addMember(formData);
@@ -492,20 +490,22 @@ const Team = () => {
               <tr>
                 <th>Login</th>
                 <th>Email</th>
+                <th>Téléphone</th>
                 <th>Rôle</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-                <tr key={currentUser.id}>
-                  <td>{currentUser.login}</td>
-                  <td>{currentUser.email || '-'}</td>
-                  <td>{getRoleBadge(currentUser.role)}</td>
+                <tr key={monCompte.id}>
+                  <td>{monCompte.login}</td>
+                  <td>{monCompte.email || '-'}</td>
+                  <td>{monCompte.phone || '-'}</td>
+                  <td>{getRoleBadge(monCompte.role)}</td>
                   <td>
-                    <button className={styles.btnEdit} onClick={() => openModal(currentUser)}>
+                    <button className={styles.btnEdit} onClick={() => openModal(monCompte)}>
                       ✏️
                     </button>
-                    <button className={styles.btnDelete} onClick={() => handleDelete(currentUser.id)}>
+                    <button className={styles.btnDelete} onClick={() => handleDelete(monCompte.id)}>
                       🗑️
                     </button>
                   </td>
