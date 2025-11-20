@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { bookingsAPI, participantsAPI } from '../../services/api';
+import { bookingsAPI, participantsAPI, activityConfigAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -15,8 +15,20 @@ const MyBooking = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState({});
+  const [activityConfig, setActivityConfig] = useState(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Helpers pour vérifier la configuration des champs
+  const isFieldEnabled = (fieldName) => {
+    if (!activityConfig?.fields) return true; // Par défaut, tous les champs sont activés
+    return activityConfig.fields[fieldName]?.enabled !== false;
+  };
+
+  const isFieldRequired = (fieldName) => {
+    if (!activityConfig?.fields) return fieldName === 'firstName' || fieldName === 'age'; // Par défaut
+    return activityConfig.fields[fieldName]?.required === true;
+  };
 
 
   useEffect(() => {
@@ -26,8 +38,24 @@ const MyBooking = () => {
   useEffect(() => {
     if (booking) {
       loadParticipants();
+      loadActivityConfig();
     }
   }, [booking]);
+
+  const loadActivityConfig = async () => {
+    if (booking && booking.product && booking.session) {
+      try {
+        const response = await activityConfigAPI.getPublic(
+          booking.product.activityTypeId || 'canyoning',
+          booking.session.guideId
+        );
+        setActivityConfig(response.data);
+      } catch (error) {
+        console.error('Erreur chargement config activité:', error);
+        setActivityConfig(null);
+      }
+    }
+  };
 
   const loadBooking = async () => {
     try {
@@ -203,20 +231,26 @@ const MyBooking = () => {
           </p>
         </div>
 
-        {/* Texte explicatif compact */}
+        {/* Texte explicatif compact - adapté selon l'activité */}
         <div className={styles.compactInfoBox}>
           <div className={styles.infoRow}>
-            <div className={styles.infoItem}>
-              <span className={styles.infoIcon}>📏</span>
-              <span>{t('Fournir')} <strong>{t('CombiAdapt')}</strong></span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoIcon}>👟</span>
-              <span>
-                {t('Chaussures')} <strong>{t('TypeChaussures')}</strong>
-                {booking.session.shoeRentalAvailable && ` (location ${booking.session.shoeRentalPrice}€ optionnelle)`}
-              </span>
-            </div>
+            {/* Afficher info combinaison uniquement pour le canyoning */}
+            {booking.product.activityTypeId === 'canyoning' && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoIcon}>📏</span>
+                <span>{t('Fournir')} <strong>{t('CombiAdapt')}</strong></span>
+              </div>
+            )}
+            {/* Afficher info chaussures si location disponible et champ activé */}
+            {booking.session.shoeRentalAvailable && isFieldEnabled('shoeRental') && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoIcon}>👟</span>
+                <span>
+                  {t('Chaussures')} <strong>{t('TypeChaussures')}</strong>
+                  {` (location ${booking.session.shoeRentalPrice}€ optionnelle)`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -228,57 +262,71 @@ const MyBooking = () => {
                 <span className={styles.participantNumber}>Participant {index + 1}</span>
               </div>
 
-              {/* Grille compacte avec les 4 champs de base seulement */}
+              {/* Grille compacte avec les champs selon la configuration d'activité */}
               <div className={styles.compactFieldsGrid}>
+                {/* Prénom - toujours affiché */}
                 <div className={styles.formGroup}>
-                  <label>{t('Prénom')}</label>
+                  <label>{t('Prénom')}{isFieldRequired('firstName') && ' *'}</label>
                   <input
                     type="text"
                     value={participant.firstName || ''}
                     onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
                     placeholder="Prénom"
+                    required={isFieldRequired('firstName')}
                   />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Âge</label>
-                  <input
-                    type="number"
-                    value={participant.age || ''}
-                    onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
-                    placeholder="Âge"
-                    min="1"
-                    max="120"
-                  />
-                </div>
+                {/* Âge - conditionnel */}
+                {isFieldEnabled('age') && (
+                  <div className={styles.formGroup}>
+                    <label>Âge{isFieldRequired('age') && ' *'}</label>
+                    <input
+                      type="number"
+                      value={participant.age || ''}
+                      onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
+                      placeholder="Âge"
+                      min="1"
+                      max="120"
+                      required={isFieldRequired('age')}
+                    />
+                  </div>
+                )}
 
-                <div className={styles.formGroup}>
-                  <label>{t('Poids')} (kg)</label>
-                  <input
-                    type="number"
-                    value={participant.weight || ''}
-                    onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                    placeholder="kg"
-                    min="1"
-                    max="300"
-                  />
-                </div>
+                {/* Poids - conditionnel */}
+                {isFieldEnabled('weight') && (
+                  <div className={styles.formGroup}>
+                    <label>{t('Poids')} (kg){isFieldRequired('weight') && ' *'}</label>
+                    <input
+                      type="number"
+                      value={participant.weight || ''}
+                      onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
+                      placeholder="kg"
+                      min="1"
+                      max="300"
+                      required={isFieldRequired('weight')}
+                    />
+                  </div>
+                )}
 
-                <div className={styles.formGroup}>
-                  <label>{t('Taille')} (cm)</label>
-                  <input
-                    type="number"
-                    value={participant.height || ''}
-                    onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                    placeholder="cm"
-                    min="50"
-                    max="250"
-                  />
-                </div>
+                {/* Taille - conditionnel */}
+                {isFieldEnabled('height') && (
+                  <div className={styles.formGroup}>
+                    <label>{t('Taille')} (cm){isFieldRequired('height') && ' *'}</label>
+                    <input
+                      type="number"
+                      value={participant.height || ''}
+                      onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
+                      placeholder="cm"
+                      min="50"
+                      max="250"
+                      required={isFieldRequired('height')}
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Section location de chaussures compacte sur une ligne */}
-              {booking.session.shoeRentalAvailable && (
+              {/* Section location de chaussures compacte sur une ligne - conditionnel */}
+              {booking.session.shoeRentalAvailable && isFieldEnabled('shoeRental') && (
                 <div className={styles.shoeRentalCompactLine}>
                   <div className={styles.tooltipContainer}>
                     <span

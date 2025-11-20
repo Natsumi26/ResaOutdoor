@@ -775,6 +775,8 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 initialParticipants={participants}
                 onSubmit={handleSaveParticipants}
                 onCancel={() => setShowParticipantForm(false)}
+                activityTypeId={booking.product?.activityTypeId || 'canyoning'}
+                guideId={booking.session?.guideId}
               />
             </div>
           )}

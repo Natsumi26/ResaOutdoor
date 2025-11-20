@@ -1,5 +1,3 @@
-// Schéma Prisma pour le logiciel de réservation
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,476 +7,386 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Utilisateurs/Guides
 model User {
-  id                    String    @id @default(uuid())
-  login                 String    @unique
+  id                    String               @id @default(uuid())
+  login                 String               @unique
   password              String
   email                 String?
+  stripeAccount         String?
+  role                  String               @default("employee")
+  confidentialityPolicy String?
+  paymentMode           String?              @default("onsite_only")
+  depositType           String?
+  depositAmount         Float?
+  practiceActivities    String[]
+  teamName              String?
+  teamLeaderId          String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   phone                 String?
-  twoFactorEnabled      Boolean   @default(true) // 2FA activé par défaut
-  stripeAccount         String?   // Compte Stripe associé
-  role                  String    @default("employee") // "super_admin", "leader", "employee", "trainee"
-  confidentialityPolicy String?   // Lien vers la politique de confidentialité
-
-  // Configuration des moyens de paiement (pour leaders et admins)
-  paymentMode           String?   @default("onsite_only") // "deposit_only", "deposit_and_full", "full_or_later", "full_only", "onsite_only"
-  depositType           String?   // "percentage" ou "fixed"
-  depositAmount         Float?    // Montant de l'acompte (pourcentage ou montant fixe)
-
-  // Activités pratiquées par le guide
-  practiceActivities    String[]  // Tableau des IDs de catégories que le guide pratique
-
-  // Hiérarchie de team
-  teamName              String?   // Nom de l'équipe (uniquement pour les leaders)
-  teamLeaderId          String?   // Leader de l'équipe (null si l'utilisateur est lui-même leader ou super_admin)
-  teamLeader            User?     @relation("TeamHierarchy", fields: [teamLeaderId], references: [id], onDelete: SetNull)
-  teamMembers           User[]    @relation("TeamHierarchy") // Membres de l'équipe si l'utilisateur est leader
-
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  products              Product[]
-  sessions              Session[]
+  twoFactorEnabled      Boolean              @default(true)
+  activityFormConfigs   ActivityFormConfig[]
   emailTemplates        EmailTemplate[]
+  equipmentLists        EquipmentList[]      @relation("UserEquipmentLists")
   giftVouchers          GiftVoucher[]
-  resellers             Reseller[]
   newsletters           Newsletter[]
-  settings              Settings?
-  equipmentLists        EquipmentList[] @relation("UserEquipmentLists")
   passwordResets        PasswordReset[]
-  twoFactorCodes        TwoFactorCode[]
+  products              Product[]
+  resellers             Reseller[]
+  sessions              Session[]
+  settings              Settings?
   trustedDevices        TrustedDevice[]
+  twoFactorCodes        TwoFactorCode[]
+  teamLeader            User?                @relation("TeamHierarchy", fields: [teamLeaderId], references: [id])
+  teamMembers           User[]               @relation("TeamHierarchy")
 
   @@map("users")
 }
 
-// Catégories d'activités (personnalisées, créées par les guides)
 model Category {
-  id          String    @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
   description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   products    ProductCategory[]
 
   @@map("categories")
 }
 
-// Produits/Activités (modèles de canyon)
 model Product {
-  id                    String   @id @default(uuid())
-  name                  String
-  shortDescription      String?
-  longDescription       String?
-  priceIndividual       Float
-  priceGroup            Json?    // Règles de prix groupe: {min: 5, price: 45}
-  duration              Int      // Durée en minutes
-  color                 String   // Code couleur hex
-  level                 String   // "découverte", "aventure", "sportif"
-  region                String   @default("annecy") // "annecy" ou "grenoble"
-  maxCapacity           Int
-  autoCloseHoursBefore  Int?     // Fermeture auto X heures avant
-  postBookingMessage    String?
-  meetingPoint          String?  // Lieu de départ/rendez-vous
-  wazeLink              String?
-  googleMapsLink        String?
-  websiteLink           String?  // Lien vers la page internet du produit
-  images                String[] // URLs des images
-
-  activityTypeId        String   // Type d'activité (canyoning, via-ferrata, escalade, speleologie)
-
-  guideId               String
-  guide                 User     @relation(fields: [guideId], references: [id], onDelete: Cascade)
-
-  equipmentListId       String?
-  equipmentList         EquipmentList? @relation(fields: [equipmentListId], references: [id], onDelete: SetNull)
-
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  categories            ProductCategory[]
-  sessionProducts       SessionProduct[]
-  bookings              Booking[]
+  id                   String            @id @default(uuid())
+  name                 String
+  shortDescription     String?
+  longDescription      String?
+  priceIndividual      Float
+  priceGroup           Json?
+  duration             Int
+  color                String
+  level                String
+  region               String            @default("annecy")
+  maxCapacity          Int
+  autoCloseHoursBefore Int?
+  postBookingMessage   String?
+  wazeLink             String?
+  googleMapsLink       String?
+  websiteLink          String?
+  images               String[]
+  activityTypeId       String
+  guideId              String
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  equipmentListId      String?
+  meetingPoint         String?
+  bookings             Booking[]
+  categories           ProductCategory[]
+  equipmentList        EquipmentList?    @relation(fields: [equipmentListId], references: [id])
+  guide                User              @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  sessionProducts      SessionProduct[]
 
   @@map("products")
 }
 
-// Sessions (créneaux planifiés)
 model Session {
-  id                    String      @id @default(uuid())
-  date                  DateTime
-  timeSlot              String      // "matin", "après-midi" ou "journée"
-  startTime             String      // "09:00"
-  isMagicRotation       Boolean     @default(false)
-  status                String      @default("open") // "open", "full", "closed"
-  shoeRentalAvailable   Boolean     @default(false) // Location de chaussures disponible
-  shoeRentalPrice       Float?      // Prix de location de chaussures
-
-  guideId               String
-  guide                 User        @relation(fields: [guideId], references: [id], onDelete: Cascade)
-
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-
-  // Relations
-  products              SessionProduct[]  // Produits disponibles dans cette session
-  bookings              Booking[]
+  id                  String           @id @default(uuid())
+  date                DateTime
+  timeSlot            String
+  startTime           String
+  isMagicRotation     Boolean          @default(false)
+  status              String           @default("open")
+  shoeRentalAvailable Boolean          @default(false)
+  shoeRentalPrice     Float?
+  guideId             String
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  bookings            Booking[]
+  products            SessionProduct[]
+  guide               User             @relation(fields: [guideId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
-// Table de jonction : Produits disponibles dans une session
-// Permet la rotation magique (plusieurs produits par session)
 model SessionProduct {
-  id                String   @id @default(uuid())
-
-  sessionId         String
-  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  productId         String
-  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  // Surcharges des paramètres du produit pour cette session spécifique (JSON)
-  // Permet de modifier ponctuellement les détails d'un produit pour une session donnée
-  productOverrides  Json?
-
-  createdAt         DateTime @default(now())
+  id               String   @id @default(uuid())
+  sessionId        String
+  productId        String
+  createdAt        DateTime @default(now())
+  productOverrides Json?
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, productId])
   @@map("session_products")
 }
 
-// Table de jonction : Catégories associées à un produit
-// Permet à un produit d'avoir plusieurs catégories ou aucune
 model ProductCategory {
   id         String   @id @default(uuid())
-
   productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
   createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, categoryId])
   @@map("product_categories")
 }
 
-// Revendeurs
 model Reseller {
-  id          String    @id @default(uuid())
-  name        String
-  email       String?
-  phone       String?
-  website     String?   // Lien vers le site web du revendeur
-  commission  Float?    // Commission en pourcentage (optionnel)
-  notes       String?
-
-  // Propriétaire du revendeur
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  bookings    Booking[]
+  id         String    @id @default(uuid())
+  name       String
+  email      String?
+  phone      String?
+  website    String?
+  commission Float?
+  notes      String?
+  userId     String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  bookings   Booking[]
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("resellers")
 }
 
-// Réservations
 model Booking {
-  id                        String      @id @default(uuid())
-
-  // Client
+  id                        String           @id @default(uuid())
   clientFirstName           String
   clientLastName            String
   clientEmail               String
   clientPhone               String
   clientNationality         String?
-
-  // Réservation
   numberOfPeople            Int
   totalPrice                Float
-  amountPaid                Float       @default(0)
-  status                    String      @default("pending") // "pending", "confirmed", "cancelled"
-
-  // Annulation
-  cancellationReason        String?     // Raison de l'annulation
-  cancelledAt               DateTime?   // Date d'annulation
-
-  // Code promo / Bon cadeau utilisé
-  voucherCode               String?     // Code du bon cadeau ou promo utilisé
-  discountAmount            Float?      // Montant de la réduction appliquée
-
-  // Statuts de complétion pour le badge
-  participantsFormCompleted Boolean     @default(false) // Le formulaire participants est complété
-  productDetailsSent        Boolean     @default(false) // Les détails du produit ont été envoyés par le guide
-
-  // Revendeur (optionnel)
+  amountPaid                Float            @default(0)
+  status                    String           @default("pending")
+  cancellationReason        String?
+  cancelledAt               DateTime?
+  voucherCode               String?
+  discountAmount            Float?
+  participantsFormCompleted Boolean          @default(false)
+  productDetailsSent        Boolean          @default(false)
   resellerId                String?
-  reseller                  Reseller?   @relation(fields: [resellerId], references: [id], onDelete: SetNull)
-
-  // Relations : Le client réserve pour UN produit (canyon) spécifique
   sessionId                 String
-  session                   Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
   productId                 String
-  product                   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  createdAt                 DateTime    @default(now())
-  updatedAt                 DateTime    @updatedAt
-
-  payments                  Payment[]
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
   history                   BookingHistory[]
-  participants              Participant[]
   notes                     BookingNote[]
+  product                   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reseller                  Reseller?        @relation(fields: [resellerId], references: [id])
+  session                   Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participants              Participant[]
+  payments                  Payment[]
 
   @@map("bookings")
 }
 
-// Paiements
 model Payment {
-  id            String   @id @default(uuid())
-  amount        Float
-  method        String   // "CB", "virement", "espèces", "stripe"
-  stripeId      String?  // ID transaction Stripe
-  voucherCode   String?  // Code promo/bon cadeau utilisé pour ce paiement
-  discountAmount Float?  // Montant de réduction appliqué
-  notes         String?
-
-  bookingId     String
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  amount         Float
+  method         String
+  stripeId       String?
+  voucherCode    String?
+  discountAmount Float?
+  notes          String?
+  bookingId      String
+  createdAt      DateTime @default(now())
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
 
-// Historique des modifications de réservation
 model BookingHistory {
-  id          String   @id @default(uuid())
-  action      String   // "created", "modified", "payment", "cancelled"
-  details     String?
-
-  bookingId   String
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  action    String
+  details   String?
+  bookingId String
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("booking_history")
 }
 
-// Bons cadeaux / Codes promos
 model GiftVoucher {
-  id            String              @id @default(uuid())
-  code          String              @unique
-  amount        Float               // Montant de réduction (en € ou en %)
-  discountType  String              @default("fixed") // "fixed" (montant fixe) ou "percentage" (pourcentage)
-  type          String              @default("voucher") // "voucher" (à usage unique) ou "promo" (utilisations multiples)
-  maxUsages     Int?                // Nombre max d'utilisations (null = illimité)
-  usageCount    Int                 @default(0) // Nombre d'utilisations actuelles
-  notes         String?             // Notes (utilisé pour stocker le payment_intent Stripe)
-  buyerEmail    String?             // Stockage de l'email du client acheteur
-  recipientEmail  String?
-  recipientName   String?
-  message         String?
-
-  // Propriétaire du bon cadeau
-  userId        String
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt     DateTime            @default(now())
-  expiresAt     DateTime?
-
-  usages        PromoCodeUsage[]    // Historique des utilisations
+  id             String           @id @default(uuid())
+  code           String           @unique
+  amount         Float
+  discountType   String           @default("fixed")
+  type           String           @default("voucher")
+  maxUsages      Int?
+  usageCount     Int              @default(0)
+  notes          String?
+  userId         String
+  createdAt      DateTime         @default(now())
+  expiresAt      DateTime?
+  buyerEmail     String?
+  message        String?
+  recipientEmail String?
+  recipientName  String?
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usages         PromoCodeUsage[]
 
   @@map("gift_vouchers")
 }
 
-// Historique d'utilisation des codes promos
 model PromoCodeUsage {
-  id            String       @id @default(uuid())
-
-  voucherId     String
-  voucher       GiftVoucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-
-  usedBy        String?      // Email ou nom du client
-  bookingId     String?      // Lien vers la réservation si applicable
-
-  usedAt        DateTime     @default(now())
+  id        String      @id @default(uuid())
+  voucherId String
+  usedBy    String?
+  bookingId String?
+  usedAt    DateTime    @default(now())
+  voucher   GiftVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
   @@map("promo_code_usages")
 }
 
-// Participants (informations sur chaque participant d'une réservation)
 model Participant {
-  id            String   @id @default(uuid())
-
-  firstName     String
-  age           Int?
-  height        Int?      // Taille en cm
-  weight        Float?    // Poids en kg
-  wetsuitSize   String?  // Taille de combinaison calculée automatiquement
-  shoeRental    Boolean  @default(false) // Location de chaussures pour ce participant
-  shoeSize      Int?     // Pointure si location de chaussures
-  isComplete    Boolean @default(false)
-
-  bookingId     String
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  firstName   String
+  age         Int?
+  height      Int?
+  weight      Float?
+  wetsuitSize String?
+  shoeRental  Boolean  @default(false)
+  shoeSize    Int?
+  isComplete  Boolean  @default(false)
+  bookingId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("participants")
 }
 
-// Notes de réservation
 model BookingNote {
-  id          String   @id @default(uuid())
-  content     String   // Contenu de la note
-
-  bookingId   String
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  content   String
+  bookingId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("booking_notes")
 }
 
-// Templates d'emails
-// Système de templates avec copy-on-write :
-// - userId = null : template global partagé par tous les utilisateurs
-// - userId = <id> : template personnalisé pour un utilisateur spécifique
-// Lors de la récupération : chercher d'abord le template personnalisé, sinon utiliser le global
-// Lors de la modification : si le template est global, créer une copie personnalisée
 model EmailTemplate {
   id          String   @id @default(uuid())
-  type        String   // "booking_confirmation", "booking_reminder", "payment_confirmation", etc.
-  name        String   // Nom du template (ex: "Confirmation de réservation")
-  subject     String   // Sujet de l'email
-  htmlContent String   @db.Text // Contenu HTML du template
-  textContent String?  @db.Text // Version texte (optionnel)
-  variables   String?  @db.Text // Liste des variables disponibles (JSON)
+  type        String
+  name        String
+  subject     String
+  htmlContent String
+  textContent String?
+  variables   String?
   isActive    Boolean  @default(true)
-
-  userId      String?  // NULL = template global, sinon = template personnalisé pour cet utilisateur
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([type])           // Index pour recherche rapide des templates globaux
-  @@index([userId, type])   // Index pour recherche rapide des templates personnalisés
+  @@index([type])
+  @@index([userId, type])
   @@map("email_templates")
 }
 
-// Paramètres personnalisés par utilisateur
 model Settings {
   id                String   @id @default(uuid())
-  companyName       String?  // Nom de l'entreprise
-  companyPhone      String?  // Téléphone de l'entreprise
-  companyEmail      String?  // Email de l'entreprise
-  website           String?  // Site internet de l'entreprise
-  logo              String?  // URL du logo
-  slogan            String?  // Slogan utilisé dans les bons cadeaux
-  primaryColor      String?  // Couleur principale (sidebar guide)
-  secondaryColor    String?  // Couleur secondaire (session button guide)
-  clientButtonColor String?  // Couleur des boutons côté client
-  clientAccentColor String?  // Couleur des textes/accents côté client
-
-  userId            String   @unique // Chaque utilisateur a ses propres paramètres
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  companyName       String?
+  companyPhone      String?
+  companyEmail      String?
+  website           String?
+  logo              String?
+  slogan            String?
+  primaryColor      String?
+  secondaryColor    String?
+  clientButtonColor String?
+  clientAccentColor String?
+  userId            String   @unique
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("settings")
 }
 
-// Newsletter - Gestion des abonnés
 model Newsletter {
-  id                String   @id @default(uuid())
-  email             String   @unique // Email unique pour éviter les doublons
-  acceptedTerms     Boolean  @default(true) // A accepté les conditions de confidentialité
-  isActive          Boolean  @default(true) // Actif ou désabonné
-
-  // Informations optionnelles
-  firstName         String?
-  lastName          String?
-
-  // Traçabilité
-  source            String?  // 'booking', 'manual', etc.
-  subscribedAt      DateTime @default(now())
-  unsubscribedAt    DateTime?
-
-  userId            String?  // Guide associé (si spécifique à un guide)
-  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id             String    @id @default(uuid())
+  email          String    @unique
+  acceptedTerms  Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  firstName      String?
+  lastName       String?
+  source         String?
+  subscribedAt   DateTime  @default(now())
+  unsubscribedAt DateTime?
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id])
 
   @@map("newsletter")
 }
 
-// Listes de matériel à apporter
 model EquipmentList {
-  id          String    @id @default(uuid())
-  name        String    // Nom de la liste (ex: "Matériel Canyon débutant")
-  items       String    @db.Text // Contenu de la liste (texte multi-lignes)
-
-  // Propriétaire de la liste
-  userId      String
-  user        User      @relation("UserEquipmentLists", fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  products    Product[] // Produits utilisant cette liste
+  id        String    @id @default(uuid())
+  name      String
+  items     String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation("UserEquipmentLists", fields: [userId], references: [id], onDelete: Cascade)
+  products  Product[]
 
   @@map("equipment_lists")
 }
 
-// Tokens de réinitialisation de mot de passe
 model PasswordReset {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
   used      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
 }
 
-// Codes de vérification 2FA par email
 model TwoFactorCode {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code        String   // Code à 6 chiffres
-  email       String   // Email utilisé
-  expiresAt   DateTime // Expire dans 10 minutes
-  createdAt   DateTime @default(now())
-  verified    Boolean  @default(false)
-  attempts    Int      @default(0) // Nombre de tentatives
-  tempToken   String   @unique // Token temporaire pour associer la session
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  tempToken String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("two_factor_codes")
 }
 
-// Appareils de confiance pour bypass 2FA
 model TrustedDevice {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceToken  String   @unique
-  deviceName   String?  // User agent ou nom de l'appareil
-  expiresAt    DateTime // Expire dans 60 jours
-  createdAt    DateTime @default(now())
-  lastUsedAt   DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  deviceToken String   @unique
+  deviceName  String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("trusted_devices")
+}
+
+model ActivityFormConfig {
+  id             String   @id @default(uuid())
+  activityTypeId String   // 'canyoning', 'escalade', 'via-ferrata', 'speleologie'
+  userId         String
+  fields         Json     // Configuration des champs du formulaire
+  wetsuitBrand   String?  // Marque de combinaison (uniquement pour canyoning)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityTypeId, userId])
+  @@map("activity_form_configs")
 }

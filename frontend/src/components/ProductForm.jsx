@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
-import { categoriesAPI, equipmentListsAPI } from '../services/api';
+import { categoriesAPI, equipmentListsAPI, getUploadUrl, BASE_URL } from '../services/api';
 import styles from './ProductForm.module.css';
 import imageCompression from 'browser-image-compression';
 
@@ -236,8 +236,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
         formDataUpload.append('images', file);
       });
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/upload/images`, {
+      const response = await fetch(`${BASE_URL}/api/upload/images`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -601,7 +600,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
               <div className={styles.imagePreview}>
                 {formData.images.map((url, index) => (
                   <div key={index} className={styles.imageItem}>
-                    <img src={`http://localhost:5000${url}`} alt={`Image ${index + 1}`} />
+                    <img src={getUploadUrl(url)} alt={`Image ${index + 1}`} />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}

@@ -48,7 +48,7 @@ const getTemplateWithVariables = async (type, variables, userId) => {
       companyEmail: settings?.companyEmail || '',
       companyPhone: settings?.companyPhone || '',
       companyWebsite: settings?.website || '',
-      logo: settings?.logo ? `${process.env.FRONTEND_URL || 'http://localhost:5000'}${settings.logo}` : ''
+      logo: settings?.logo ? `${process.env.APP_URL || 'http://localhost:5000'}${settings.logo}` : ''
     };
 
     // Remplacer toutes les variables dans le contenu HTML

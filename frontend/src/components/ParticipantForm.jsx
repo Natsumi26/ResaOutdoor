@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { activityConfigAPI } from '../services/api';
 import styles from './ParticipantForm.module.css';
 
 const ParticipantForm = ({
@@ -7,9 +8,44 @@ const ParticipantForm = ({
   shoeRentalPrice,
   onSubmit,
   onCancel,
-  initialParticipants = []
+  initialParticipants = [],
+  activityTypeId = 'canyoning',
+  guideId = null
 }) => {
   const [participants, setParticipants] = useState([]);
+  const [activityConfig, setActivityConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Charger la configuration de l'activité
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setLoadingConfig(true);
+        // Utiliser l'endpoint public si on a un guideId, sinon l'endpoint authentifié
+        const response = guideId
+          ? await activityConfigAPI.getPublic(activityTypeId, guideId)
+          : await activityConfigAPI.get(activityTypeId);
+        setActivityConfig(response.data);
+      } catch (error) {
+        console.error('Erreur chargement config activité:', error);
+        // Config par défaut en cas d'erreur
+        setActivityConfig({
+          fields: {
+            firstName: { enabled: true, required: true },
+            age: { enabled: true, required: true },
+            height: { enabled: true, required: true },
+            weight: { enabled: true, required: true },
+            shoeRental: { enabled: true, required: false },
+            shoeSize: { enabled: true, required: false }
+          },
+          wetsuitBrand: 'guara'
+        });
+      } finally {
+        setLoadingConfig(false);
+      }
+    };
+    loadConfig();
+  }, [activityTypeId, guideId]);
 
   useEffect(() => {
     const numberOfPeople = booking.numberOfPeople;
@@ -54,13 +90,30 @@ const ParticipantForm = ({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation
+    // Validation basée sur la configuration de l'activité
     const errors = [];
+    const fields = activityConfig?.fields || {};
+
     participants.forEach((p, i) => {
+      // Prénom toujours requis
       if (!p.firstName.trim()) errors.push(`Participant ${i + 1}: Prénom requis`);
-      if (!p.age || p.age < 1) errors.push(`Participant ${i + 1}: Âge valide requis`);
-      if (!p.height || p.height < 50) errors.push(`Participant ${i + 1}: Taille valide requise`);
-      if (!p.weight || p.weight < 10) errors.push(`Participant ${i + 1}: Poids valide requis`);
+
+      // Âge - vérifié seulement si le champ est activé et requis
+      if (fields.age?.enabled && fields.age?.required && (!p.age || p.age < 1)) {
+        errors.push(`Participant ${i + 1}: Âge valide requis`);
+      }
+
+      // Taille - vérifié seulement si le champ est activé et requis
+      if (fields.height?.enabled && fields.height?.required && (!p.height || p.height < 50)) {
+        errors.push(`Participant ${i + 1}: Taille valide requise`);
+      }
+
+      // Poids - vérifié seulement si le champ est activé et requis
+      if (fields.weight?.enabled && fields.weight?.required && (!p.weight || p.weight < 10)) {
+        errors.push(`Participant ${i + 1}: Poids valide requis`);
+      }
+
+      // Location de chaussures
       if (p.shoeRental && (!p.shoeSize || p.shoeSize < 20)) {
         errors.push(`Participant ${i + 1}: Pointure requise pour la location`);
       }
@@ -173,6 +226,28 @@ const ParticipantForm = ({
     return count * shoeRentalPrice;
   };
 
+  // Helper pour vérifier si un champ est activé
+  const isFieldEnabled = (fieldName) => {
+    return activityConfig?.fields?.[fieldName]?.enabled !== false;
+  };
+
+  // Helper pour vérifier si un champ est requis
+  const isFieldRequired = (fieldName) => {
+    return activityConfig?.fields?.[fieldName]?.required === true;
+  };
+
+  // Afficher un indicateur de chargement pendant le chargement de la config
+  if (loadingConfig) {
+    return (
+      <div className={styles.form}>
+        <div className={styles.header}>
+          <h3>👥 Informations des participants</h3>
+          <p>Chargement de la configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.header}>
@@ -187,14 +262,25 @@ const ParticipantForm = ({
           <div key={participant.id || index} className={styles.participantCard}>
             <div className={styles.participantHeader}>
               <span className={styles.participantNumber}>Participant {index + 1}</span>
-              {participant.height && participant.weight && (
-                <span className={styles.wetsuitSizeBadge}>
-                  Combinaison: {calculateWetsuitSize(participant.height, participant.weight)}
-                </span>
+              {/* Afficher les badges de taille uniquement pour le canyoning */}
+              {activityTypeId === 'canyoning' && (
+                <div className={styles.wetsuitBadges}>
+                  {participant.weight && (
+                    <span className={styles.wetsuitSizeBadge} title="Taille basée sur le poids">
+                      {calculateWetsuitSizeByWeight(participant.weight)}
+                    </span>
+                  )}
+                  {participant.height && (
+                    <span className={styles.wetsuitSizeBadgeAlt} title="Taille basée sur la hauteur">
+                      {calculateWetsuitSizeByHeight(participant.height)}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
             <div className={styles.participantGrid}>
+              {/* Prénom - toujours affiché */}
               <div className={styles.formGroup}>
                 <label>Prénom *</label>
                 <input
@@ -206,45 +292,54 @@ const ParticipantForm = ({
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label>Âge *</label>
-                <input
-                  type="number"
-                  value={participant.age}
-                  onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
-                  placeholder="Âge"
-                  min="1"
-                  max="120"
-                  required
-                />
-              </div>
+              {/* Âge - conditionnel */}
+              {isFieldEnabled('age') && (
+                <div className={styles.formGroup}>
+                  <label>Âge {isFieldRequired('age') ? '*' : ''}</label>
+                  <input
+                    type="number"
+                    value={participant.age}
+                    onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
+                    placeholder="Âge"
+                    min="1"
+                    max="120"
+                    required={isFieldRequired('age')}
+                  />
+                </div>
+              )}
 
-              <div className={styles.formGroup}>
-                <label>Taille (cm) *</label>
-                <input
-                  type="number"
-                  value={participant.height}
-                  onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                  placeholder="Ex: 175"
-                  min="50"
-                  max="250"
-                  required
-                />
-              </div>
+              {/* Taille - conditionnel */}
+              {isFieldEnabled('height') && (
+                <div className={styles.formGroup}>
+                  <label>Taille (cm) {isFieldRequired('height') ? '*' : ''}</label>
+                  <input
+                    type="number"
+                    value={participant.height}
+                    onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
+                    placeholder="Ex: 175"
+                    min="50"
+                    max="250"
+                    required={isFieldRequired('height')}
+                  />
+                </div>
+              )}
 
-              <div className={styles.formGroup}>
-                <label>Poids (kg) *</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={participant.weight}
-                  onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                  placeholder="Ex: 70"
-                  min="10"
-                  max="200"
-                  required
-                />
-              </div>
+              {/* Poids - conditionnel */}
+              {isFieldEnabled('weight') && (
+                <div className={styles.formGroup}>
+                  <label>Poids (kg) {isFieldRequired('weight') ? '*' : ''}</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={participant.weight}
+                    onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
+                    placeholder="Ex: 70"
+                    min="10"
+                    max="200"
+                    required={isFieldRequired('weight')}
+                  />
+                </div>
+              )}
             </div>
 
             {shoeRentalAvailable && (

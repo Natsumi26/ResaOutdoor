@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usersAPI, settingsAPI, uploadAPI, categoriesAPI } from '../services/api';
+import { usersAPI, settingsAPI, uploadAPI, categoriesAPI, getUploadUrl } from '../services/api';
 import styles from './Common.module.css';
+import ActivityFormConfig from '../components/ActivityFormConfig';
 
 const Preferences = () => {
   const { user } = useAuth();
@@ -347,7 +348,7 @@ const Preferences = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 {logo && (
                   <img
-                    src={`http://localhost:5000${logo}`}
+                    src={getUploadUrl(logo)}
                     alt="Logo"
                     style={{
                       width: '60px',
@@ -498,6 +499,25 @@ const Preferences = () => {
             ))}
           </div>
         </div>
+
+        {/* Configuration des formulaires par activité */}
+        {practiceActivities.length > 0 && (
+          <div className={styles.section} style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              ⚙️ Configuration des formulaires
+            </h2>
+            <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+              Personnalisez les champs du formulaire participant pour chaque activité et configurez la marque de combinaison pour le canyoning.
+            </p>
+            <ActivityFormConfig practiceActivities={practiceActivities} />
+          </div>
+        )}
 
         {/* Thème Guide */}
         <div className={styles.section} style={{

@@ -1,42 +1,29 @@
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { calculateWetsuitSizeByBrand, DEFAULT_ACTIVITY_CONFIGS } from '../utils/wetsuitSizeCharts.js';
 
-// Fonction utilitaire pour calculer la taille de combinaison
-const calculateWetsuitSize = (height, weight) => {
-  // Calcul basé sur la taille et le poids
-  // Barème Canyon Life
+// Fonction utilitaire pour récupérer la config d'une activité pour un guide
+const getActivityConfig = async (activityTypeId, userId) => {
+  // Chercher la config personnalisée
+  const customConfig = await prisma.activityFormConfig.findUnique({
+    where: {
+      activityTypeId_userId: {
+        activityTypeId,
+        userId
+      }
+    }
+  });
 
-  if (weight < 25) {
-    return 'T6 ans';
-  } else if (weight < 30) {
-    return 'T8 ans';
-  } else if (weight < 35) {
-    return 'T10 ans';
-  } else if (weight < 40) {
-    return 'T12 ans';
-  } else if (weight < 45) {
-    if (height < 145) return 'T14 ans';
-    if (height < 155) return 'T0';
-    return 'T1';
-  } else if (weight < 55) {
-    return 'T1';
-  } else if (weight < 65) {
-    return 'T2';
-  } else if (weight < 75) {
-    return 'T3';
-  } else if (weight < 90) {
-    return 'T4';
-  } else if (weight < 105) {
-    return 'T5';
-  } else if (weight < 115) {
-    return 'T6';
-  } else if (weight < 125) {
-    return 'T7';
-  } else if (weight < 135) {
-    return 'T8';
-  } else {
-    return 'T8+';
+  if (customConfig) {
+    return customConfig;
   }
+
+  // Retourner la config par défaut
+  return {
+    activityTypeId,
+    fields: DEFAULT_ACTIVITY_CONFIGS[activityTypeId]?.fields || DEFAULT_ACTIVITY_CONFIGS.canyoning.fields,
+    wetsuitBrand: DEFAULT_ACTIVITY_CONFIGS[activityTypeId]?.wetsuitBrand || null
+  };
 };
 
 // Obtenir tous les participants d'une réservation
@@ -74,14 +61,26 @@ export const upsertParticipants = async (req, res, next) => {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        session: true,
-        participants: true  // Récupérer les anciens participants avant de les supprimer
+        session: {
+          include: {
+            guide: true
+          }
+        },
+        participants: true,  // Récupérer les anciens participants avant de les supprimer
+        product: {
+          select: {
+            activityTypeId: true
+          }
+        }
       }
     });
 
     if (!booking) {
       throw new AppError('Réservation non trouvée', 404);
     }
+
+    // Récupérer la config de l'activité pour ce guide
+    const activityConfig = await getActivityConfig(booking.product.activityTypeId, booking.session.guideId);
 
     // Vérifier que le nombre de participants correspond
     if (participants.length !== booking.numberOfPeople) {
@@ -113,16 +112,26 @@ export const upsertParticipants = async (req, res, next) => {
 
     // Créer les nouveaux participants avec calcul de taille de combinaison
     const createdParticipants = await Promise.all(
-      
+
       participants.map(async (participant) => {
 
-          const age = parseInt(participant.age);
-          const height = parseInt(participant.height);
-          const weight = parseFloat(participant.weight);
+          const age = participant.age ? parseInt(participant.age) : null;
+          const height = participant.height ? parseInt(participant.height) : null;
+          const weight = participant.weight ? parseFloat(participant.weight) : null;
 
-        const wetsuitSize = (height && weight)
-        ? calculateWetsuitSize(height,weight)
-        : null;
+        // Calculer la taille de combinaison uniquement pour le canyoning
+        let wetsuitSize = null;
+        if (booking.product.activityTypeId === 'canyoning' && height && weight) {
+          const sizes = calculateWetsuitSizeByBrand(weight, height, activityConfig.wetsuitBrand || 'guara');
+          wetsuitSize = sizes.primary; // On stocke la taille principale (basée sur le poids)
+        }
+
+        // Déterminer si le participant est complet selon les champs activés
+        const fields = activityConfig.fields;
+        let isComplete = true;
+        if (fields.age?.required && !age) isComplete = false;
+        if (fields.height?.required && !height) isComplete = false;
+        if (fields.weight?.required && !weight) isComplete = false;
 
         return prisma.participant.create({
           data: {
@@ -134,7 +143,7 @@ export const upsertParticipants = async (req, res, next) => {
             shoeRental: participant.shoeRental || false,
             shoeSize: participant.shoeSize ? parseInt(participant.shoeSize) : null,
             bookingId,
-            isComplete: age && height && weight ? true : false
+            isComplete
           }
         });
       })
@@ -318,6 +327,7 @@ export const getSessionPrintHTML = async (req, res, next) => {
       include: {
         guide: {
           select: {
+            id: true,
             login: true,
             email: true
           }
@@ -336,7 +346,8 @@ export const getSessionPrintHTML = async (req, res, next) => {
             product: {
               select: {
                 name: true,
-                color: true
+                color: true,
+                activityTypeId: true
               }
             },
             notes: {
@@ -358,27 +369,48 @@ export const getSessionPrintHTML = async (req, res, next) => {
       throw new AppError('Session non trouvée', 404);
     }
 
-    // Compter les tailles de combinaisons
+    // Récupérer la config d'activité pour le canyoning (si présent)
+    const activityConfig = await getActivityConfig('canyoning', session.guide.id);
+    const wetsuitBrand = activityConfig.wetsuitBrand || 'guara';
+
+    // Vérifier si la session contient du canyoning
+    const hasCanyoning = session.bookings.some(b => b.product.activityTypeId === 'canyoning');
+
+    // Compter les tailles de combinaisons (uniquement pour le canyoning)
     const wetsuitCounts = {};
     const shoeRentalCounts = {};
     session.bookings.forEach(booking => {
       booking.participants.forEach(participant => {
-        console.log(participant)
-        if (participant.wetsuitSize) {
+        // Compter les combinaisons uniquement pour le canyoning
+        if (booking.product.activityTypeId === 'canyoning' && participant.wetsuitSize) {
           wetsuitCounts[participant.wetsuitSize] =
             (wetsuitCounts[participant.wetsuitSize] || 0) + 1;
         }
-        if (participant.shoeSize) {
+        // Compter les chaussures pour toutes les activités qui ont la location
+        if (participant.shoeRental && participant.shoeSize) {
           shoeRentalCounts[participant.shoeSize] =
             (shoeRentalCounts[participant.shoeSize] || 0) + 1;
         }
       });
     });
 
-    // Trier les tailles
-    const sizeOrder = ['T6 ans', 'T8 ans', 'T10 ans', 'T12 ans', 'T14 ans', 'T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T8+'];
-    const wetsuitSummary = sizeOrder
-      .filter(size => wetsuitCounts[size])
+    // Trier les tailles (inclut les tailles de toutes les marques)
+    const sizeOrder = [
+      // Enfants
+      'C2', 'C3', 'C4', 'C5', 'C6',
+      'T6 ans', 'T8 ans', 'T10 ans', 'T12 ans', 'T14 ans',
+      '8 ans', '10 ans', '12 ans', '14 ans',
+      // Adultes
+      '3XS', '2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '5XL+', '3XL+',
+      'T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T8+'
+    ];
+
+    // Créer le résumé en triant selon l'ordre, puis ajouter les tailles non listées
+    const orderedSizes = sizeOrder.filter(size => wetsuitCounts[size]);
+    const otherSizes = Object.keys(wetsuitCounts).filter(size => !sizeOrder.includes(size));
+    const allSizes = [...orderedSizes, ...otherSizes];
+
+    const wetsuitSummary = allSizes
       .map(size => `${wetsuitCounts[size]}${size}`)
       .join(' - ');
 
@@ -398,6 +430,12 @@ export const getSessionPrintHTML = async (req, res, next) => {
         hour: '2-digit',
         minute: '2-digit'
       });
+    };
+
+    // Fonction pour calculer les tailles de combinaison avec la marque configurée
+    const getWetsuitSizes = (weight, height) => {
+      if (!weight && !height) return { primary: '?', secondary: '?' };
+      return calculateWetsuitSizeByBrand(weight, height, wetsuitBrand);
     };
 
     // Générer le HTML
@@ -476,6 +514,10 @@ export const getSessionPrintHTML = async (req, res, next) => {
       font-size: 10pt;
       color: #555;
     }
+    .wetsuit-badges {
+      display: flex;
+      gap: 5px;
+    }
     .wetsuit-badge {
       background: #4a90e2;
       color: white;
@@ -483,7 +525,14 @@ export const getSessionPrintHTML = async (req, res, next) => {
       border-radius: 15px;
       font-weight: bold;
       font-size: 11pt;
-      margin-left: 10px;
+    }
+    .wetsuit-badge-alt {
+      background: #f59e0b;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 15px;
+      font-weight: bold;
+      font-size: 11pt;
     }
     .summary {
       margin-top: 20px;
@@ -581,29 +630,44 @@ export const getSessionPrintHTML = async (req, res, next) => {
         </div>
       ` : ''}
 
-      ${booking.participants.map((participant, idx) => `
+      ${booking.participants.map((participant, idx) => {
+        const isCanyoning = booking.product.activityTypeId === 'canyoning';
+        const sizes = isCanyoning ? getWetsuitSizes(participant.weight, participant.height) : null;
+        return `
         <div class="participant">
           <div class="participant-info">
             <span class="participant-name">• ${participant.firstName}</span>
             <div class="participant-details">
-              Âge: ${participant.age} ans - Taille: ${participant.height} cm - Poids: ${participant.weight} kg
-              ${participant.shoeRental ? `- 👟 Pointure: ${participant.shoeSize}` : ''}
+              ${participant.age ? `Âge: ${participant.age} ans` : ''}
+              ${participant.height ? ` - Taille: ${participant.height} cm` : ''}
+              ${participant.weight ? ` - Poids: ${participant.weight} kg` : ''}
+              ${participant.shoeRental ? ` - 👟 Pointure: ${participant.shoeSize}` : ''}
             </div>
           </div>
-          <div class="wetsuit-badge">${participant.wetsuitSize}</div>
+          ${isCanyoning && sizes ? `
+          <div class="wetsuit-badges">
+            <div class="wetsuit-badge" title="Taille poids">${sizes.primary || '?'}</div>
+            <div class="wetsuit-badge-alt" title="Taille hauteur">${sizes.secondary || '?'}</div>
+          </div>
+          ` : ''}
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `).join('')}
 
+  ${hasCanyoning ? `
   <div class="summary">
     <h2>📊 Total du nombre et des tailles de combinaisons à prévoir:</h2>
     <p class="summary-text">${wetsuitSummary || 'Aucune donnée'}</p>
   </div>
+  ` : ''}
+
+  ${shoeSummary ? `
   <div class="summary">
-  <h2>👟 Pointures à prévoir :</h2>
-  <p class="summary-text">${shoeSummary || 'Aucune donnée'}</p>
+    <h2>👟 Pointures à prévoir :</h2>
+    <p class="summary-text">${shoeSummary}</p>
   </div>
+  ` : ''}
 
 
   <script>

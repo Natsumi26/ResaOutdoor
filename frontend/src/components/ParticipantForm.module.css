@@ -68,6 +68,11 @@
   font-size: 1.1rem;
 }
 
+.wetsuitBadges {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .wetsuitSizeBadge {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -76,6 +81,16 @@
   font-size: 0.85rem;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.wetsuitSizeBadgeAlt {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .participantGrid {

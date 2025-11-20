@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { emailTemplatesAPI, settingsAPI, newsletterAPI } from '../services/api';
+import { emailTemplatesAPI, settingsAPI, newsletterAPI, getUploadUrl } from '../services/api';
 import styles from './Common.module.css';
 
 const Emails = () => {
@@ -560,7 +560,7 @@ const Emails = () => {
       '{{companyName}}': settings?.companyName || 'Canyon Life',
       '{{companyEmail}}': settings?.companyEmail || 'contact@canyonlife.fr',
       '{{companyPhone}}': settings?.companyPhone || '+33 6 12 34 56 78',
-      '{{logo}}': settings?.logo ? `http://localhost:5000${settings.logo}` : ''
+      '{{logo}}': settings?.logo ? getUploadUrl(settings.logo) : ''
     };
 
     const sampleData = {

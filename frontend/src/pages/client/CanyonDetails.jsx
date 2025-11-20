@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { productsAPI, sessionsAPI } from '../../services/api';
+import { productsAPI, sessionsAPI, getUploadUrl } from '../../services/api';
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -505,9 +505,7 @@ const CanyonDetails = () => {
         <div className={styles.mainImage}>
           {product.images && product.images.length > 0 ? (
             <img
-              src={product.images[selectedImage].startsWith('http')
-                ? product.images[selectedImage]
-                : `http://localhost:5000${product.images[selectedImage]}`}
+              src={getUploadUrl(product.images[selectedImage])}
               alt={product.name}
             />
           ) : (
@@ -523,7 +521,7 @@ const CanyonDetails = () => {
                 className={`${styles.thumbnail} ${index === selectedImage ? styles.active : ''}`}
                 onClick={() => setSelectedImage(index)}
                 style={{
-                  backgroundImage: `url(${img.startsWith('http') ? img : `http://localhost:5000${img}`})`
+                  backgroundImage: `url(${getUploadUrl(img)})`
                 }}
               />
             ))}

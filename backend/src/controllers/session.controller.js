@@ -37,7 +37,7 @@ const applyProductOverrides = (sessions) => {
 // Obtenir les prochaines dates disponibles
 export const getNextAvailableDates = async (req, res, next) => {
   try {
-    const { participants, guideId, teamName } = req.query;
+    const { participants, guideId, teamName, activityType } = req.query;
     const participantCount = participants ? parseInt(participants) : 1;
 
     // Récupérer toutes les sessions futures ouvertes
@@ -123,6 +123,11 @@ export const getNextAvailableDates = async (req, res, next) => {
 
       for (const sp of relevantProducts) {
         const product = sp.product;
+
+        // Filtrer par type d'activité si spécifié
+        if (activityType && product.activityTypeId !== activityType) {
+          continue;
+        }
 
         // Calculer les places réservées pour ce produit dans cette session
         const bookedForProduct = session.bookings
@@ -237,7 +242,7 @@ export const getAvailableCapacity = async (req, res, next) => {
 // Rechercher les produits disponibles selon les filtres (pour les clients)
 export const searchAvailableProducts = async (req, res, next) => {
   try {
-    const { participants, startDate, endDate, date, guideId, teamName } = req.query;
+    const { participants, startDate, endDate, date, guideId, teamName, activityType } = req.query;
 
     // Construire le filtre de dates pour les sessions
     const sessionWhere = {
@@ -384,6 +389,13 @@ export const searchAvailableProducts = async (req, res, next) => {
     // Convertir en tableau et ne garder que les produits avec au moins une session disponible
     const availableProducts = Object.entries(productAvailability)
       .filter(([key, item]) => item.availableSessions.length > 0)
+      .filter(([key, item]) => {
+        // Filtrer par type d'activité si spécifié
+        if (activityType && item.product.activityTypeId !== activityType) {
+          return false;
+        }
+        return true;
+      })
       .map(([uniqueKey, item]) => ({
         ...item.product,
         // Garder l'ID unique pour différencier les produits avec overrides

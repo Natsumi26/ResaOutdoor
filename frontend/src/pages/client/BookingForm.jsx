@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI } from '../../services/api';
+import { sessionsAPI,productsAPI, bookingsAPI, giftVouchersAPI, stripeAPI, participantsAPI, newsletterAPI, getUploadUrl, activityConfigAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -51,6 +51,7 @@ const BookingForm = () => {
   const [availableCapacity, setAvailableCapacity] = useState(null);
   const [showDescription, setShowDescription] = useState(false); // Pour afficher/masquer la description sur mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [activityConfig, setActivityConfig] = useState(null); // Configuration des champs par activité
 
 
 
@@ -197,6 +198,26 @@ const BookingForm = () => {
     }
   }, [session]);
 
+  // Charger la configuration des champs d'activité
+  useEffect(() => {
+    const loadActivityConfig = async () => {
+      if (product && session) {
+        try {
+          const response = await activityConfigAPI.getPublic(
+            product.activityTypeId || 'canyoning',
+            session.guideId
+          );
+          setActivityConfig(response.data);
+        } catch (error) {
+          console.error('Erreur chargement config activité:', error);
+          // Fallback: utiliser une configuration par défaut
+          setActivityConfig(null);
+        }
+      }
+    };
+    loadActivityConfig();
+  }, [product, session]);
+
   useEffect(() => {
     if (modePayment === 'full_only') {
       handleChange(setFormData({ ...formData, paymentMethod: 'online' }));
@@ -214,6 +235,17 @@ const BookingForm = () => {
       [field]: value
     };
     setParticipants(newParticipants);
+  };
+
+  // Helpers pour vérifier la configuration des champs
+  const isFieldEnabled = (fieldName) => {
+    if (!activityConfig?.fields) return true; // Par défaut, tous les champs sont activés
+    return activityConfig.fields[fieldName]?.enabled !== false;
+  };
+
+  const isFieldRequired = (fieldName) => {
+    if (!activityConfig?.fields) return fieldName === 'firstName' || fieldName === 'age'; // Par défaut
+    return activityConfig.fields[fieldName]?.required === true;
   };
 
   const handleVerifyVoucher = async () => {
@@ -338,9 +370,14 @@ const BookingForm = () => {
     // Si la session est dans moins de 24h, les informations des participants sont obligatoires
     if (isUrgent) {
       // Vérifier que tous les participants ont leurs informations complètes
-      const incompleteParticipants = participants.filter(p =>
-        !p.firstName || !p.age || !p.weight || !p.height
-      );
+      // En fonction de la configuration d'activité
+      const incompleteParticipants = participants.filter(p => {
+        if (!p.firstName) return true;
+        if (isFieldEnabled('age') && isFieldRequired('age') && !p.age) return true;
+        if (isFieldEnabled('height') && isFieldRequired('height') && !p.height) return true;
+        if (isFieldEnabled('weight') && isFieldRequired('weight') && !p.weight) return true;
+        return false;
+      });
 
       if (incompleteParticipants.length > 0) {
         alert(t("alerts.missingParticipantInfo"));
@@ -348,10 +385,12 @@ const BookingForm = () => {
       }
 
       // Vérifier les pointures pour ceux qui louent des chaussures
-      const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
-      if (shoeSizeError) {
-        alert(t("alerts.missingSize"));
-        return;
+      if (isFieldEnabled('shoeRental')) {
+        const shoeSizeError = participants.some(p => p.shoeRental && !p.shoeSize);
+        if (shoeSizeError) {
+          alert(t("alerts.missingSize"));
+          return;
+        }
       }
     }
     // Sinon, les informations des participants sont optionnelles
@@ -595,7 +634,7 @@ const BookingForm = () => {
 
             {product.images && product.images.length > 0 && (
               <img
-                src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`}
+                src={getUploadUrl(product.images[0])}
                 alt={product.name}
                 className={styles.summaryImage}
               />
@@ -880,48 +919,59 @@ const BookingForm = () => {
                   <div key={index} className={styles.participantCard}>
                     <h4>Participant {index + 1}</h4>
                     <div className={styles.participantGrid}>
+                      {/* Prénom - toujours affiché */}
                       <div className={styles.formGroup}>
-                        <label>{t('Prénom')}{isUrgent && ' *'}</label>
+                        <label>{t('Prénom')}{(isUrgent || isFieldRequired('firstName')) && ' *'}</label>
                         <input
                           type="text"
                           value={participant.firstName}
                           onChange={(e) => handleParticipantChange(index, 'firstName', e.target.value)}
-                          required={isUrgent}
+                          required={isUrgent || isFieldRequired('firstName')}
                         />
                       </div>
-                      <div className={styles.formGroup}>
-                        <label>Age{isUrgent && ' *'}</label>
-                        <input
-                          type="number"
-                          value={participant.age}
-                          onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
-                          required={isUrgent}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label>{t('Taille')} (cm){isUrgent && ' *'}</label>
-                        <input
-                          type="number"
-                          value={participant.height}
-                          onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
-                          required={isUrgent}
-                        />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label>{t('Poids')} (kg){isUrgent && ' *'}</label>
-                        <input
-                          type="number"
-                          value={participant.weight}
-                          onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
-                          required={isUrgent}
-                        />
-                      </div>
+
+                      {/* Age - conditionnel */}
+                      {isFieldEnabled('age') && (
+                        <div className={styles.formGroup}>
+                          <label>Age{(isUrgent || isFieldRequired('age')) && ' *'}</label>
+                          <input
+                            type="number"
+                            value={participant.age}
+                            onChange={(e) => handleParticipantChange(index, 'age', e.target.value)}
+                            required={isUrgent || isFieldRequired('age')}
+                          />
+                        </div>
+                      )}
+
+                      {/* Taille - conditionnel */}
+                      {isFieldEnabled('height') && (
+                        <div className={styles.formGroup}>
+                          <label>{t('Taille')} (cm){(isUrgent || isFieldRequired('height')) && ' *'}</label>
+                          <input
+                            type="number"
+                            value={participant.height}
+                            onChange={(e) => handleParticipantChange(index, 'height', e.target.value)}
+                            required={isUrgent || isFieldRequired('height')}
+                          />
+                        </div>
+                      )}
+
+                      {/* Poids - conditionnel */}
+                      {isFieldEnabled('weight') && (
+                        <div className={styles.formGroup}>
+                          <label>{t('Poids')} (kg){(isUrgent || isFieldRequired('weight')) && ' *'}</label>
+                          <input
+                            type="number"
+                            value={participant.weight}
+                            onChange={(e) => handleParticipantChange(index, 'weight', e.target.value)}
+                            required={isUrgent || isFieldRequired('weight')}
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    
-
-                    {/* Location de chaussures */}
-                    {session.shoeRentalAvailable && (
+                    {/* Location de chaussures - conditionnel */}
+                    {session.shoeRentalAvailable && isFieldEnabled('shoeRental') && (
                       <div className={styles.shoeRentalSection} style={{ backgroundColor: participant.shoeRental ? `${clientColor}10` : 'white', borderColor: participant.shoeRental ? clientColor : '#dee2e6' }}>
                         <label className={styles.checkboxLabel}>
                           <input
@@ -932,13 +982,13 @@ const BookingForm = () => {
                           {t('LocShoes')} (+{session.shoeRentalPrice}€)
                         </label>
 
-                        {participant.shoeRental && (
+                        {participant.shoeRental && isFieldEnabled('shoeSize') && (
                           <div className={styles.formGroup}>
-                            <label>{t('Pointure')}{isUrgent && ' *'}</label>
+                            <label>{t('Pointure')}{(isUrgent || isFieldRequired('shoeSize')) && ' *'}</label>
                             <input
                               type="number"
                               value={participant.shoeSize}
-                              required={isUrgent}
+                              required={isUrgent || isFieldRequired('shoeSize')}
                               onChange={(e) => handleParticipantChange(index, 'shoeSize', e.target.value)}
                               placeholder="Ex: 42"
                               min="20"

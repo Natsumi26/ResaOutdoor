@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './GiftVoucherPreview.module.css';
+import { getUploadUrl } from '../services/api';
 
 const GiftVoucherPreview = ({
   amount,
@@ -18,7 +19,7 @@ const GiftVoucherPreview = ({
 
   if (!isOpen) return null;
 
-  const logoUrl = logo ? (logo.startsWith('http') ? logo : `http://localhost:5000${logo}`) : null;
+  const logoUrl = getUploadUrl(logo);
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>

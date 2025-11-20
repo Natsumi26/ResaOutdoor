@@ -22,6 +22,7 @@ import settingsRoutes from './routes/settings.routes.js';
 import teamRoutes from './routes/team.routes.js';
 import newsletterRoutes from './routes/newsletter.routes.js';
 import equipmentListRoutes from './routes/equipmentList.routes.js';
+import activityConfigRoutes from './routes/activityConfig.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initNotificationService } from './services/notification.service.js';
 
@@ -66,6 +67,7 @@ app.use('/api/resellers', resellerRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/equipment-lists', equipmentListRoutes);
+app.use('/api/activity-config', activityConfigRoutes);
 // On remonte les autres routes Stripe (sauf webhook)
 app.use('/api/stripe', stripeRoutes);
 

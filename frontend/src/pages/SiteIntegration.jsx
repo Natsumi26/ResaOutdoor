@@ -12,6 +12,28 @@ const SiteIntegration = () => {
   const [iframeType, setIframeType] = useState('search'); // search, calendar-only
   const [selectedProduct, setSelectedProduct] = useState('');
   const [filterMode, setFilterMode] = useState('individual'); // 'individual' ou 'team'
+  const [selectedActivityType, setSelectedActivityType] = useState(''); // Filtre par type d'activité
+
+  // Labels pour les types d'activités
+  const activityTypeLabels = {
+    'canyoning': 'Canyoning',
+    'escalade': 'Escalade',
+    'via-corda': 'Via Corda',
+    'via-ferrata': 'Via Ferrata',
+    'speleologie': 'Spéléologie',
+    'stage': 'Stage'
+  };
+
+  // Obtenir les types d'activités uniques depuis les produits
+  const getUniqueActivityTypes = () => {
+    const types = new Set();
+    products.forEach(product => {
+      if (product.activityTypeId) {
+        types.add(product.activityTypeId);
+      }
+    });
+    return Array.from(types).sort();
+  };
 
   // Modal preview
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -100,6 +122,11 @@ const SiteIntegration = () => {
     // Ajouter le produit sélectionné si nécessaire
     if (selectedProduct && iframeType === 'search') {
       filterParams.push(`productId=${selectedProduct}`);
+    }
+
+    // Ajouter le type d'activité si sélectionné
+    if (selectedActivityType && iframeType === 'search') {
+      filterParams.push(`activityType=${encodeURIComponent(selectedActivityType)}`);
     }
 
     // Ajouter la couleur client si elle est différente de la valeur par défaut
@@ -213,6 +240,28 @@ const SiteIntegration = () => {
             </select>
             <small className={styles.description}>{getDescription()}</small>
           </div>
+
+          {/* Sélection du type d'activité */}
+          {iframeType === 'search' && getUniqueActivityTypes().length > 1 && (
+            <div className={styles.formGroup}>
+              <label>Filtrer par type d'activité (optionnel)</label>
+              <select
+                value={selectedActivityType}
+                onChange={(e) => setSelectedActivityType(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Toutes les activités</option>
+                {getUniqueActivityTypes().map(type => (
+                  <option key={type} value={type}>
+                    {activityTypeLabels[type] || type}
+                  </option>
+                ))}
+              </select>
+              <small className={styles.description}>
+                Active l'onglet correspondant dans la page de recherche
+              </small>
+            </div>
+          )}
 
           {/* Sélection du produit */}
           {(iframeType === 'search' || iframeType === 'calendar-only') && (

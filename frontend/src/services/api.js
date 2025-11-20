@@ -2,6 +2,20 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// URL de base pour les fichiers uploadés (sans /api)
+export const BASE_URL = API_URL.replace('/api', '');
+
+// Helper pour construire les URLs des fichiers uploadés
+export const getUploadUrl = (path) => {
+  if (!path) return null;
+  // Si c'est déjà une URL complète, la retourner telle quelle
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  // Sinon, construire l'URL avec BASE_URL
+  return `${BASE_URL}${path}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -214,6 +228,16 @@ export const uploadAPI = {
     });
   },
   deleteImage: (url) => api.delete('/upload/images', { data: { url } })
+};
+
+// Activity Config (formulaires dynamiques par activité)
+export const activityConfigAPI = {
+  getAll: () => api.get('/activity-config'),
+  get: (activityTypeId) => api.get(`/activity-config/${activityTypeId}`),
+  getPublic: (activityTypeId, guideId) => api.get(`/activity-config/public/${activityTypeId}`, { params: { guideId } }),
+  update: (activityTypeId, data) => api.put(`/activity-config/${activityTypeId}`, data),
+  reset: (activityTypeId) => api.delete(`/activity-config/${activityTypeId}`),
+  getWetsuitBrands: () => api.get('/activity-config/wetsuit-brands')
 };
 
 export default api;

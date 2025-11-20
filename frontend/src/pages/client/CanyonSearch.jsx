@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { sessionsAPI } from '../../services/api';
+import { sessionsAPI, getUploadUrl } from '../../services/api';
 import DateRangePicker from '../../components/DateRangePicker';
 import styles from './ClientPages.module.css';
 import { Trans, useTranslation } from 'react-i18next';
@@ -30,7 +30,8 @@ const CanyonSearch = () => {
     participants: searchParams.get('participants') || '',
     date: searchParams.get('date') || '',
     startDate: searchParams.get('startDate') || '',
-    endDate: searchParams.get('endDate') || ''
+    endDate: searchParams.get('endDate') || '',
+    activityType: searchParams.get('activityType') || ''
   });
   const [showCalendar, setShowCalendar] = useState(false);
   const [clientColor, setClientColor] = useState(() => {
@@ -45,7 +46,8 @@ const CanyonSearch = () => {
   const [resultFilters, setResultFilters] = useState({
     category: '',
     massif: '',
-    difficulty: ''
+    difficulty: '',
+    activityType: searchParams.get('activityType') || '' // Filtre par type d'activité
   });
 
   // Détecter si on est sur mobile
@@ -90,11 +92,13 @@ const CanyonSearch = () => {
     if (colorFromUrl) {
       localStorage.setItem('clientThemeColor', colorFromUrl);
     }
-    loadCalendarAvailability();
   }, [colorFromUrl]);
 
-  // Retirer le chargement automatique au démarrage
+  // Charger les données initiales au montage
   useEffect(() => {
+    loadCalendarAvailability();
+    loadAvailableActivityTypes(); // Charger les types d'activités pour afficher les onglets
+
     if (startDateParam) {
       const parsedDate = new Date(startDateParam);
       if (!isNaN(parsedDate.getTime())) {
@@ -135,6 +139,13 @@ const CanyonSearch = () => {
     if (resultFilters.difficulty) {
       filtered = filtered.filter(product =>
         product.level && product.level.toLowerCase() === resultFilters.difficulty.toLowerCase()
+      );
+    }
+
+    // Filtre par type d'activité
+    if (resultFilters.activityType) {
+      filtered = filtered.filter(product =>
+        product.activityTypeId === resultFilters.activityType
       );
     }
 
@@ -201,6 +212,38 @@ const CanyonSearch = () => {
     };
   }, [products]);
 
+  // Charger les types d'activités disponibles pour le guide (pour afficher les onglets)
+  const loadAvailableActivityTypes = async () => {
+    try {
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+
+      const params = {};
+      if (guideId) params.guideId = guideId;
+      if (teamName) params.teamName = teamName;
+
+      // Appeler l'API pour récupérer tous les produits du guide (ou tous si pas de filtre)
+      const response = await sessionsAPI.getAll(params);
+      const sessions = response.data.sessions || [];
+
+      // Extraire les produits uniques des sessions
+      const uniqueProducts = new Map();
+      sessions.forEach(session => {
+        if (session.products && session.products.length > 0) {
+          session.products.forEach(sp => {
+            if (sp.product && sp.product.id) {
+              uniqueProducts.set(sp.product.id, sp.product);
+            }
+          });
+        }
+      });
+
+      setAllProducts(Array.from(uniqueProducts.values()));
+    } catch (error) {
+      console.error('Erreur chargement types d\'activités:', error);
+    }
+  };
+
   const loadProducts = async (customFilters = null) => {
     const currentFilters = customFilters || filters;
 
@@ -239,10 +282,15 @@ const CanyonSearch = () => {
       if (guideId) params.guideId = guideId;
       if (teamName) params.teamName = teamName;
 
+      // Ajouter le filtre par type d'activité
+      if (currentFilters.activityType) {
+        params.activityType = currentFilters.activityType;
+      }
+
       // Utiliser la nouvelle API de recherche
       const response = await sessionsAPI.searchAvailable(params);
       const fetchedProducts = response.data.products || [];
-      setAllProducts(fetchedProducts);
+      // Ne pas écraser allProducts pour garder les onglets visibles
       setProducts(fetchedProducts);
 
       // Si aucun produit trouvé, chercher les prochaines dates disponibles
@@ -256,6 +304,7 @@ const CanyonSearch = () => {
           };
           if (guideId) params.guideId = guideId;
           if (teamName) params.teamName = teamName;
+          if (currentFilters.activityType) params.activityType = currentFilters.activityType;
 
           const nextDatesResponse = await sessionsAPI.getNextAvailableDates(params);
           const dates = nextDatesResponse.data.dates || [];
@@ -398,6 +447,11 @@ const CanyonSearch = () => {
 
     // Lancer automatiquement la recherche si les critères sont remplis
     if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+      // Synchroniser resultFilters.activityType avec filters.activityType
+      setResultFilters(prev => ({
+        ...prev,
+        activityType: newFilters.activityType || ''
+      }));
       loadProducts(newFilters);
     } else if (!startDate && !endDate) {
       // Si réinitialisation, effacer les résultats
@@ -455,11 +509,12 @@ const CanyonSearch = () => {
   };
 
   const handleSearch = () => {
-    // Réinitialiser les filtres de résultats
+    // Réinitialiser les filtres de résultats en gardant activityType de filters
     setResultFilters({
       category: '',
       massif: '',
-      difficulty: ''
+      difficulty: '',
+      activityType: filters.activityType || ''
     });
     loadProducts();
     // Scroll automatique vers les résultats après un court délai
@@ -639,6 +694,30 @@ const CanyonSearch = () => {
     return Array.from(difficulties).sort();
   };
 
+  // Obtenir les types d'activités uniques avec labels
+  const getUniqueActivityTypes = () => {
+    const activityTypes = new Map();
+    const activityLabels = {
+      'canyoning': 'Canyoning',
+      'escalade': 'Escalade',
+      'via-corda': 'Via Corda',
+      'via-ferrata': 'Via Ferrata',
+      'speleologie': 'Spéléologie',
+      'stage': 'Stage'
+    };
+
+    allProducts.forEach(product => {
+      if (product.activityTypeId) {
+        const label = activityLabels[product.activityTypeId] || product.activityTypeId;
+        activityTypes.set(product.activityTypeId, label);
+      }
+    });
+
+    // Trier par label
+    return Array.from(activityTypes.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]));
+  };
+
   console.log(nextAvailableDates)
   // Afficher l'interface de recherche (toujours visible maintenant)
   return (
@@ -672,6 +751,68 @@ const CanyonSearch = () => {
           </Trans>
           </p>
         </div>
+
+        {/* Onglets de filtrage par type d'activité - au-dessus de la date */}
+        {getUniqueActivityTypes().length > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              border: '1px solid #dee2e6',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <button
+                onClick={() => {
+                  setFilters({ ...filters, activityType: '' });
+                  setResultFilters({ ...resultFilters, activityType: '' });
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  borderRight: '1px solid #dee2e6',
+                  background: !filters.activityType ? '#f5f5f5' : 'white',
+                  fontSize: '0.85rem',
+                  fontWeight: !filters.activityType ? '600' : '400',
+                  cursor: 'pointer',
+                  color: '#333',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Tout
+              </button>
+              {getUniqueActivityTypes().map(([typeId, label], index, array) => {
+                const isActive = filters.activityType === typeId;
+                const isLast = index === array.length - 1;
+                return (
+                  <button
+                    key={typeId}
+                    onClick={() => {
+                      setFilters({ ...filters, activityType: typeId });
+                      setResultFilters({ ...resultFilters, activityType: typeId });
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: 'none',
+                      borderRight: isLast ? 'none' : '1px solid #dee2e6',
+                      background: isActive ? '#f5f5f5' : 'white',
+                      fontSize: '0.85rem',
+                      fontWeight: isActive ? '600' : '400',
+                      cursor: 'pointer',
+                      color: '#333',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
           {/* Section Date */}
           <div ref={calendarRef} style={{ marginBottom: '1.5rem', position: 'relative', maxWidth: '300px', margin: '0 auto 1.5rem auto' }}>
@@ -824,8 +965,8 @@ const CanyonSearch = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
-                      {products.length} canyon{products.length > 1 ? 's' : ''} {t('Find')}{products.length > 1 ? 's' : ''}
-                      {(resultFilters.category || resultFilters.massif || resultFilters.difficulty) && allProducts.length !== products.length && (
+                      {products.length} {products.length > 1 ? t('activitiesFound') || 'activités trouvées' : t('activityFound') || 'activité trouvée'}
+                      {(resultFilters.category || resultFilters.massif || resultFilters.difficulty || resultFilters.activityType) && allProducts.length !== products.length && (
                         <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
                           (sur {allProducts.length})
                         </span>
@@ -1017,7 +1158,7 @@ const CanyonSearch = () => {
                             style={{
                               width: '100%',
                               height: '100%',
-                              backgroundImage: `url(${product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`})`,
+                              backgroundImage: `url(${getUploadUrl(product.images[0])})`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center'
                             }}
@@ -1528,28 +1669,6 @@ const CanyonSearch = () => {
                 })}
               </div>
             </>
-          ) : allProducts.length > 0 ? (
-            // Cas où des filtres sont actifs et ne retournent aucun résultat
-            <div className={styles.noResults}>
-              <h2>{t("filters.noResultsTitle")}</h2>
-              <p>{t("filters.noResultsText")}</p>
-              <button
-                onClick={() => setResultFilters({ category: '', massif: '', difficulty: '' })}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: clientColor,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  marginTop: '1rem'
-                }}
-              >
-                {t("filters.resetButton")}
-              </button>
-            </div>
           ) : (
             <div className={styles.noResults}>
               <h2>{t('Désolé')} !</h2>

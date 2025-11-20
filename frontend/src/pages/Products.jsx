@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI, categoriesAPI, usersAPI, authAPI, settingsAPI, equipmentListsAPI } from '../services/api';
+import { productsAPI, categoriesAPI, usersAPI, authAPI, settingsAPI, equipmentListsAPI, getUploadUrl } from '../services/api';
 import ProductForm from '../components/ProductForm';
 import styles from './Common.module.css';
 import modalStyles from '../components/ProductForm.module.css';
@@ -333,7 +333,7 @@ return (
                         />
                         {product.images?.[0] && (
                           <img
-                            src={`http://localhost:5000${product.images[0]}`}
+                            src={getUploadUrl(product.images[0])}
                             alt={product.name}
                             className={styles.productImage}
                           />

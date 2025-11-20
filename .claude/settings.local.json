@@ -40,7 +40,8 @@
       "Bash(\"D:\\Users\\Gamer\\Documents\\GitHub\\logiciel-de-resa\\frontend\\src\\pages\\client\\ClientPages.module.css\")",
       "Bash(server.js)",
       "Bash(timeout:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(prisma/migrations/0_init/migration.sql)"
     ],
     "deny": [],
     "ask": []
