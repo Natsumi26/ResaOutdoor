@@ -18,6 +18,9 @@
     "db:backup": "node scripts/backup-db.js",
     "setup": "npm install && prisma generate && prisma migrate deploy"
   },
+ "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "keywords": [
     "booking",
     "saas",
