@@ -195,7 +195,7 @@ router.get('/verify-payment/:sessionId', authMiddleware, async (req, res, next) 
  * POST /api/stripe/webhook
  * IMPORTANT: Le raw body est géré dans server.js AVANT express.json()
  */
-router.post('/', async (req, res) => {
+router.post('/webhook', async (req, res) => {
   const signature = req.headers['stripe-signature'];
 
   let event;
