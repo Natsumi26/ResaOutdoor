@@ -26,6 +26,265 @@ async function main() {
 
   console.log('✅ Utilisateur super admin créé:', admin.login);
 
+  // Créer le template d'email de rappel pour les formulaires incomplets
+  const existingTemplate = await prisma.emailTemplate.findFirst({
+    where: {
+      type: 'form_reminder',
+      userId: admin.id
+    }
+  });
+
+  if (existingTemplate) {
+    // Mettre à jour le template existant
+    await prisma.emailTemplate.update({
+      where: { id: existingTemplate.id },
+      data: {
+        type: 'form_reminder',
+        name: 'Rappel formulaire participants',
+        subject: 'Rappel : Complétez votre formulaire pour votre activité du {{date}}',
+        htmlContent: `<div style="text-align: center; margin-bottom: 20px;">
+  <img src="{{logo}}"
+       alt="Logo {{companyName}}"
+       style="max-width: 250px; height: auto; display: block; margin: 0 auto;">
+</div>
+
+<p>Bonjour {{clientFirstName}},</p>
+
+<p>
+  Le jour de votre activité « <strong>{{productName}}</strong> » approche.<br>
+  Nous avons rendez-vous le <strong>{{date}}</strong> à <strong>{{timeSlot}}</strong>.
+</p>
+
+<p>
+  ⚠️ <strong>Attention :</strong> le formulaire des participants n'a pas encore été complété.
+</p>
+
+<p>
+  Pourriez-vous le remplir dès que possible en cliquant sur le bouton ci-dessous&nbsp;?
+</p>
+
+<p>
+  <a href="{{formLink}}"
+     style="
+       display: inline-block;
+       padding: 12px 24px;
+       background: #1a5f7a;
+       color: #ffffff;
+       text-decoration: none;
+       border-radius: 6px;
+       margin: 12px 0;
+       font-weight: bold;
+     ">
+    ⚠️ Compléter le formulaire des participants
+  </a>
+</p>
+
+<p>
+  Sans les informations de chacun (taille de combinaison, pointure, etc.),
+  il m'est très difficile de prévoir le bon équipement et je ne peux pas garantir
+  que le matériel sera parfaitement adapté le jour J.
+</p>
+
+<p
+  style="
+    background: #fff3cd;
+    padding: 12px;
+    border-left: 4px solid #ffc107;
+    margin: 16px 0;
+  "
+>
+  ⚠️ Sans ce formulaire complété, je ne peux pas assurer la disponibilité de l'équipement adapté pour tous les participants.
+</p>
+
+<p>
+  Si vous avez déjà complété le formulaire entre-temps, vous pouvez ignorer ce message.
+</p>
+
+<p>
+  Si vous avez des questions, n'hésitez pas à me contacter.
+</p>
+
+<p>
+  À très bientôt&nbsp;!
+</p>
+
+<hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+<div style="font-size: 14px; color: #555; text-align: center;">
+  <p><strong>{{companyName}}</strong></p>
+  <p style="line-height: 1.8;">
+    🌐 Site web : <a href="{{companyWebsite}}" target="_blank" style="color: #1976d2; text-decoration: none;">{{companyWebsite}}</a><br>
+    📧 Email : <a href="mailto:{{companyEmail}}" style="color: #1976d2; text-decoration: none;">{{companyEmail}}</a><br>
+    📞 Téléphone : <a href="tel:{{companyPhone}}" style="color: #1976d2; text-decoration: none;">{{companyPhone}}</a>
+  </p>
+</div>`,
+        textContent: `Bonjour {{clientFirstName}},
+
+Le jour de votre activité « {{productName}} » approche.
+Nous avons rendez-vous le {{date}} à {{timeSlot}}.
+
+⚠️ Attention : le formulaire des participants n'a toujours pas été complété.
+
+Pourriez-vous le remplir dès que possible en utilisant ce lien :
+{{formLink}}
+
+Sans ces informations (taille de combinaison, pointure, etc.), il m'est difficile de préparer le bon équipement.
+Je ne peux donc pas garantir que tout sera parfaitement adapté le jour J.
+
+Si vous avez déjà complété le formulaire entre-temps, vous pouvez ignorer ce message.
+
+Si vous avez des questions, n'hésitez pas à me contacter.
+
+À très bientôt !
+
+{{companyName}}
+{{companyWebsite}}
+{{companyEmail}}
+{{companyPhone}}`,
+        variables: JSON.stringify([
+          'clientFirstName',
+          'clientLastName',
+          'productName',
+          'date',
+          'timeSlot',
+          'formLink',
+          'logo',
+          'companyName',
+          'companyWebsite',
+          'companyEmail',
+          'companyPhone'
+        ]),
+        userId: admin.id
+      }
+    });
+
+    console.log('✅ Template email rappel formulaire mis à jour');
+  } else {
+    // Créer le template s'il n'existe pas
+    await prisma.emailTemplate.create({
+      data: {
+        type: 'form_reminder',
+        name: 'Rappel formulaire participants',
+        subject: 'Rappel : Complétez votre formulaire pour votre activité du {{date}}',
+        htmlContent: `<div style="text-align: center; margin-bottom: 20px;">
+  <img src="{{logo}}"
+       alt="Logo {{companyName}}"
+       style="max-width: 250px; height: auto; display: block; margin: 0 auto;">
+</div>
+
+<p>Bonjour {{clientFirstName}},</p>
+
+<p>
+  Le jour de votre activité « <strong>{{productName}}</strong> » approche.<br>
+  Nous avons rendez-vous le <strong>{{date}}</strong> à <strong>{{timeSlot}}</strong>.
+</p>
+
+<p>
+  ⚠️ <strong>Attention :</strong> le formulaire des participants n'a pas encore été complété.
+</p>
+
+<p>
+  Pourriez-vous le remplir dès que possible en cliquant sur le bouton ci-dessous&nbsp;?
+</p>
+
+<p>
+  <a href="{{formLink}}"
+     style="
+       display: inline-block;
+       padding: 12px 24px;
+       background: #1a5f7a;
+       color: #ffffff;
+       text-decoration: none;
+       border-radius: 6px;
+       margin: 12px 0;
+       font-weight: bold;
+     ">
+    ⚠️ Compléter le formulaire des participants
+  </a>
+</p>
+
+<p>
+  Sans les informations de chacun (taille de combinaison, pointure, etc.),
+  il m'est très difficile de prévoir le bon équipement et je ne peux pas garantir
+  que le matériel sera parfaitement adapté le jour J.
+</p>
+
+<p
+  style="
+    background: #fff3cd;
+    padding: 12px;
+    border-left: 4px solid #ffc107;
+    margin: 16px 0;
+  "
+>
+  ⚠️ Sans ce formulaire complété, je ne peux pas assurer la disponibilité de l'équipement adapté pour tous les participants.
+</p>
+
+<p>
+  Si vous avez déjà complété le formulaire entre-temps, vous pouvez ignorer ce message.
+</p>
+
+<p>
+  Si vous avez des questions, n'hésitez pas à me contacter.
+</p>
+
+<p>
+  À très bientôt&nbsp;!
+</p>
+
+<hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+<div style="font-size: 14px; color: #555; text-align: center;">
+  <p><strong>{{companyName}}</strong></p>
+  <p style="line-height: 1.8;">
+    🌐 Site web : <a href="{{companyWebsite}}" target="_blank" style="color: #1976d2; text-decoration: none;">{{companyWebsite}}</a><br>
+    📧 Email : <a href="mailto:{{companyEmail}}" style="color: #1976d2; text-decoration: none;">{{companyEmail}}</a><br>
+    📞 Téléphone : <a href="tel:{{companyPhone}}" style="color: #1976d2; text-decoration: none;">{{companyPhone}}</a>
+  </p>
+</div>`,
+        textContent: `Bonjour {{clientFirstName}},
+
+Le jour de votre activité « {{productName}} » approche.
+Nous avons rendez-vous le {{date}} à {{timeSlot}}.
+
+⚠️ Attention : le formulaire des participants n'a toujours pas été complété.
+
+Pourriez-vous le remplir dès que possible en utilisant ce lien :
+{{formLink}}
+
+Sans ces informations (taille de combinaison, pointure, etc.), il m'est difficile de préparer le bon équipement.
+Je ne peux donc pas garantir que tout sera parfaitement adapté le jour J.
+
+Si vous avez déjà complété le formulaire entre-temps, vous pouvez ignorer ce message.
+
+Si vous avez des questions, n'hésitez pas à me contacter.
+
+À très bientôt !
+
+{{companyName}}
+{{companyWebsite}}
+{{companyEmail}}
+{{companyPhone}}`,
+        variables: JSON.stringify([
+          'clientFirstName',
+          'clientLastName',
+          'productName',
+          'date',
+          'timeSlot',
+          'formLink',
+          'logo',
+          'companyName',
+          'companyWebsite',
+          'companyEmail',
+          'companyPhone'
+        ]),
+        userId: admin.id
+      }
+    });
+
+    console.log('✅ Template email rappel formulaire créé');
+  }
+
   console.log('✅ Base de données initialisée (vide - catégories à créer manuellement par les guides)');
 
   // Créer des produits d'exemple

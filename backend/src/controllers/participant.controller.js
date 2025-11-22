@@ -187,6 +187,12 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
 
+    // Récupérer la session pour obtenir le guideId
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { guideId: true }
+    });
+
     // Récupérer toutes les réservations confirmées de la session avec participants
     const bookings = await prisma.booking.findMany({
       where: {
@@ -202,11 +208,16 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
         product: {
           select: {
             name: true,
-            color: true
+            color: true,
+            activityTypeId: true
           }
         }
       }
     });
+
+    // Récupérer la config de l'activité canyoning pour ce guide (pour la marque de combi)
+    const canyoningConfig = await getActivityConfig('canyoning', session?.guideId);
+    const wetsuitBrand = canyoningConfig?.wetsuitBrand || 'guara';
 
     // Compter les tailles de combinaisons
     const wetsuitCounts = {};
@@ -230,10 +241,21 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
       };
 
       booking.participants.forEach(participant => {
-        // Compter les combinaisons
-        if (participant.wetsuitSize) {
-          wetsuitCounts[participant.wetsuitSize] =
-            (wetsuitCounts[participant.wetsuitSize] || 0) + 1;
+        // Calculer les deux tailles de combi (par poids et par taille) pour le canyoning
+        let wetsuitSizeByWeight = null;
+        let wetsuitSizeByHeight = null;
+
+        if (booking.product.activityTypeId === 'canyoning' && participant.weight && participant.height) {
+          const sizes = calculateWetsuitSizeByBrand(participant.weight, participant.height, wetsuitBrand);
+          wetsuitSizeByWeight = sizes.primary;
+          wetsuitSizeByHeight = sizes.secondary;
+        }
+
+        // Compter les combinaisons (on utilise la taille par poids comme référence)
+        const effectiveWetsuitSize = wetsuitSizeByWeight || participant.wetsuitSize;
+        if (effectiveWetsuitSize) {
+          wetsuitCounts[effectiveWetsuitSize] =
+            (wetsuitCounts[effectiveWetsuitSize] || 0) + 1;
         }
 
         // Compter les locations de chaussures par pointure
@@ -247,7 +269,8 @@ export const getSessionWetsuitSummary = async (req, res, next) => {
           age: participant.age,
           height: participant.height,
           weight: participant.weight,
-          wetsuitSize: participant.wetsuitSize,
+          wetsuitSize: effectiveWetsuitSize,
+          wetsuitSizeByHeight: wetsuitSizeByHeight,
           shoeRental: participant.shoeRental,
           shoeSize: participant.shoeSize
         });

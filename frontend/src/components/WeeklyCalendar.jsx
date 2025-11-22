@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DragDropContext } from 'react-beautiful-dnd';
+import { DragDropContext } from '@hello-pangea/dnd';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './WeeklyCalendar.module.css';

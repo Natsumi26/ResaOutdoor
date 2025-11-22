@@ -7,11 +7,6 @@ import {
   sendGuideCancellationNotification,
   sendGuideModificationNotification
 } from '../services/email.service.js';
-import {
-  notifyAdmins,
-  createNewBookingNotification,
-  updateCalendar,
-} from '../services/notification.service.js';
 
 // Lister toutes les réservations
 export const getAllBookings = async (req, res, next) => {
@@ -397,32 +392,23 @@ export const createBooking = async (req, res, next) => {
     });
 
     // Envoyer l'email de confirmation (asynchrone, ne bloque pas la réponse)
-    sendBookingConfirmation(booking).catch(err => {
-      console.error('Erreur envoi email de confirmation:', err);
-      // L'email échoue mais la réservation est créée
-    });
+    sendBookingConfirmation(booking)
+      .then(async () => {
+        // Marquer l'email comme envoyé
+        await prisma.booking.update({
+          where: { id: booking.id },
+          data: { productDetailsSent: true }
+        });
+      })
+      .catch(err => {
+        console.error('Erreur envoi email de confirmation:', err);
+        // L'email échoue mais la réservation est créée
+      });
 
     // 📧 Envoyer email de notification au guide
     sendGuideNewBookingNotification(booking).catch(err => {
       console.error('Erreur envoi email au guide:', err);
       // L'email échoue mais la réservation est créée
-    });
-
-    // 🔔 Envoyer notification en temps réel aux admins
-    const notification = createNewBookingNotification({
-      id: booking.id,
-      clientName: `${clientFirstName} ${clientLastName}`,
-      productName: booking.product.name,
-      sessionDate: booking.session.date,
-      totalAmount: totalPrice
-    });
-    notifyAdmins(notification);
-
-    // Mettre à jour le calendrier en temps réel
-    updateCalendar({
-      action: 'booking-created',
-      bookingId: booking.id,
-      sessionId: booking.sessionId
     });
 
     res.status(201).json({
@@ -874,7 +860,8 @@ export const moveBooking = async (req, res, next) => {
           product: {
             connect: { id: newProductId }
           },
-          totalPrice: newTotalPrice
+          totalPrice: newTotalPrice,
+          productDetailsSent: false // Réinitialiser car les informations ont changé
         },
         include: {
           session: true,

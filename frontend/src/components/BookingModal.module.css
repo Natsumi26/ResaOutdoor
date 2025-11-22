@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 10100;
   padding: 1rem;
 }
 
@@ -266,6 +266,19 @@
   font-size: 0.875rem;
   color: #6b7280;
   font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Drapeau à côté du prénom - caché sur desktop, visible sur mobile */
+.flagImageMobile {
+  display: none;
+  width: 20px;
+  height: 15px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .headerRight {
@@ -1744,21 +1757,128 @@
 /* ============================================ */
 /* RESPONSIVE */
 /* ============================================ */
+/* Bouton retour mobile - caché par défaut */
+.mobileBackBtn {
+  display: none;
+}
+
+/* Texte contact - visible par défaut */
+.contactTextDesktop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+/* Icônes contact mobile - cachées par défaut */
+.contactIconsMobile {
+  display: none;
+}
+
+.contactIconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.phoneIconBtn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.phoneIconBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.emailIconBtn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.emailIconBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
 @media (max-width: 768px) {
   .modalOverlay {
-    padding: 0.5rem;
+    padding: 0;
   }
 
   .modal {
-    max-height: 95vh;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  /* Bouton retour mobile visible */
+  .mobileBackBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .mobileBackBtn:hover {
+    background: rgba(0, 0, 0, 0.2);
   }
 
   .header {
     padding: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .headerLeft {
+    flex: 1;
+    min-width: 0;
   }
 
   .headerRight {
-    width: 100%;
+    width: auto;
+    min-width: auto;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* Cacher le texte contact sur mobile */
+  .contactTextDesktop {
+    display: none;
+  }
+
+  /* Afficher les icônes sur mobile */
+  .contactIconsMobile {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  /* Cacher le bouton fermer sur mobile (remplacé par bouton retour) */
+  .closeBtn {
+    display: none;
+  }
+
+  /* Afficher le drapeau à côté du prénom sur mobile */
+  .flagImageMobile {
+    display: inline-block;
   }
 
   .contactBox {

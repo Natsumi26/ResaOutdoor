@@ -400,7 +400,7 @@ const CalendarEmbed = () => {
                             if (teamName) params.set('teamName', teamName);
                             const color = searchParams.get('color');
                             if (color) params.set('color', color);
-                          navigate(`/client/canyon/${otherProduct.id}?${params.toString()}`)}}
+                          navigate(`/client/activite/${otherProduct.id}?${params.toString()}`)}}
                         className={styles.otherProductButton}
                       >
                         {t('calendarEmbed.viewThisCanyon')}

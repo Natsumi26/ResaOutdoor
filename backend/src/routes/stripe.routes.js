@@ -12,7 +12,6 @@ import {
   createGiftVoucherPaymentIntent
 } from '../services/stripe.service.js';
 import { sendPaymentConfirmation, sendGiftVoucherEmail, sendBookingConfirmation, sendGuideNewBookingNotification, sendPaymentFailedEmail } from '../services/email.service.js';
-import { notifyAdmins, createNewBookingNotification, updateCalendar } from '../services/notification.service.js';
 
 const router = express.Router();
 
@@ -225,10 +224,21 @@ router.post('/webhook', async (req, res) => {
             try {
               console.log('🆕 Création de réservation après paiement Stripe');
 
-              const sessionId = stripeSession.metadata.sessionId;
-              const productId = stripeSession.metadata.productId;
-              const bookingData = JSON.parse(stripeSession.metadata.bookingData);
-              const participants = stripeSession.metadata.participants ? JSON.parse(stripeSession.metadata.participants) : null;
+              // Récupérer les données depuis la table pendingBooking
+              const pendingBookingId = stripeSession.metadata.pendingBookingId;
+              const pendingBooking = await prisma.pendingBooking.findUnique({
+                where: { id: pendingBookingId }
+              });
+
+              if (!pendingBooking) {
+                console.error('PendingBooking non trouvé:', pendingBookingId);
+                return res.status(400).json({ error: 'PendingBooking non trouvé' });
+              }
+
+              const sessionId = pendingBooking.sessionId;
+              const productId = pendingBooking.productId;
+              const bookingData = pendingBooking.bookingData;
+              const participants = pendingBooking.participants;
               const amountPaid = stripeSession.amount_total / 100;
 
               // Créer la réservation avec transaction
@@ -310,21 +320,11 @@ router.post('/webhook', async (req, res) => {
                 console.error('Erreur envoi email au guide:', err);
               });
 
-              // Envoyer notification en temps réel aux admins
-              const notification = createNewBookingNotification({
-                id: booking.id,
-                clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
-                productName: booking.product.name,
-                sessionDate: booking.session.date,
-                totalAmount: bookingData.amountPaid
-              });
-              notifyAdmins(notification);
-
-              // Mettre à jour le calendrier
-              updateCalendar({
-                action: 'booking-created',
-                bookingId: booking.id,
-                sessionId: booking.sessionId
+              // Supprimer le pendingBooking après création réussie
+              await prisma.pendingBooking.delete({
+                where: { id: pendingBookingId }
+              }).catch(err => {
+                console.error('Erreur suppression pendingBooking:', err);
               });
 
               console.log('✅ Réservation créée avec succès:', booking.id);
@@ -411,10 +411,21 @@ router.post('/webhook', async (req, res) => {
           try {
             console.log('🆕 Création de réservation après paiement Payment Intent');
 
-            const sessionId = paymentIntent.metadata.sessionId;
-            const productId = paymentIntent.metadata.productId;
-            const bookingData = JSON.parse(paymentIntent.metadata.bookingData);
-            const participants = paymentIntent.metadata.participants ? JSON.parse(paymentIntent.metadata.participants) : null;
+            // Récupérer les données depuis la table pendingBooking
+            const pendingBookingId = paymentIntent.metadata.pendingBookingId;
+            const pendingBooking = await prisma.pendingBooking.findUnique({
+              where: { id: pendingBookingId }
+            });
+
+            if (!pendingBooking) {
+              console.error('PendingBooking non trouvé:', pendingBookingId);
+              return res.status(400).json({ error: 'PendingBooking non trouvé' });
+            }
+
+            const sessionId = pendingBooking.sessionId;
+            const productId = pendingBooking.productId;
+            const bookingData = pendingBooking.bookingData;
+            const participants = pendingBooking.participants;
             const amountPaid = paymentIntent.amount / 100;
 
             // Créer la réservation avec transaction
@@ -496,21 +507,11 @@ router.post('/webhook', async (req, res) => {
               console.error('Erreur envoi email au guide:', err);
             });
 
-            // Envoyer notification en temps réel aux admins
-            const notification = createNewBookingNotification({
-              id: booking.id,
-              clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
-              productName: booking.product.name,
-              sessionDate: booking.session.date,
-              totalAmount: amountPaid
-            });
-            notifyAdmins(notification);
-
-            // Mettre à jour le calendrier
-            updateCalendar({
-              action: 'booking-created',
-              bookingId: booking.id,
-              sessionId: booking.sessionId
+            // Supprimer le pendingBooking après création réussie
+            await prisma.pendingBooking.delete({
+              where: { id: pendingBookingId }
+            }).catch(err => {
+              console.error('Erreur suppression pendingBooking:', err);
             });
 
             console.log('✅ Réservation créée avec succès via Payment Intent:', booking.id);

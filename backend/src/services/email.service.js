@@ -38,8 +38,10 @@ const getTemplateWithVariables = async (type, variables, userId) => {
     console.log(`✅ Template "${type}" chargé (${template.userId ? 'personnalisé' : 'global'})`);
 
 
-    // Récupérer les settings pour les variables de l'entreprise
-    const settings = await prisma.settings.findFirst();
+    // Récupérer les settings pour les variables de l'entreprise du guide spécifique
+    const settings = await prisma.settings.findUnique({
+      where: { userId }
+    });
 
     // Ajouter les variables de l'entreprise (logo, etc.)
     const allVariables = {
@@ -1960,6 +1962,57 @@ export const sendTwoFactorCode = async (email, code, userLogin) => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Erreur envoi email de code 2FA:', error);
+    throw error;
+  }
+};
+
+/**
+ * Envoyer un email de rappel pour formulaire participants incomplet
+ */
+export const sendFormReminder = async (booking) => {
+  try {
+    const { session, product } = booking;
+    const sessionDate = format(new Date(session.date), 'EEEE dd MMMM yyyy', { locale: fr });
+
+    // Préparer les variables pour le template
+    const variables = {
+      clientFirstName: booking.clientFirstName,
+      clientLastName: booking.clientLastName,
+      productName: product.name,
+      date: sessionDate,
+      timeSlot: session.startTime, // Utiliser l'heure de RDV au lieu de "matin/après-midi"
+      formLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/client/my-booking/${booking.id}`
+    };
+
+    // Récupérer le template depuis la BDD pour ce guide
+    const userId = session.guide.id || session.guideId;
+    const templateData = await getTemplateWithVariables('form_reminder', variables, userId);
+
+    if (!templateData) {
+      console.error('❌ Template form_reminder non trouvé');
+      throw new Error('Template form_reminder non trouvé');
+    }
+
+    const mailOptions = {
+      from: defaultFrom,
+      to: booking.clientEmail,
+      subject: templateData.subject,
+      text: templateData.textContent,
+      html: templateData.htmlContent
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('✅ Email de rappel formulaire envoyé:', info.messageId, 'to:', booking.clientEmail);
+
+    // En développement, afficher le lien pour voir l'email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Erreur envoi email de rappel formulaire:', error);
     throw error;
   }
 };

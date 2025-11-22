@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { activityConfigAPI } from '../services/api';
 import styles from './ActivityFormConfig.module.css';
 
@@ -15,16 +15,25 @@ const FIELD_LABELS = {
   height: 'Taille (cm)',
   weight: 'Poids (kg)',
   shoeRental: 'Location de chaussures',
-  shoeSize: 'Pointure'
+  shoeSize: 'Pointure',
+  practiceLevel: 'Niveau de pratique',
+  comment: 'Commentaire'
 };
 
-const ActivityFormConfig = ({ practiceActivities }) => {
+const ActivityFormConfig = forwardRef(({ practiceActivities }, ref) => {
   const [configs, setConfigs] = useState([]);
   const [wetsuitBrands, setWetsuitBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [activeActivity, setActiveActivity] = useState(null);
+
+  // Exposer les méthodes save et reset au parent
+  useImperativeHandle(ref, () => ({
+    save: () => activeActivity && handleSave(activeActivity),
+    reset: () => activeActivity && handleReset(activeActivity),
+    isSaving: () => saving
+  }));
 
   useEffect(() => {
     loadConfigs();
@@ -139,12 +148,6 @@ const ActivityFormConfig = ({ practiceActivities }) => {
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Configuration des formulaires par activité</h3>
-      <p className={styles.description}>
-        Personnalisez les champs du formulaire participant pour chaque activité.
-        Les champs désactivés ne seront pas affichés aux clients.
-      </p>
-
       {saveMessage && (
         <div className={`${styles.message} ${saveMessage.includes('Erreur') ? styles.error : styles.success}`}>
           {saveMessage}
@@ -225,38 +228,6 @@ const ActivityFormConfig = ({ practiceActivities }) => {
                     </select>
                   </div>
                 )}
-
-                {/* Info pour les autres activités */}
-                {activeActivity !== 'canyoning' && (
-                  <div className={styles.infoBox}>
-                    <span className={styles.infoIcon}>ℹ️</span>
-                    Le calcul automatique des tailles de combinaison n'est disponible que pour le canyoning.
-                  </div>
-                )}
-
-                {/* Boutons d'action */}
-                <div className={styles.actions}>
-                  <button
-                    onClick={() => handleSave(activeActivity)}
-                    disabled={saving}
-                    className={styles.saveButton}
-                  >
-                    {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                  </button>
-                  <button
-                    onClick={() => handleReset(activeActivity)}
-                    disabled={saving}
-                    className={styles.resetButton}
-                  >
-                    Réinitialiser par défaut
-                  </button>
-                </div>
-
-                {config.isDefault && (
-                  <div className={styles.defaultBadge}>
-                    Configuration par défaut
-                  </div>
-                )}
               </>
             );
           })()}
@@ -264,6 +235,6 @@ const ActivityFormConfig = ({ practiceActivities }) => {
       )}
     </div>
   );
-};
+});
 
 export default ActivityFormConfig;

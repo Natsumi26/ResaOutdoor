@@ -177,7 +177,9 @@ export const DEFAULT_ACTIVITY_CONFIGS = {
       height: { enabled: true, required: true },
       weight: { enabled: true, required: true },
       shoeRental: { enabled: true, required: false },
-      shoeSize: { enabled: true, required: false }
+      shoeSize: { enabled: true, required: false },
+      practiceLevel: { enabled: false, required: false },
+      comment: { enabled: false, required: false }
     },
     wetsuitBrand: 'guara'
   },
@@ -188,7 +190,9 @@ export const DEFAULT_ACTIVITY_CONFIGS = {
       height: { enabled: false, required: false },
       weight: { enabled: false, required: false },
       shoeRental: { enabled: true, required: false },
-      shoeSize: { enabled: true, required: false }
+      shoeSize: { enabled: true, required: false },
+      practiceLevel: { enabled: true, required: false },
+      comment: { enabled: true, required: false }
     },
     wetsuitBrand: null
   },
@@ -199,7 +203,9 @@ export const DEFAULT_ACTIVITY_CONFIGS = {
       height: { enabled: true, required: false },
       weight: { enabled: true, required: false },
       shoeRental: { enabled: false, required: false },
-      shoeSize: { enabled: false, required: false }
+      shoeSize: { enabled: false, required: false },
+      practiceLevel: { enabled: false, required: false },
+      comment: { enabled: false, required: false }
     },
     wetsuitBrand: null
   },
@@ -210,7 +216,9 @@ export const DEFAULT_ACTIVITY_CONFIGS = {
       height: { enabled: true, required: false },
       weight: { enabled: true, required: false },
       shoeRental: { enabled: false, required: false },
-      shoeSize: { enabled: false, required: false }
+      shoeSize: { enabled: false, required: false },
+      practiceLevel: { enabled: false, required: false },
+      comment: { enabled: false, required: false }
     },
     wetsuitBrand: null
   }

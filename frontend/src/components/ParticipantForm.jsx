@@ -36,7 +36,9 @@ const ParticipantForm = ({
             height: { enabled: true, required: true },
             weight: { enabled: true, required: true },
             shoeRental: { enabled: true, required: false },
-            shoeSize: { enabled: true, required: false }
+            shoeSize: { enabled: true, required: false },
+            practiceLevel: { enabled: false, required: false },
+            comment: { enabled: false, required: false }
           },
           wetsuitBrand: 'guara'
         });
@@ -64,7 +66,9 @@ const ParticipantForm = ({
           height: '',
           weight: '',
           shoeRental: false,
-          shoeSize: ''
+          shoeSize: '',
+          practiceLevel: '',
+          comment: ''
         })
       );
       updatedParticipants = [...updatedParticipants, ...additionalParticipants];
@@ -337,6 +341,34 @@ const ParticipantForm = ({
                     min="10"
                     max="200"
                     required={isFieldRequired('weight')}
+                  />
+                </div>
+              )}
+
+              {/* Niveau de pratique - conditionnel */}
+              {isFieldEnabled('practiceLevel') && (
+                <div className={styles.formGroup}>
+                  <label>Niveau de pratique {isFieldRequired('practiceLevel') ? '*' : ''}</label>
+                  <input
+                    type="text"
+                    value={participant.practiceLevel}
+                    onChange={(e) => handleParticipantChange(index, 'practiceLevel', e.target.value)}
+                    placeholder="Ex: Débutant, Intermédiaire, Confirmé"
+                    required={isFieldRequired('practiceLevel')}
+                  />
+                </div>
+              )}
+
+              {/* Commentaire - conditionnel */}
+              {isFieldEnabled('comment') && (
+                <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                  <label>Commentaire {isFieldRequired('comment') ? '*' : ''}</label>
+                  <textarea
+                    value={participant.comment}
+                    onChange={(e) => handleParticipantChange(index, 'comment', e.target.value)}
+                    placeholder="Informations complémentaires..."
+                    rows="3"
+                    required={isFieldRequired('comment')}
                   />
                 </div>
               )}

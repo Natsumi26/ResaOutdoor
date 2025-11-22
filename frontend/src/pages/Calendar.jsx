@@ -8,8 +8,7 @@ import BookingForm from '../components/BookingForm';
 import SessionDuplicateDialog from '../components/SessionDuplicateDialog';
 import SessionDeleteDialog from '../components/SessionDeleteDialog';
 import ConfirmDuplicateModal from '../components/ConfirmDuplicateModal';
-import NotificationBell from '../components/NotificationBell';
-import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI, settingsAPI } from '../services/api';
+import { sessionsAPI, bookingsAPI, productsAPI, usersAPI, authAPI, settingsAPI, emailAPI } from '../services/api';
 import styles from './Calendar.module.css';
 
 
@@ -34,6 +33,8 @@ const Calendar = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false); // Dialog de suppression
   const [showConfirmDuplicate, setShowConfirmDuplicate] = useState(false); // Modal de confirmation de duplication
   const [selectedSessionId, setSelectedSessionId] = useState(null); // Session sélectionnée pour le modal de détail
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false); // Modal de confirmation d'email après déplacement
+  const [movedBookingId, setMovedBookingId] = useState(null); // ID de la réservation déplacée
 
   // Charger les couleurs du thème depuis les settings et mettre à jour les CSS variables
   useEffect(() => {
@@ -192,12 +193,32 @@ const Calendar = () => {
         return;
       }
 
-      // Déplacement réussi, recharger les sessions
+      // Déplacement réussi - Afficher le modal de confirmation d'envoi d'email
+      setMovedBookingId(bookingId);
+      setShowEmailConfirmation(true);
       loadSessions();
     } catch (err) {
       console.error('Erreur déplacement réservation:', err);
       alert('Impossible de déplacer la réservation: ' + (err.response?.data?.message || err.message));
     }
+  };
+
+  // Gérer l'envoi d'email de confirmation après déplacement
+  const handleSendEmailAfterMove = async () => {
+    try {
+      await emailAPI.sendBookingConfirmation(movedBookingId);
+      alert('Email de confirmation envoyé avec succès !');
+      setShowEmailConfirmation(false);
+      setMovedBookingId(null);
+    } catch (error) {
+      console.error('Erreur envoi email:', error);
+      alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleSkipEmailAfterMove = () => {
+    setShowEmailConfirmation(false);
+    setMovedBookingId(null);
   };
 
   // Gérer le clic sur une session (ouvrir le modal de détail)
@@ -465,7 +486,6 @@ const Calendar = () => {
                 </button>
               </div>
             )}
-            <NotificationBell />
           </div>
         )}
       </div>
@@ -558,6 +578,102 @@ const Calendar = () => {
           onConfirm={handleConfirmDuplicateYes}
           onCancel={handleConfirmDuplicateNo}
         />
+      )}
+
+      {/* Modal de confirmation d'envoi d'email après déplacement */}
+      {showEmailConfirmation && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '0',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              background: 'linear-gradient(135deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)',
+              color: 'white',
+              padding: '1.5rem',
+              borderRadius: '12px 12px 0 0'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>✅ Réservation déplacée</h2>
+            </div>
+
+            <div style={{ padding: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                La réservation a été déplacée avec succès vers la nouvelle session.
+              </p>
+              <p style={{ marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                <strong>Souhaitez-vous envoyer un email de confirmation avec les nouvelles informations au client ?</strong>
+              </p>
+              <div style={{
+                background: '#fff3cd',
+                padding: '1rem',
+                borderRadius: '8px',
+                marginBottom: '1.5rem',
+                border: '1px solid #ffc107'
+              }}>
+                <p style={{ margin: 0, fontSize: '0.95rem', color: '#856404' }}>
+                  ⚠️ L'ancien email de confirmation envoyé au client contenait les anciennes informations (date, horaire, activité).
+                  Il est recommandé d'envoyer un nouvel email avec les informations mises à jour.
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              padding: '1.5rem',
+              borderTop: '1px solid #e5e7eb',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={handleSkipEmailAfterMove}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600'
+                }}
+              >
+                Plus tard
+              </button>
+              <button
+                onClick={handleSendEmailAfterMove}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'linear-gradient(135deg, var(--guide-primary) 0%, var(--guide-secondary) 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600'
+                }}
+              >
+                📧 Envoyer l'email de confirmation
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -9,9 +9,11 @@ import { useAuth } from '../context/AuthContext';
 const Reservations = () => {
   const [bookings, setBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
+  const [groupedClients, setGroupedClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [expandedClient, setExpandedClient] = useState(null);
   const [searchDate, setSearchDate] = useState('');
   const [searchClient, setSearchClient] = useState('');
   const [searchYear, setSearchYear] = useState('');
@@ -58,6 +60,10 @@ const Reservations = () => {
   useEffect(() => {
     filterBookings();
   }, [searchDate, searchClient,searchYear, bookings]);
+
+  useEffect(() => {
+    groupBookingsByClient();
+  }, [filteredBookings]);
 console.log(user) 
   const loadBookings = async () => {
     try {
@@ -115,6 +121,35 @@ console.log(user)
     setFilteredBookings(filtered);
   };
 
+  const groupBookingsByClient = () => {
+    const clientMap = new Map();
+
+    filteredBookings.forEach(booking => {
+      const clientKey = booking.clientEmail;
+
+      if (!clientMap.has(clientKey)) {
+        clientMap.set(clientKey, {
+          clientFirstName: booking.clientFirstName,
+          clientLastName: booking.clientLastName,
+          clientEmail: booking.clientEmail,
+          bookings: [],
+          totalActivities: 0,
+          totalAmount: 0,
+          totalPaid: 0
+        });
+      }
+
+      const client = clientMap.get(clientKey);
+      client.bookings.push(booking);
+      client.totalActivities += 1;
+      client.totalAmount += booking.totalPrice;
+      client.totalPaid += booking.amountPaid;
+    });
+
+    const grouped = Array.from(clientMap.values());
+    setGroupedClients(grouped);
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
       pending: { label: 'En attente', color: '#f59e0b' },
@@ -161,20 +196,20 @@ console.log(user)
         <h1>📋 Réservations</h1>
         <div className={styles.stats}>
           <div className={styles.statCard}>
-            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{bookings.length}</span>
-            <span className={styles.statLabel}>Total</span>
+            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>{groupedClients.length}</span>
+            <span className={styles.statLabel}>Clients</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>
+              {bookings.length}
+            </span>
+            <span className={styles.statLabel}>Réservations</span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>
               {bookings.filter(b => b.status === 'confirmed').length}
             </span>
             <span className={styles.statLabel}>Confirmées</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statValue} style={{ color: 'var(--guide-primary)' }}>
-              {bookings.filter(b => b.status === 'pending').length}
-            </span>
-            <span className={styles.statLabel}>En attente</span>
           </div>
         </div>
       </div>
@@ -241,70 +276,103 @@ console.log(user)
         </div>
       </div>
 
-      {/* Liste des réservations */}
+      {/* Liste des clients */}
       <div className={styles.bookingsList}>
-        {filteredBookings.length === 0 ? (
+        {groupedClients.length === 0 ? (
           <div className={styles.emptyState}>
-            {searchDate || searchClient ?
+            {searchDate || searchClient || searchYear ?
               'Aucune réservation trouvée avec ces critères' :
               'Aucune réservation'}
           </div>
         ) : (
           <div className={styles.table}>
             <div className={styles.tableHeader}>
-              <div className={styles.colClient}>Client</div>
-              <div className={styles.colActivity}>Activité</div>
-              <div className={styles.colDate}>Date & Heure</div>
-              <div className={styles.colPeople}>Pers.</div>
-              <div className={styles.colPrice}>Prix</div>
-              <div className={styles.colPayment}>Paiement</div>
-              <div className={styles.colStatus}>Statut</div>
+              <div className={styles.colClientName}>Client</div>
+              <div className={styles.colEmail}>Email</div>
+              <div className={styles.colActivities}>Activités</div>
+              <div className={styles.colPaymentSummary}>Paiement</div>
             </div>
-            {filteredBookings.map(booking => {
-              const paymentStatus = getPaymentStatus(booking);
+            {groupedClients.map(client => {
+              const isExpanded = expandedClient === client.clientEmail;
+              const paymentPercentage = (client.totalPaid / client.totalAmount) * 100;
+              let paymentColor = '#ef4444';
+              if (paymentPercentage >= 100) paymentColor = '#10b981';
+              else if (paymentPercentage > 0) paymentColor = '#f59e0b';
+
               return (
-                <div
-                  key={booking.id}
-                  className={styles.tableRow}
-                  onClick={() => setSelectedBookingId(booking.id)}
-                >
-                  <div className={styles.colClient}>
-                    <div className={styles.clientName}>
-                      {booking.clientFirstName} {booking.clientLastName}
+                <div key={client.clientEmail}>
+                  <div
+                    className={styles.clientRow}
+                    onClick={() => setExpandedClient(isExpanded ? null : client.clientEmail)}
+                  >
+                    <div className={styles.colClientName}>
+                      <div className={styles.clientName}>
+                        {client.clientFirstName} {client.clientLastName}
+                      </div>
                     </div>
-                    <div className={styles.clientEmail}>{booking.clientEmail}</div>
-                  </div>
-                  <div className={styles.colActivity}>
-                    {booking.product?.name || 'N/A'}
-                  </div>
-                  <div className={styles.colDate}>
-                    <div className={styles.date}>
-                      {format(new Date(booking.session.date), 'dd MMM yyyy', { locale: fr })}
+                    <div className={styles.colEmail}>
+                      {client.clientEmail}
                     </div>
-                    <div className={styles.time}>
-                      {booking.session.timeSlot} - {booking.session.startTime}
+                    <div className={styles.colActivities}>
+                      <span className={styles.activityBadge} style={{ backgroundColor: 'var(--guide-primary)' }}>
+                        {client.totalActivities}
+                      </span>
                     </div>
-                  </div>
-                  <div className={styles.colPeople}>
-                    {booking.numberOfPeople}
-                  </div>
-                  <div className={styles.colPrice}>
-                    {booking.totalPrice}€
-                  </div>
-                  <div className={styles.colPayment}>
-                    <span
-                      className={styles.paymentBadge}
-                      style={{ backgroundColor: paymentStatus.color }}
-                    >
-                      {paymentStatus.label}
-                    </span>
-                    <div className={styles.paymentAmount}>
-                      {booking.amountPaid}€ / {booking.totalPrice}€
+                    <div className={styles.colPaymentSummary}>
+                      <div className={styles.paymentInfo}>
+                        <span
+                          className={styles.paymentBadge}
+                          style={{ backgroundColor: paymentColor }}
+                        >
+                          {client.totalPaid}€ / {client.totalAmount}€
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className={styles.colStatus}>
-                    {getStatusBadge(booking.status)}
-                  </div>
+
+                  {isExpanded && (
+                    <div className={styles.expandedBookings}>
+                      {client.bookings.map(booking => {
+                        const paymentStatus = getPaymentStatus(booking);
+                        return (
+                          <div
+                            key={booking.id}
+                            className={styles.bookingRow}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBookingId(booking.id);
+                            }}
+                          >
+                            <div className={styles.bookingActivity}>
+                              <strong>{booking.product?.name || 'N/A'}</strong>
+                            </div>
+                            <div className={styles.bookingDate}>
+                              {format(new Date(booking.session.date), 'dd MMM yyyy', { locale: fr })}
+                              {' - '}
+                              {booking.session.timeSlot} ({booking.session.startTime})
+                            </div>
+                            <div className={styles.bookingPeople}>
+                              {booking.numberOfPeople} pers.
+                            </div>
+                            <div className={styles.bookingPayment}>
+                              <span
+                                className={styles.paymentBadge}
+                                style={{ backgroundColor: paymentStatus.color }}
+                              >
+                                {paymentStatus.label}
+                              </span>
+                              <span className={styles.bookingPrice}>
+                                {booking.amountPaid}€ / {booking.totalPrice}€
+                              </span>
+                            </div>
+                            <div className={styles.bookingStatus}>
+                              {getStatusBadge(booking.status)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}

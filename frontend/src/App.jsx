@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -13,11 +13,10 @@ import Products from './pages/Products';
 import GiftVouchers from './pages/GiftVouchers';
 import Reservations from './pages/Reservations';
 import Emails from './pages/Emails';
-import Resellers from './pages/Resellers';
 import Preferences from './pages/Preferences';
-import PaymentPreferences from './pages/PaymentPreferences';
 import SiteIntegration from './pages/SiteIntegration';
 import Team from './pages/Team';
+import Statistics from './pages/Statistics';
 
 // Pages client
 import CanyonSearch from './pages/client/CanyonSearch';
@@ -47,9 +46,13 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Page vitrine publique */}
+      <Route path="/" element={<Landing />} />
+
+      {/* Authentification */}
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+        element={isAuthenticated ? <Navigate to="/admin" /> : <Login />}
       />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -57,7 +60,8 @@ const AppRoutes = () => {
 
       {/* Routes client - accessibles sans authentification (pour iframe WordPress) */}
       <Route path="/client/search" element={<CanyonSearch />} />
-      <Route path="/client/canyon/:id" element={<CanyonDetails />} />
+      <Route path="/client/activite/:id" element={<CanyonDetails />} />
+      <Route path="/client/canyon/:id" element={<Navigate to="/client/activite/:id" replace />} />
       <Route path="/client/embed/calendar/:id" element={<CalendarEmbed />} />
       <Route path="/client/book/:sessionId" element={<BookingForm />} />
       <Route path="/client/payment" element={<BookingPayment />} />
@@ -70,7 +74,7 @@ const AppRoutes = () => {
 
       {/* Routes admin/guide - authentification requise */}
       <Route
-        path="/"
+        path="/admin"
         element={
           <PrivateRoute>
             <Dashboard />
@@ -84,12 +88,10 @@ const AppRoutes = () => {
         <Route path="reservations" element={<Reservations />} />
         <Route path="gift-vouchers" element={<GiftVouchers />} />
         <Route path="settings/emails" element={<Emails />} />
-        <Route path="settings/online-sales" element={<Navigate to="/settings/preferences/payment-preferences?tab=online-sales" />} />
-        <Route path="settings/resellers" element={<Resellers />} />
-        <Route path="settings/newsletter" element={<Navigate to="/settings/emails?tab=newsletter" />} />
+        <Route path="settings/newsletter" element={<Navigate to="/admin/settings/emails?tab=newsletter" />} />
         <Route path="settings/preferences/personalization" element={<Preferences />} />
-        <Route path="settings/preferences/payment-preferences" element={<PaymentPreferences />} />
         <Route path="settings/site-integration" element={<SiteIntegration />} />
+        <Route path="settings/statistics" element={<Statistics />} />
       </Route>
     </Routes>
   );
@@ -99,9 +101,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <NotificationProvider>
-          <AppRoutes />
-        </NotificationProvider>
+        <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
   );

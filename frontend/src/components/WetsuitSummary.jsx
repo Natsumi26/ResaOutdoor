@@ -132,8 +132,9 @@ const WetsuitSummary = ({ sessionId, onClose }) => {
                           <th>Prénom</th>
                           <th>Âge</th>
                           <th>Taille</th>
+                          <th>Combi (T)</th>
                           <th>Poids</th>
-                          <th>Combi</th>
+                          <th>Combi (P)</th>
                           <th>Chaussures</th>
                         </tr>
                       </thead>
@@ -143,11 +144,24 @@ const WetsuitSummary = ({ sessionId, onClose }) => {
                             <td>{participant.firstName}</td>
                             <td>{participant.age} ans</td>
                             <td>{participant.height} cm</td>
+                            <td>
+                              {participant.wetsuitSizeByHeight ? (
+                                <span className={styles.sizeBadgeSecondary}>
+                                  {participant.wetsuitSizeByHeight}
+                                </span>
+                              ) : (
+                                <span className={styles.noShoe}>-</span>
+                              )}
+                            </td>
                             <td>{participant.weight} kg</td>
                             <td>
-                              <span className={styles.sizeBadge}>
-                                {participant.wetsuitSize}
-                              </span>
+                              {participant.wetsuitSize ? (
+                                <span className={styles.sizeBadge}>
+                                  {participant.wetsuitSize}
+                                </span>
+                              ) : (
+                                <span className={styles.noShoe}>-</span>
+                              )}
                             </td>
                             <td>
                               {participant.shoeRental ? (

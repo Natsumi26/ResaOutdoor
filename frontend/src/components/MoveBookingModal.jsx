@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { sessionsAPI, bookingsAPI } from '../services/api';
+import { sessionsAPI, bookingsAPI, emailAPI } from '../services/api';
 import styles from './MoveBookingModal.module.css';
 
 const MoveBookingModal = ({ booking, onClose, onSuccess }) => {
@@ -12,6 +12,8 @@ const MoveBookingModal = ({ booking, onClose, onSuccess }) => {
   const [availableProducts, setAvailableProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [needsProductSelection, setNeedsProductSelection] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [movedBookingId, setMovedBookingId] = useState(null);
 
   useEffect(() => {
     loadAvailableSessions();
@@ -94,17 +96,86 @@ const MoveBookingModal = ({ booking, onClose, onSuccess }) => {
         return;
       }
 
-      // Succès
-      alert('Réservation déplacée avec succès !');
+      // Succès - Afficher le modal de confirmation d'envoi d'email
+      setMovedBookingId(booking.id);
+      setShowEmailConfirmation(true);
+      setLoading(false);
       onSuccess?.();
-      onClose();
     } catch (error) {
       console.error('Erreur déplacement réservation:', error);
       alert('Impossible de déplacer la réservation: ' + (error.response?.data?.message || error.message));
+      setLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      setLoading(true);
+      await emailAPI.sendBookingConfirmation(movedBookingId);
+      alert('Email de confirmation envoyé avec succès !');
+      onClose();
+    } catch (error) {
+      console.error('Erreur envoi email:', error);
+      alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSkipEmail = () => {
+    onClose();
+  };
+
+  // Modal de confirmation d'envoi d'email après déplacement
+  if (showEmailConfirmation) {
+    return (
+      <div className={styles.overlay} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.header}>
+            <h2>✅ Réservation déplacée</h2>
+          </div>
+
+          <div className={styles.content}>
+            <p style={{ marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
+              La réservation a été déplacée avec succès vers la nouvelle session.
+            </p>
+            <p style={{ marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
+              <strong>Souhaitez-vous envoyer un email de confirmation avec les nouvelles informations au client ?</strong>
+            </p>
+            <div style={{
+              background: '#fff3cd',
+              padding: '1rem',
+              borderRadius: '8px',
+              marginBottom: '1.5rem',
+              border: '1px solid #ffc107'
+            }}>
+              <p style={{ margin: 0, fontSize: '0.95rem', color: '#856404' }}>
+                ⚠️ L'ancien email de confirmation envoyé au client contenait les anciennes informations (date, horaire, activité).
+                Il est recommandé d'envoyer un nouvel email avec les informations mises à jour.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.footer}>
+            <button
+              className={styles.btnCancel}
+              onClick={handleSkipEmail}
+              disabled={loading}
+            >
+              Plus tard
+            </button>
+            <button
+              className={styles.btnConfirm}
+              onClick={handleSendEmail}
+              disabled={loading}
+            >
+              {loading ? 'Envoi...' : '📧 Envoyer l\'email de confirmation'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.overlay} onClick={onClose}>

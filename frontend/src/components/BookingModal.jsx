@@ -477,6 +477,8 @@ console.log('Booking data:', booking);
     try {
       await emailAPI.sendBookingConfirmation(bookingId);
       alert('Email de confirmation envoyé avec succès !');
+      // Recharger les données de la réservation pour mettre à jour l'interface
+      loadBooking();
     } catch (error) {
       console.error('Erreur envoi email:', error);
       alert('Impossible d\'envoyer l\'email: ' + (error.response?.data?.message || error.message));
@@ -486,13 +488,8 @@ console.log('Booking data:', booking);
 
   const handleSendClientRequest = async () => {
     try {
-      await emailAPI.sendCustomEmail({
-        bookingId: bookingId,
-        to: booking.clientEmail,
-        subject: 'Demande d\'information - Votre réservation',
-        content: clientRequestText
-      });
-      alert('Email envoyé avec succès au client !');
+      await emailAPI.sendFormReminder(bookingId);
+      alert('Email de rappel envoyé avec succès au client !');
       setShowClientRequest(false);
     } catch (error) {
       console.error('Erreur envoi email client:', error);
@@ -590,7 +587,15 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
   const remainingAmount = booking.totalPrice - booking.amountPaid;
 
   // Vérifier s'il reste des tâches à faire
-  const hasPendingTasks = !booking.participantsFormCompleted || !booking.clientEmail;
+  const hasPendingTasks = !booking.participantsFormCompleted || !booking.clientEmail || (booking.clientEmail && !booking.productDetailsSent);
+
+  // Debug
+  console.log('🔍 Badge Debug:', {
+    participantsFormCompleted: booking.participantsFormCompleted,
+    clientEmail: booking.clientEmail,
+    productDetailsSent: booking.productDetailsSent,
+    hasPendingTasks
+  });
 
   // Fonction pour formater le numéro de téléphone
   const formatPhoneNumber = (phone) => {
@@ -619,6 +624,10 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Header avec infos client - couleur selon tâches */}
         <div className={`${styles.header} ${hasPendingTasks ? styles.headerPending : styles.headerComplete}`}>
+          {/* Bouton retour mobile */}
+          <button className={styles.mobileBackBtn} onClick={onClose}>
+            ←
+          </button>
           <div className={styles.headerLeft}>
             <div className={`${styles.clientBadge} ${hasPendingTasks ? styles.badgePending : styles.badgeComplete}`}>
               <span className={styles.clientNumber}>{booking.numberOfPeople}</span>
@@ -651,12 +660,25 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                   </span>
                 )}
               </div>
-              <p className={styles.clientFirstName}>{booking.clientFirstName}</p>
+              <p className={styles.clientFirstName}>
+                {booking.clientNationality && (
+                  <img
+                    src={`https://flagcdn.com/24x18/${booking.clientNationality.toLowerCase()}.png`}
+                    alt={booking.clientNationality}
+                    className={styles.flagImageMobile}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+                {booking.clientFirstName}
+              </p>
             </div>
           </div>
           <div className={styles.headerRight}>
             <div className={styles.contactWrapper}>
-              <div className={styles.contactInfo}>
+              {/* Version desktop - texte complet */}
+              <div className={styles.contactTextDesktop}>
                 <a href={`tel:${booking.clientPhone.replace(/\s/g, '')}`} className={styles.phoneNumber}>
                   {booking.clientNationality && (
                     <img
@@ -672,6 +694,23 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 </a>
                 <a href={`mailto:${booking.clientEmail}`} className={styles.emailLink}>
                   {booking.clientEmail}
+                </a>
+              </div>
+              {/* Version mobile - icônes cliquables */}
+              <div className={styles.contactIconsMobile}>
+                <a
+                  href={`tel:${booking.clientPhone.replace(/\s/g, '')}`}
+                  className={`${styles.contactIconBtn} ${styles.phoneIconBtn}`}
+                  title={formatPhoneNumber(booking.clientPhone)}
+                >
+                  📞
+                </a>
+                <a
+                  href={`mailto:${booking.clientEmail}`}
+                  className={`${styles.contactIconBtn} ${styles.emailIconBtn}`}
+                  title={booking.clientEmail}
+                >
+                  ✉️
                 </a>
               </div>
               <button className={styles.closeBtn} onClick={onClose}>✕</button>
@@ -730,39 +769,13 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
                 </button>
                 <button
                   className={styles.btnGray}
-                  onClick={() => {
-                    setClientRequestText(generateAskEmailTemplate());
-                    setShowClientRequest(!showClientRequest);
-                  }}
+                  onClick={handleSendClientRequest}
                 >
                   ⚡ Demander au client
                 </button>
               </div>
             </div>
 
-            {/* Formulaire demande client */}
-            {showClientRequest && (
-              <div className={styles.emailForm}>
-                <label className={styles.label}>Message à envoyer au client</label>
-                <textarea
-                  className={styles.textarea}
-                  value={clientRequestText}
-                  onChange={(e) => setClientRequestText(e.target.value)}
-                  rows={10}
-                />
-                <div className={styles.formActions}>
-                  <button className={styles.btnBlue} onClick={handleSendClientRequest}>
-                    📧 Envoyer
-                  </button>
-                  <button
-                    className={styles.btnGray}
-                    onClick={() => setShowClientRequest(false)}
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Modal Participant Form */}
@@ -783,13 +796,15 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
           {/* Bloc 3 - Détails de l'activité - Tableau 2 lignes */}
           <div className={styles.blockActivityTable}>
-            {/* Ligne 1 : Header coloré (vert si email présent, jaune sinon) */}
-            <div className={`${styles.activityHeader} ${booking.clientEmail ? styles.activityComplete : styles.activityIncomplete}`}>
-              <span className={styles.blockIcon}>{booking.clientEmail ? '✓' : '○'}</span>
+            {/* Ligne 1 : Header coloré (vert si email envoyé, jaune sinon) */}
+            <div className={`${styles.activityHeader} ${booking.productDetailsSent && booking.clientEmail ? styles.activityComplete : styles.activityIncomplete}`}>
+              <span className={styles.blockIcon}>{booking.productDetailsSent && booking.clientEmail ? '✓' : '○'}</span>
               <span className={styles.blockTitle}>
-                {booking.clientEmail
+                {!booking.clientEmail
+                  ? 'Email non envoyé (pas d\'adresse email)'
+                  : booking.productDetailsSent
                   ? 'Email de confirmation envoyé'
-                  : 'Email non envoyé (pas d\'adresse email)'}
+                  : 'Email de confirmation non envoyé'}
               </span>
             </div>
 

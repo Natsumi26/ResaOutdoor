@@ -292,6 +292,17 @@
   background: rgba(var(--guide-primary-rgb), 0.05);
 }
 
+.cellWithBadge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cellValue {
+  flex-shrink: 0;
+}
+
 .sizeBadge {
   display: inline-block;
   background: #667eea;
@@ -300,8 +311,24 @@
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.75rem;
-  min-width: 40px;
+  min-width: 50px;
   text-align: center;
+}
+
+.sizeBadgeSecondary {
+  display: inline-block;
+  background: #f59e0b;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  min-width: 50px;
+  text-align: center;
+}
+
+.badgeHidden {
+  visibility: hidden;
 }
 
 .shoeBadge {

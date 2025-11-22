@@ -693,7 +693,8 @@ const BookingForm = () => {
                   whiteSpace: 'pre-wrap',
                   fontSize: '14px',
                   lineHeight: '1.6',
-                  color: '#555'
+                  color: '#555',
+                  textAlign: 'justify'
                 }}>
                   {product.equipmentList.items}
                 </div>
@@ -879,7 +880,8 @@ const BookingForm = () => {
                 backgroundColor: isUrgent ? '#f8d7da' : '#fff3cd',
                 padding: '1rem',
                 borderRadius: '8px',
-                borderLeft: isUrgent ? '4px solid #dc3545' : '4px solid #ffc107'
+                borderLeft: isUrgent ? '4px solid #dc3545' : '4px solid #ffc107',
+                textAlign: 'justify'
               }}>
                 <p style={{ margin: 0, fontWeight: '500' }}>
                   {isUrgent ? (

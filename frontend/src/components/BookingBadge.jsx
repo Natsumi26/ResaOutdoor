@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Draggable } from 'react-beautiful-dnd';
+import { Draggable } from '@hello-pangea/dnd';
 import styles from './BookingBadge.module.css';
 
 const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
@@ -120,13 +120,13 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
             <div className={styles.tooltip}>
               <div className={styles.tooltipHeader} style={{ backgroundColor: getBookingColor() }}>
                 <div className={styles.tooltipHeaderTop}>
-                  <span className={styles.tooltipNumber}>{numberOfPeople}</span>
+                  <span className={styles.tooltipNumberBadge}>{numberOfPeople}</span>
                   <span className={styles.tooltipName}>{clientLastName.toUpperCase()}</span>
                 </div>
                 <div className={styles.tooltipHeaderBottom}>
                   {booking.clientNationality && (
                     <img
-                      src={`https://flagcdn.com/16x12/${booking.clientNationality.toLowerCase()}.png`}
+                      src={`https://flagcdn.com/16x12/${booking.clientNationality === 'EN' ? 'gb' : booking.clientNationality.toLowerCase()}.png`}
                       alt={booking.clientNationality}
                       className={styles.tooltipFlag}
                     />
@@ -137,17 +137,18 @@ const BookingBadge = ({ booking, index, onClick, isVisible = true }) => {
                 </div>
               </div>
               <div className={styles.tooltipBody}>
-                <div className={styles.tooltipColumn}>
-                  <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipLabel}>Formulaire participants :</span>
-                    <span className={styles.tooltipValue} style={{ color: participantsFormCompleted ? '#10b981' : '#f59e0b' }}>
-                      {participantsFormCompleted ? '✓ Complété' : '○ En attente'}
+                <div className={styles.tooltipPaymentRow}>
+                  <div className={styles.tooltipPaymentLeft}>
+                    <span className={styles.tooltipPaymentLabel}>ENCAISSÉ :</span>
+                    <span className={styles.tooltipPaymentValue} style={{ color: '#22c55e' }}>
+                      {amountPaid || 0} €
                     </span>
                   </div>
-                  <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipLabel}>Email confirmation :</span>
-                    <span className={styles.tooltipValue} style={{ color: clientEmail ? '#10b981' : '#f59e0b' }}>
-                      {clientEmail ? '✓ Envoyé' : '○ Pas d\'email'}
+                  <div className={styles.tooltipPaymentSeparator}></div>
+                  <div className={styles.tooltipPaymentRight}>
+                    <span className={styles.tooltipPaymentLabel}>RESTE À RÉGLER&nbsp;:</span>
+                    <span className={styles.tooltipPaymentValue} style={{ color: (totalPrice - (amountPaid || 0)) > 0 ? '#ef4444' : '#888888' }}>
+                      {(totalPrice - (amountPaid || 0))} €
                     </span>
                   </div>
                 </div>

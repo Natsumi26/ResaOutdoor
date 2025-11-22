@@ -21,6 +21,7 @@ const CanyonSearch = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]); // Tous les produits avant filtrage
+  const [availableActivityTypesForTabs, setAvailableActivityTypesForTabs] = useState([]); // Types d'activités pour les onglets
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [nextAvailableDates, setNextAvailableDates] = useState([]);
@@ -47,7 +48,7 @@ const CanyonSearch = () => {
     category: '',
     massif: '',
     difficulty: '',
-    activityType: searchParams.get('activityType') || '' // Filtre par type d'activité
+    activityType: searchParams.get('activityType') || ''
   });
 
   // Détecter si on est sur mobile
@@ -65,6 +66,9 @@ const CanyonSearch = () => {
 
   // État pour savoir quels carousels peuvent revenir en arrière (ont été scrollés)
   const [carouselsCanGoBack, setCarouselsCanGoBack] = useState({});
+
+  // État pour stocker les activités qui ont des sessions disponibles ce jour-là (toutes activités confondues)
+  const [availableActivitiesForDate, setAvailableActivitiesForDate] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -96,7 +100,7 @@ const CanyonSearch = () => {
 
   // Charger les données initiales au montage
   useEffect(() => {
-    loadCalendarAvailability();
+    loadCalendarAvailability(filters.activityType || null);
     loadAvailableActivityTypes(); // Charger les types d'activités pour afficher les onglets
 
     if (startDateParam) {
@@ -107,15 +111,27 @@ const CanyonSearch = () => {
     }
 
     // Ne charger que si les paramètres URL sont présents
-    const hasParams = searchParams.get('participants') || searchParams.get('date') || searchParams.get('startDate');
-    if (hasParams && filters.participants && (filters.date || (filters.startDate && filters.endDate))) {
+    const participants = searchParams.get('participants');
+    const date = searchParams.get('date');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    const hasValidParams = participants && (date || (startDate && endDate));
+    if (hasValidParams) {
       loadProducts();
     }
   }, []);
 
+  // Recharger le calendrier quand le filtre d'activité change
+  useEffect(() => {
+    loadCalendarAvailability(filters.activityType || null);
+  }, [filters.activityType]);
+
   // Appliquer les filtres sur les résultats
   useEffect(() => {
-    if (allProducts.length === 0) return;
+    if (allProducts.length === 0) {
+      return;
+    }
 
     let filtered = [...allProducts];
 
@@ -226,39 +242,59 @@ const CanyonSearch = () => {
       const response = await sessionsAPI.getAll(params);
       const sessions = response.data.sessions || [];
 
-      // Extraire les produits uniques des sessions
-      const uniqueProducts = new Map();
+      // Extraire les types d'activités uniques des sessions
+      const activityTypesMap = new Map();
+      const labels = {
+        'canyoning': 'Canyoning',
+        'escalade': 'Escalade',
+        'via-corda': 'Via Corda',
+        'via-ferrata': 'Via Ferrata',
+        'speleologie': 'Spéléologie',
+        'stage': 'Stage'
+      };
+
       sessions.forEach(session => {
         if (session.products && session.products.length > 0) {
           session.products.forEach(sp => {
-            if (sp.product && sp.product.id) {
-              uniqueProducts.set(sp.product.id, sp.product);
+            if (sp.product && sp.product.activityTypeId) {
+              const activityTypeId = sp.product.activityTypeId;
+              const label = labels[activityTypeId] || activityTypeId;
+              activityTypesMap.set(activityTypeId, label);
             }
           });
         }
       });
 
-      setAllProducts(Array.from(uniqueProducts.values()));
+      // Convertir en tableau et trier par label
+      const activityTypesArray = Array.from(activityTypesMap.entries())
+        .sort((a, b) => a[1].localeCompare(b[1]));
+
+      setAvailableActivityTypesForTabs(activityTypesArray);
     } catch (error) {
       console.error('Erreur chargement types d\'activités:', error);
     }
   };
 
   const loadProducts = async (customFilters = null) => {
+    // Si customFilters est fourni, les utiliser, sinon utiliser filters
     const currentFilters = customFilters || filters;
+
+    // Marquer comme recherché dès qu'on essaie de charger
+    setHasSearched(true);
 
     // Vérifier que les champs requis sont remplis
     if (!currentFilters.participants) {
+      setLoading(false);
       return;
     }
 
     if (!currentFilters.date && !(currentFilters.startDate && currentFilters.endDate)) {
+      setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setHasSearched(true);
 
       // Construire les paramètres de recherche
       const params = {};
@@ -282,31 +318,60 @@ const CanyonSearch = () => {
       if (guideId) params.guideId = guideId;
       if (teamName) params.teamName = teamName;
 
-      // Ajouter le filtre par type d'activité
-      if (currentFilters.activityType) {
-        params.activityType = currentFilters.activityType;
-      }
+      // Note: On n'envoie PAS activityType au serveur
+      // Le filtrage par type d'activité se fait côté client pour permettre
+      // de voir toutes les activités même quand un onglet est pré-sélectionné
 
       // Utiliser la nouvelle API de recherche
       const response = await sessionsAPI.searchAvailable(params);
       const fetchedProducts = response.data.products || [];
-      // Ne pas écraser allProducts pour garder les onglets visibles
+      // Mettre à jour allProducts ET products
+      setAllProducts(fetchedProducts);
       setProducts(fetchedProducts);
 
-      // Si aucun produit trouvé, chercher les prochaines dates disponibles
-      if (!fetchedProducts || fetchedProducts.length === 0) {
+      // Filtrer les produits avec des sessions disponibles
+      const productsWithSessions = fetchedProducts.filter(p =>
+        p.availableSessions && p.availableSessions.length > 0
+      );
+
+      // Construire la liste des activités disponibles à partir des produits récupérés
+      // (plus besoin de double requête car le serveur renvoie tous les produits)
+      const activityLabels = {
+        'canyoning': 'Canyoning',
+        'escalade': 'Escalade',
+        'via-corda': 'Via Corda',
+        'via-ferrata': 'Via Ferrata',
+        'speleologie': 'Spéléologie',
+        'stage': 'Stage'
+      };
+
+      const activitiesMap = new Map();
+      productsWithSessions.forEach(product => {
+        if (product.activityTypeId && !activitiesMap.has(product.activityTypeId)) {
+          activitiesMap.set(product.activityTypeId, {
+            typeId: product.activityTypeId,
+            label: activityLabels[product.activityTypeId] || product.activityTypeId
+          });
+        }
+      });
+      setAvailableActivitiesForDate(Array.from(activitiesMap.values()));
+
+      // Filtrer par type d'activité côté client si un filtre est actif
+      const filteredProductsWithSessions = currentFilters.activityType
+        ? productsWithSessions.filter(p => p.activityTypeId === currentFilters.activityType)
+        : productsWithSessions;
+
+      // Si aucun produit filtré, chercher les prochaines dates disponibles
+      if (filteredProductsWithSessions.length === 0) {
         try {
-          // 🌐 Ajouter les filtres guideId ou teamName
-          const guideId = searchParams.get('guideId');
-          const teamName = searchParams.get('teamName');
-          const params = {
+          const nextDatesParams = {
             participants: currentFilters.participants
           };
-          if (guideId) params.guideId = guideId;
-          if (teamName) params.teamName = teamName;
-          if (currentFilters.activityType) params.activityType = currentFilters.activityType;
+          if (guideId) nextDatesParams.guideId = guideId;
+          if (teamName) nextDatesParams.teamName = teamName;
+          if (currentFilters.activityType) nextDatesParams.activityType = currentFilters.activityType;
 
-          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(params);
+          const nextDatesResponse = await sessionsAPI.getNextAvailableDates(nextDatesParams);
           const dates = nextDatesResponse.data.dates || [];
 
           // Filtrer pour ne garder que les dates avec au moins une session future
@@ -316,11 +381,10 @@ const CanyonSearch = () => {
           const futureDates = dates.filter(dateInfo => {
             const dateObj = new Date(dateInfo.date);
             dateObj.setHours(0, 0, 0, 0); // Réinitialiser l'heure pour comparer uniquement les dates
-            
+
             // Garder toutes les dates >= aujourd'hui
             return dateObj >= now;
           });
-          console.log(futureDates)
           setNextAvailableDates(futureDates);
         } catch (err) {
           console.error('Erreur récupération prochaines dates:', err);
@@ -340,7 +404,7 @@ const CanyonSearch = () => {
   };
 
   // Charger les disponibilités pour le calendrier
-  const loadCalendarAvailability = async () => {
+  const loadCalendarAvailability = async (activityTypeFilter = null) => {
     try {
       // Charger les sessions des 60 prochains jours
       const today = new Date();
@@ -378,8 +442,16 @@ const CanyonSearch = () => {
 
         // Calculer la disponibilité pour cette session
         if (session.status === 'open' && session.products && session.products.length > 0) {
+          // Filtrer les produits par type d'activité si un filtre est spécifié
+          const relevantProducts = activityTypeFilter
+            ? session.products.filter(sp => sp.product.activityTypeId === activityTypeFilter)
+            : session.products;
+
+          // Si aucun produit ne correspond au filtre, ignorer cette session
+          if (relevantProducts.length === 0) return;
+
           // Vérifier s'il y a au moins un produit avec des places disponibles
-          const hasAvailability = session.products.some(sp => {
+          const hasAvailability = relevantProducts.some(sp => {
             const maxCapacity = sp.product.maxCapacity;
             const booked = session.bookings
               .filter(b => String(b.productId) === String(sp.product.id) && b.status !== 'cancelled')
@@ -694,31 +766,27 @@ const CanyonSearch = () => {
     return Array.from(difficulties).sort();
   };
 
-  // Obtenir les types d'activités uniques avec labels
-  const getUniqueActivityTypes = () => {
-    const activityTypes = new Map();
-    const activityLabels = {
-      'canyoning': 'Canyoning',
-      'escalade': 'Escalade',
-      'via-corda': 'Via Corda',
-      'via-ferrata': 'Via Ferrata',
-      'speleologie': 'Spéléologie',
-      'stage': 'Stage'
-    };
-
-    allProducts.forEach(product => {
-      if (product.activityTypeId) {
-        const label = activityLabels[product.activityTypeId] || product.activityTypeId;
-        activityTypes.set(product.activityTypeId, label);
-      }
-    });
-
-    // Trier par label
-    return Array.from(activityTypes.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]));
+  // Labels des types d'activités
+  const activityLabels = {
+    'canyoning': 'Canyoning',
+    'escalade': 'Escalade',
+    'via-corda': 'Via Corda',
+    'via-ferrata': 'Via Ferrata',
+    'speleologie': 'Spéléologie',
+    'stage': 'Stage'
   };
 
-  console.log(nextAvailableDates)
+  // Fonction helper pour obtenir le label d'une activité
+  const getActivityLabel = (activityType) => {
+    return activityLabels[activityType] || activityType;
+  };
+
+  // Obtenir les types d'activités uniques avec labels
+  // Utilise maintenant le state dédié qui est chargé au montage
+  const getUniqueActivityTypes = () => {
+    return availableActivityTypesForTabs;
+  };
+
   // Afficher l'interface de recherche (toujours visible maintenant)
   return (
     <div className={styles.searchPageContainer}>
@@ -746,9 +814,10 @@ const CanyonSearch = () => {
         {/* Informations de contact */}
         <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#495057', lineHeight: 1.5, textAlign: 'center' }}>
           <p style={{ margin: 0 }}>
-          <Trans i18nKey="booking.groupContact">
-            Pour les réservations de groupe : <a href="tel:+33688788186" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>06 88 78 81 86</a> - <a href="mailto:contact@canyonlife.fr" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>contact@canyonlife.fr</a>
-          </Trans>
+            Pour les réservations de groupe :
+          </p>
+          <p style={{ margin: '0.25rem 0 0 0' }}>
+            <a href="tel:+33688788186" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>06 88 78 81 86</a> - <a href="mailto:contact@canyonlife.fr" style={{ color: clientColor, textDecoration: 'none', fontWeight: 600 }}>contact@canyonlife.fr</a>
           </p>
         </div>
 
@@ -767,8 +836,19 @@ const CanyonSearch = () => {
             }}>
               <button
                 onClick={() => {
-                  setFilters({ ...filters, activityType: '' });
+                  const newFilters = { ...filters, activityType: '' };
+                  setFilters(newFilters);
                   setResultFilters({ ...resultFilters, activityType: '' });
+
+                  // Supprimer activityType de l'URL
+                  const newSearchParams = new URLSearchParams(searchParams);
+                  newSearchParams.delete('activityType');
+                  setSearchParams(newSearchParams);
+
+                  // Relancer la recherche si une date et des participants sont définis
+                  if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+                    loadProducts(newFilters);
+                  }
                 }}
                 style={{
                   padding: '0.5rem 1rem',
@@ -791,8 +871,19 @@ const CanyonSearch = () => {
                   <button
                     key={typeId}
                     onClick={() => {
-                      setFilters({ ...filters, activityType: typeId });
+                      const newFilters = { ...filters, activityType: typeId };
+                      setFilters(newFilters);
                       setResultFilters({ ...resultFilters, activityType: typeId });
+
+                      // Mettre à jour l'URL
+                      const newSearchParams = new URLSearchParams(searchParams);
+                      newSearchParams.set('activityType', typeId);
+                      setSearchParams(newSearchParams);
+
+                      // Relancer la recherche si une date et des participants sont définis
+                      if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+                        loadProducts(newFilters);
+                      }
                     }}
                     style={{
                       padding: '0.5rem 1rem',
@@ -957,25 +1048,171 @@ const CanyonSearch = () => {
       </div>
 
       {/* Résultats en dessous */}
-      {hasSearched && (
+      {hasSearched && (() => {
+        // Filtrer les produits pour ne garder que ceux avec des sessions disponibles
+        let productsWithSessions = products.filter(product =>
+          product.availableSessions && product.availableSessions.length > 0
+        );
+
+        // Filtrer côté client par type d'activité si un onglet est sélectionné
+        const allProductsCount = productsWithSessions.length;
+        if (filters.activityType) {
+          productsWithSessions = productsWithSessions.filter(product =>
+            product.activityTypeId === filters.activityType
+          );
+        }
+
+        // Calculer le total des produits disponibles ce jour-là (sans filtre d'activité)
+        const totalActivitiesAvailable = allProductsCount;
+
+        const currentActivityLabel = filters.activityType ?
+          (getUniqueActivityTypes().find(([id]) => id === filters.activityType)?.[1] || filters.activityType) : '';
+
+        // Vérifier si on doit afficher "(sur X)" - seulement si filtré et il y a plus de résultats possibles
+        const hasMoreActivities = filters.activityType && allProductsCount > productsWithSessions.length;
+
+        return (
         <div id="results" style={{ marginTop: '2rem', width: '100%', maxWidth: '1200px', background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          {products.length > 0 ? (
+          {productsWithSessions.length > 0 ? (
             <>
               <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
-                      {products.length} {products.length > 1 ? t('activitiesFound') || 'activités trouvées' : t('activityFound') || 'activité trouvée'}
-                      {(resultFilters.category || resultFilters.massif || resultFilters.difficulty || resultFilters.activityType) && allProducts.length !== products.length && (
-                        <span style={{ fontSize: '0.85rem', marginLeft: '0.5rem', color: clientColor }}>
-                          (sur {allProducts.length})
-                        </span>
-                      )}
-                    </h2>
+                {/* Navigation de dates centrée sur mobile */}
+                {isMobile && filters.date && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <button
+                      onClick={() => navigateDay('previous')}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        padding: '0',
+                        border: `2px solid ${clientColor}`,
+                        borderRadius: '50%',
+                        background: 'white',
+                        color: clientColor,
+                        cursor: 'pointer',
+                        fontSize: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        lineHeight: '1',
+                        fontFamily: 'Arial, sans-serif'
+                      }}
+                      title="Jour précédent"
+                    >
+                      ‹
+                    </button>
+                    <span style={{
+                      fontSize: '0.9rem',
+                      color: '#495057',
+                      fontWeight: '500',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}>
+                      {format(parseISO(filters.date), 'dd/MM/yyyy')}
+                    </span>
+                    <button
+                      onClick={() => navigateDay('next')}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        padding: '0',
+                        border: `2px solid ${clientColor}`,
+                        borderRadius: '50%',
+                        background: 'white',
+                        color: clientColor,
+                        cursor: 'pointer',
+                        fontSize: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        lineHeight: '1',
+                        fontFamily: 'Arial, sans-serif'
+                      }}
+                      title="Jour suivant"
+                    >
+                      ›
+                    </button>
+                  </div>
+                )}
 
-                    {/* Navigation de dates (seulement si recherche par date unique) */}
-                    {filters.date && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  {/* Compteur d'activités - masqué sur mobile */}
+                  {!isMobile && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h2 style={{ fontSize: '1rem', color: '#6c757d', fontWeight: '500', margin: 0 }}>
+                          {productsWithSessions.length} {productsWithSessions.length > 1 ? 'activités' : 'activité'}
+                          {/* Afficher "(sur X)" uniquement sur desktop si filtré - cliquable */}
+                          {hasMoreActivities && (
+                            <span
+                              onClick={() => {
+                                const newFilters = { ...filters, activityType: '' };
+                                setFilters(newFilters);
+                                setResultFilters({ ...resultFilters, activityType: '' });
+                                if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+                                  loadProducts(newFilters);
+                                }
+                              }}
+                              style={{
+                                fontSize: '0.85rem',
+                                marginLeft: '0.5rem',
+                                color: clientColor,
+                                cursor: 'pointer',
+                                transition: 'opacity 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              title="Voir toutes les activités"
+                            >
+                              (sur {totalActivitiesAvailable})
+                            </span>
+                          )}
+                        </h2>
+                      </div>
+                      {/* Lien "voir tout" sur desktop si filtré */}
+                      {hasMoreActivities && (
+                        <button
+                          onClick={() => {
+                            const newFilters = { ...filters, activityType: '' };
+                            setFilters(newFilters);
+                            setResultFilters({ ...resultFilters, activityType: '' });
+                            if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+                              loadProducts(newFilters);
+                            }
+                          }}
+                          style={{
+                            background: `${clientColor}15`,
+                            border: `1px solid ${clientColor}40`,
+                            color: clientColor,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontWeight: '500',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = clientColor;
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = `${clientColor}15`;
+                            e.currentTarget.style.color = clientColor;
+                          }}
+                        >
+                          {t('viewAll') || 'Voir tout'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Navigation de dates sur desktop (seulement si recherche par date unique) */}
+                  {!isMobile && filters.date && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem' }}>
                         <button
                           onClick={() => navigateDay('previous')}
                           style={{
@@ -1057,12 +1294,11 @@ const CanyonSearch = () => {
                         >
                           ›
                         </button>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Filtres supplémentaires */}
-                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-start', width: isMobile ? '100%' : 'auto' }}>
                     {/* Catégorie - masqué sur mobile */}
                     {!isMobile && getUniqueCategories().length > 0 && (
                       <select
@@ -1130,7 +1366,7 @@ const CanyonSearch = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {products.map((product) => {
+                {productsWithSessions.map((product) => {
                   // Grouper les sessions par date
                   const sessionsByDate = {};
                   if (product.availableSessions && product.availableSessions.length > 0) {
@@ -1171,7 +1407,7 @@ const CanyonSearch = () => {
                                   return;
                                 }
 
-                                // Sinon, naviguer vers /client/canyon
+                                // Sinon, naviguer vers /client/activite
                                 const params = new URLSearchParams();
                                 const guideId = searchParams.get('guideId');
                                 const teamName = searchParams.get('teamName');
@@ -1187,7 +1423,7 @@ const CanyonSearch = () => {
                                   ? `&sessionId=${product.availableSessions[0].sessionId}`
                                   : '';
 
-                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
+                                navigate(`/client/activite/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -1232,7 +1468,7 @@ const CanyonSearch = () => {
                                   return;
                                 }
 
-                                // Sinon, naviguer vers /client/canyon
+                                // Sinon, naviguer vers /client/activite
                                 const params = new URLSearchParams();
                                 const guideId = searchParams.get('guideId');
                                 const teamName = searchParams.get('teamName');
@@ -1248,7 +1484,7 @@ const CanyonSearch = () => {
                                   ? `&sessionId=${product.availableSessions[0].sessionId}`
                                   : '';
 
-                                navigate(`/client/canyon/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
+                                navigate(`/client/activite/${product.id}?startDate=${filters.date || filters.startDate}&participants=${filters.participants}&${params.toString()}${sessionIdParam}`)}}
                               style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -1347,7 +1583,9 @@ const CanyonSearch = () => {
                               {/* En-tête avec titre et dates */}
                               <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <span>
-                                  {t('slots.AvailableSlots')} ({Object.values(sessionsByDate).reduce((total, sessions) =>
+                                  {t('slots.AvailableSlots')}
+                                  {filters.activityType && ` ${getActivityLabel(filters.activityType)}`}
+                                  {' '}({Object.values(sessionsByDate).reduce((total, sessions) =>
                                     total + prioritizeSessions(sessions, filters.participants).length, 0)})
                                 </span>
                                 <span style={{ fontSize: '0.8rem', color: '#6c757d', fontWeight: 'normal' }}>
@@ -1552,6 +1790,7 @@ const CanyonSearch = () => {
                             <div style={{ marginBottom: '1rem', flex: 1 }}>
                               <div style={{ fontWeight: '600', color: '#2c3e50', marginBottom: '0.75rem' }}>
                                 {t('slots.AvailableSlots')}
+                                {filters.activityType && ` ${getActivityLabel(filters.activityType)}`}
                               </div>
 
                               {/* Tous les créneaux sur une seule rangée */}
@@ -1672,11 +1911,66 @@ const CanyonSearch = () => {
           ) : (
             <div className={styles.noResults}>
               <h2>{t('Désolé')} !</h2>
-              <p>{t('NoResult')}</p>
+              <p>{filters.date ? t('NoResult') : t('NoResultPlural')}</p>
 
-              {/* Afficher les prochaines dates disponibles */}
-              {nextAvailableDates.length > 0 && (
-                <div className={styles.alternativeDatesSection}>
+              {/* Boutons pour voir les activités disponibles ce jour-là */}
+              {availableActivitiesForDate.length > 0 && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: '0 0 1rem 0', color: '#495057', fontWeight: '500' }}>
+                    Activités disponibles ce jour-là :
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    justifyContent: 'center'
+                  }}>
+                    {availableActivitiesForDate.map((activity) => (
+                      <button
+                        key={activity.typeId}
+                        onClick={() => {
+                          const newFilters = { ...filters, activityType: activity.typeId };
+                          setFilters(newFilters);
+                          setResultFilters({ ...resultFilters, activityType: activity.typeId });
+                          if (newFilters.participants && (newFilters.date || (newFilters.startDate && newFilters.endDate))) {
+                            loadProducts(newFilters);
+                          }
+                        }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          borderRadius: '20px',
+                          border: `2px solid ${clientColor}`,
+                          background: 'white',
+                          color: clientColor,
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = clientColor;
+                          e.currentTarget.style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'white';
+                          e.currentTarget.style.color = clientColor;
+                        }}
+                      >
+                        {activity.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Afficher le calendrier et contacts - toujours visible */}
+              <div className={styles.alternativeDatesSection}>
                   {/* Mise en page 2 colonnes */}
                   <div style={{
                     display: 'grid',
@@ -1702,6 +1996,7 @@ const CanyonSearch = () => {
                         fontWeight: '400'
                       }}>
                         {t("calendar.selectDate")}
+                        {filters.activityType && ` ${getActivityLabel(filters.activityType)}`}
                       </h4>
                       <div style={{
                         display: 'flex',
@@ -1791,13 +2086,12 @@ const CanyonSearch = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-
+              </div>
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Modal de validation */}
       {showValidationModal && (

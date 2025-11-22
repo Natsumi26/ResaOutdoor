@@ -31,6 +31,27 @@ export const getSettings = async (req, res) => {
   }
 };
 
+// Récupérer les paramètres d'un guide spécifique (sans authentification - pour les clients)
+export const getSettingsByGuideId = async (req, res) => {
+  try {
+    const { guideId } = req.params;
+
+    if (!guideId) {
+      return res.status(400).json({ error: 'guideId requis' });
+    }
+
+    // Récupérer les settings du guide
+    const settings = await prisma.settings.findUnique({
+      where: { userId: guideId }
+    });
+
+    res.status(200).json({ settings });
+  } catch (error) {
+    console.error('Erreur récupération settings par guideId:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des paramètres' });
+  }
+};
+
 // Mettre à jour les paramètres de l'utilisateur connecté
 export const updateSettings = async (req, res) => {
   try {
@@ -47,6 +68,7 @@ export const updateSettings = async (req, res) => {
       website,
       logo,
       slogan,
+      confirmationRedirectUrl,
       primaryColor,
       secondaryColor,
       clientButtonColor,
@@ -69,6 +91,7 @@ export const updateSettings = async (req, res) => {
           website,
           logo,
           slogan,
+          confirmationRedirectUrl,
           primaryColor,
           secondaryColor,
           clientButtonColor,
@@ -86,6 +109,7 @@ export const updateSettings = async (req, res) => {
           ...(website !== undefined && { website }),
           ...(logo !== undefined && { logo }),
           ...(slogan !== undefined && { slogan }),
+          ...(confirmationRedirectUrl !== undefined && { confirmationRedirectUrl }),
           ...(primaryColor !== undefined && { primaryColor }),
           ...(secondaryColor !== undefined && { secondaryColor }),
           ...(clientButtonColor !== undefined && { clientButtonColor }),

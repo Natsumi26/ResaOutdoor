@@ -1,0 +1,196 @@
+.widget {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 10px;
+}
+
+.loading {
+  text-align: center;
+  padding: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.header {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.title {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bookingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.bookingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.15s;
+  border-radius: 4px;
+}
+
+.bookingItem:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.bookingInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookingMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.clientNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.clientName {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clientBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.bookingDetails {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sendButton {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sendButton.sent {
+  background: rgba(46, 213, 115, 0.25);
+  color: #2ed573;
+  border-color: rgba(46, 213, 115, 0.4);
+}
+
+.sendButton.sent:hover:not(:disabled) {
+  background: rgba(46, 213, 115, 0.35);
+  border-color: rgba(46, 213, 115, 0.5);
+}
+
+/* Scrollbar personnalisée */
+.bookingsList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.bookingsList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bookingsList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.bookingsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .widget {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerRight {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .bookingMain {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .bookingDetails {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sendButton {
+    width: 100%;
+  }
+}

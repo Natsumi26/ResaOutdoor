@@ -612,7 +612,7 @@ const CanyonDetails = () => {
                             if (teamName) params.set('teamName', teamName);
                             const color = searchParams.get('color');
                             if (color) params.set('color', color);
-                            navigate(`/client/canyon/${otherProduct.id}?${params.toString()}`)}}
+                            navigate(`/client/activite/${otherProduct.id}?${params.toString()}`)}}
                           style={{
                             backgroundColor: '#ffc107',
                             color: '#000',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { bookingsAPI } from '../../services/api';
+import { bookingsAPI, settingsAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import styles from './ClientPages.module.css';
@@ -20,6 +20,30 @@ const BookingConfirmation = () => {
   useEffect(() => {
     loadBooking();
   }, [bookingId]);
+
+  useEffect(() => {
+    // Vérifier s'il y a une URL de redirection personnalisée après le chargement
+    const checkRedirect = async () => {
+      if (booking && booking.session?.guideId) {
+        try {
+          // Récupérer les settings du guide pour vérifier s'il y a une URL de redirection
+          const response = await settingsAPI.getByGuideId(booking.session.guideId);
+          const confirmationRedirectUrl = response.data.settings?.confirmationRedirectUrl;
+
+          if (confirmationRedirectUrl) {
+            // Attendre 3 secondes avant de rediriger pour que l'utilisateur voie la confirmation
+            setTimeout(() => {
+              window.top.location.href = confirmationRedirectUrl;
+            }, 3000);
+          }
+        } catch (error) {
+          console.error('Erreur lors de la vérification de l\'URL de redirection:', error);
+        }
+      }
+    };
+
+    checkRedirect();
+  }, [booking]);
 
   const loadBooking = async () => {
     try {

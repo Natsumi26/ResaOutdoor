@@ -209,6 +209,20 @@ export const createPaymentIntent = async (sessionId, productId, bookingData, amo
       stripeAccountId = dbSession.guide.stripeAccount;
     }
 
+    // Créer une entrée temporaire pour stocker les données de réservation
+    // (Stripe metadata a une limite de 500 caractères par valeur)
+    const pendingBooking = await prisma.pendingBooking.create({
+      data: {
+        sessionId: sessionId,
+        productId: productId,
+        bookingData: bookingData,
+        participants: participants,
+        totalAmount: amountDue,
+        isDeposit: isDeposit,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000) // Expire dans 1h
+      }
+    });
+
     // Configuration du Payment Intent
     const paymentIntentData = {
       amount: Math.round(amountToPay * 100), // En centimes
@@ -218,12 +232,7 @@ export const createPaymentIntent = async (sessionId, productId, bookingData, amo
       },
       metadata: {
         type: 'new_booking',
-        sessionId: sessionId,
-        productId: productId,
-        bookingData: JSON.stringify(bookingData),
-        participants: participants ? JSON.stringify(participants) : null,
-        isDeposit: isDeposit ? 'true' : 'false',
-        totalAmount: amountDue.toString()
+        pendingBookingId: pendingBooking.id
       }
     };
 

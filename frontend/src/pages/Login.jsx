@@ -30,7 +30,7 @@ const Login = () => {
           }
         });
       } else {
-        navigate('/');
+        navigate('/admin');
       }
     } else {
       setError(result.error || 'Erreur de connexion');
@@ -70,7 +70,7 @@ const Login = () => {
               onChange={handleChange}
               required
               autoFocus
-              placeholder="canyonlife"
+              placeholder="votre-identifiant"
             />
           </div>
 

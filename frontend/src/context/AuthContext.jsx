@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('impersonated');
-    localStorage.removeItem('deviceToken');
+    // Ne PAS supprimer deviceToken - il doit persister pour éviter le 2FA lors de la reconnexion
     setUser(null);
   };
 

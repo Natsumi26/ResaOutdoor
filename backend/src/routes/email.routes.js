@@ -1,6 +1,6 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth.js';
-import { sendBookingConfirmation, sendBookingReminder, sendCustomEmail } from '../services/email.service.js';
+import { sendBookingConfirmation, sendBookingReminder, sendCustomEmail, sendFormReminder } from '../services/email.service.js';
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -34,6 +34,12 @@ router.post('/booking-confirmation/:bookingId', async (req, res, next) => {
 
     // Envoyer l'email
     const result = await sendBookingConfirmation(booking);
+
+    // Marquer l'email de confirmation comme envoyé
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { productDetailsSent: true }
+    });
 
     res.json({
       success: true,
@@ -92,6 +98,43 @@ router.post('/custom', async (req, res, next) => {
     res.json({
       success: true,
       message: 'Email envoyé',
+      messageId: result.messageId
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Envoyer un email de rappel formulaire participants
+router.post('/form-reminder/:bookingId', async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        session: {
+          include: {
+            guide: true
+          }
+        },
+        product: true
+      }
+    });
+
+    if (!booking) {
+      throw new AppError('Réservation non trouvée', 404);
+    }
+
+    if (!booking.clientEmail) {
+      throw new AppError('Pas d\'adresse email pour cette réservation', 400);
+    }
+
+    const result = await sendFormReminder(booking);
+
+    res.json({
+      success: true,
+      message: 'Email de rappel envoyé',
       messageId: result.messageId
     });
   } catch (error) {

@@ -127,6 +127,28 @@
   box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
 }
 
+.formGroup textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.formGroup textarea:focus {
+  outline: none;
+  border-color: var(--guide-primary);
+  box-shadow: 0 0 0 3px rgba(var(--guide-primary-rgb), 0.1);
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
 .shoeRentalSection {
   background: white;
   padding: 1rem;

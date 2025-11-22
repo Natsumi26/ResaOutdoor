@@ -241,19 +241,21 @@ model PromoCodeUsage {
 }
 
 model Participant {
-  id          String   @id @default(uuid())
-  firstName   String
-  age         Int?
-  height      Int?
-  weight      Float?
-  wetsuitSize String?
-  shoeRental  Boolean  @default(false)
-  shoeSize    Int?
-  isComplete  Boolean  @default(false)
-  bookingId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  firstName     String
+  age           Int?
+  height        Int?
+  weight        Float?
+  wetsuitSize   String?
+  shoeRental    Boolean  @default(false)
+  shoeSize      Int?
+  practiceLevel String?
+  comment       String?
+  isComplete    Boolean  @default(false)
+  bookingId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("participants")
 }
@@ -289,21 +291,22 @@ model EmailTemplate {
 }
 
 model Settings {
-  id                String   @id @default(uuid())
-  companyName       String?
-  companyPhone      String?
-  companyEmail      String?
-  website           String?
-  logo              String?
-  slogan            String?
-  primaryColor      String?
-  secondaryColor    String?
-  clientButtonColor String?
-  clientAccentColor String?
-  userId            String   @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String   @id @default(uuid())
+  companyName              String?
+  companyPhone             String?
+  companyEmail             String?
+  website                  String?
+  logo                     String?
+  slogan                   String?
+  primaryColor             String?
+  secondaryColor           String?
+  clientButtonColor        String?
+  clientAccentColor        String?
+  confirmationRedirectUrl  String?
+  userId                   String   @unique
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("settings")
 }
@@ -389,4 +392,20 @@ model ActivityFormConfig {
 
   @@unique([activityTypeId, userId])
   @@map("activity_form_configs")
+}
+
+// Table temporaire pour stocker les données de réservation pendant le paiement
+// (contourne la limite de 500 caractères des metadata Stripe)
+model PendingBooking {
+  id           String   @id @default(uuid())
+  sessionId    String
+  productId    String
+  bookingData  Json     // Données client (nom, email, etc.)
+  participants Json?    // Données participants (optionnel)
+  totalAmount  Float
+  isDeposit    Boolean  @default(false)
+  expiresAt    DateTime // Expiration après 1h
+  createdAt    DateTime @default(now())
+
+  @@map("pending_bookings")
 }

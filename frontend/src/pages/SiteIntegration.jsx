@@ -263,19 +263,16 @@ const SiteIntegration = () => {
             </div>
           )}
 
-          {/* Sélection du produit */}
-          {(iframeType === 'search' || iframeType === 'calendar-only') && (
+          {/* Sélection du produit - uniquement pour calendrier */}
+          {iframeType === 'calendar-only' && (
             <div className={styles.formGroup}>
-              <label>
-                {iframeType === 'search' ? 'Filtrer par canyon (optionnel)' : 'Sélectionner un canyon'}
-              </label>
+              <label>Sélectionner un canyon</label>
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 className={styles.select}
               >
-                {iframeType === 'search' && <option value="">Tous les canyons</option>}
-                {iframeType !== 'search' && <option value="">-- Sélectionner un canyon --</option>}
+                <option value="">-- Sélectionner un canyon --</option>
                 {products.map(product => (
                   <option key={product.id} value={product.id}>
                     {product.name}
@@ -293,6 +290,34 @@ const SiteIntegration = () => {
               <button onClick={copyToClipboard} className={styles.copyButton}>
                 📋 Copier
               </button>
+            </div>
+          </div>
+
+          {/* Lien direct pour clients sans page détail */}
+          <div className={styles.formGroup}>
+            <label>Lien direct vers la page de recherche</label>
+            <div style={{
+              background: '#f5f5f5',
+              padding: '12px',
+              borderRadius: '6px',
+              fontSize: '0.9rem',
+              marginTop: '8px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', color: '#666' }}>
+                Si vous n'avez pas de page "détail" pour vos activités, utilisez ce lien direct :
+              </p>
+              <a
+                href={getIframeUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#1976d2',
+                  textDecoration: 'none',
+                  wordBreak: 'break-all'
+                }}
+              >
+                {getIframeUrl()}
+              </a>
             </div>
           </div>
         </div>

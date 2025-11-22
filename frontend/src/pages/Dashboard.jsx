@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { settingsAPI } from '../services/api';
-import NotificationToast from '../components/NotificationToast';
 import styles from './Dashboard.module.css';
 import SuperAdminBanner from '../components/SuperAdminBanner';
+import IncompleteFormsWidget from '../components/IncompleteFormsWidget';
 
 const Dashboard = () => {
   const { user, logout, isSuperAdmin } = useAuth();
@@ -107,7 +107,7 @@ const Dashboard = () => {
 
         <nav className={styles.nav}>
           <NavLink
-            to="/"
+            to="/admin"
             end
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.active : ''}`
@@ -118,7 +118,7 @@ const Dashboard = () => {
           </NavLink>
 
           <NavLink
-            to="/reservations"
+            to="/admin/reservations"
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.active : ''}`
             }
@@ -130,7 +130,7 @@ const Dashboard = () => {
           {(user?.role !== 'trainee') && (
             <>
             <NavLink
-              to="/gift-vouchers"
+              to="/admin/gift-vouchers"
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.active : ''}`
               }
@@ -141,8 +141,17 @@ const Dashboard = () => {
           {/* Menu déroulant Paramètres */}
           <div className={styles.navDropdown}>
             <div
-              className={`${styles.navItem} ${styles.navDropdownToggle} ${location.pathname.startsWith('/settings') ? styles.active : ''}`}
-              onClick={() => setSettingsOpen(!settingsOpen)}
+              className={`${styles.navItem} ${styles.navDropdownToggle} ${location.pathname.startsWith('/admin/settings') ? styles.active : ''}`}
+              onClick={() => {
+                if (!sidebarOpen) {
+                  // Si sidebar fermée, l'ouvrir ET ouvrir les paramètres
+                  setSidebarOpen(true);
+                  setSettingsOpen(true);
+                } else {
+                  // Si sidebar ouverte, toggle les paramètres
+                  setSettingsOpen(!settingsOpen);
+                }
+              }}
             >
               <span className={styles.icon}>⚙️</span>
               {sidebarOpen && (
@@ -159,7 +168,7 @@ const Dashboard = () => {
               <div className={styles.subMenu}>
                 {isSuperAdmin && (
                   <NavLink
-                    to="/users"
+                    to="/admin/users"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
@@ -170,7 +179,7 @@ const Dashboard = () => {
                 )}
 
                   <NavLink
-                    to="/products"
+                    to="/admin/products"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
@@ -180,27 +189,7 @@ const Dashboard = () => {
                   </NavLink>
 
                   <NavLink
-                    to="/settings/emails"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>📧</span>
-                    <span>Emails</span>
-                  </NavLink>
-
-                  <NavLink
-                    to="/settings/resellers"
-                    className={({ isActive }) =>
-                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
-                    }
-                  >
-                    <span className={styles.icon}>🏪</span>
-                    <span>Revendeurs</span>
-                  </NavLink>
-
-                  <NavLink
-                    to="/settings/preferences/personalization"
+                    to="/admin/settings/preferences/personalization"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
@@ -210,17 +199,17 @@ const Dashboard = () => {
                   </NavLink>
 
                   <NavLink
-                    to="/settings/preferences/payment-preferences"
+                    to="/admin/settings/emails"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
                   >
-                    <span className={styles.icon}>💳</span>
-                    {sidebarOpen && <span>Moyens de paiement</span>}
+                    <span className={styles.icon}>📧</span>
+                    <span>Emails</span>
                   </NavLink>
 
                   <NavLink
-                    to="/settings/site-integration"
+                    to="/admin/settings/site-integration"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
@@ -229,9 +218,19 @@ const Dashboard = () => {
                     {sidebarOpen && <span>Intégration à mon site</span>}
                   </NavLink>
 
+                  <NavLink
+                    to="/admin/settings/statistics"
+                    className={({ isActive }) =>
+                      `${styles.subMenuItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>📊</span>
+                    {sidebarOpen && <span>Statistiques</span>}
+                  </NavLink>
+
                   {(user?.role === 'leader' || isSuperAdmin) && (
                   <NavLink
-                    to="/team"
+                    to="/admin/team"
                     className={({ isActive }) =>
                       `${styles.subMenuItem} ${isActive ? styles.active : ''}`
                     }
@@ -242,6 +241,9 @@ const Dashboard = () => {
                 )}
             </div>
           )}
+
+            {/* Widget formulaires incomplets */}
+            {sidebarOpen && <IncompleteFormsWidget />}
           </div>
           </>
           )}
@@ -280,9 +282,6 @@ const Dashboard = () => {
         <SuperAdminBanner />
         <Outlet />
       </main>
-
-      {/* Toast pour les notifications en temps réel */}
-      <NotificationToast />
     </div>
   );
 };

@@ -80,7 +80,8 @@
   transform: translateX(-50%);
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 2px solid white;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   min-width: 220px;
   z-index: 10002;
   animation: tooltipFadeIn 0.15s ease-out;
@@ -122,6 +123,7 @@
   padding: 0.625rem 0.875rem;
   color: white;
   font-weight: 700;
+  border-radius: 6px 6px 0 0;
 }
 
 .tooltipHeaderTop {
@@ -137,10 +139,16 @@
   font-size: 0.85rem;
 }
 
-.tooltipNumber {
+.tooltipNumberBadge {
+  display: inline-block;
+  min-width: 24px;
+  padding: 0.125rem 0.375rem;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 700;
   color: white;
+  text-align: center;
 }
 
 .tooltipName {
@@ -206,6 +214,44 @@
   font-size: 0.875rem;
   font-weight: 700;
   color: #2c3e50;
+}
+
+/* Payment row - 2 columns with separator */
+.tooltipPaymentRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.tooltipPaymentLeft,
+.tooltipPaymentRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  text-align: center;
+}
+
+.tooltipPaymentSeparator {
+  width: 1px;
+  height: 40px;
+  background: #d0d0d0;
+  flex-shrink: 0;
+}
+
+.tooltipPaymentLabel {
+  font-size: 0.6rem;
+  color: #888;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.tooltipPaymentValue {
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 /* Responsive Mobile */

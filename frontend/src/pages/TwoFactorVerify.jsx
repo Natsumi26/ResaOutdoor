@@ -52,7 +52,7 @@ const TwoFactorVerify = () => {
         // Mettre à jour le contexte d'authentification directement
         setUser(response.data.user);
 
-        navigate('/');
+        navigate('/admin');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Code incorrect');

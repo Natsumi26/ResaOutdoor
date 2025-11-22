@@ -147,7 +147,7 @@ export const updateActivityConfig = async (req, res) => {
     }
 
     // Valider la structure des champs
-    const requiredFields = ['firstName', 'age', 'height', 'weight', 'shoeRental', 'shoeSize'];
+    const requiredFields = ['firstName', 'age', 'height', 'weight', 'shoeRental', 'shoeSize', 'practiceLevel', 'comment'];
     for (const field of requiredFields) {
       if (!fields[field] || typeof fields[field].enabled !== 'boolean') {
         return res.status(400).json({ error: `Configuration invalide pour le champ ${field}` });

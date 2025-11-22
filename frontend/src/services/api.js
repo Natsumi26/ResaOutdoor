@@ -136,7 +136,8 @@ export const giftVouchersAPI = {
 export const emailAPI = {
   sendBookingConfirmation: (bookingId) => api.post(`/email/booking-confirmation/${bookingId}`),
   sendBookingReminder: (bookingId) => api.post(`/email/booking-reminder/${bookingId}`),
-  sendCustomEmail: (data) => api.post('/email/custom', data)
+  sendCustomEmail: (data) => api.post('/email/custom', data),
+  sendFormReminder: (bookingId) => api.post(`/email/form-reminder/${bookingId}`)
 };
 
 // Email Templates
@@ -183,6 +184,7 @@ export const resellersAPI = {
 // Settings
 export const settingsAPI = {
   get: () => api.get('/settings'),
+  getByGuideId: (guideId) => api.get(`/settings/guide/${guideId}`),
   update: (data) => api.put('/settings', data),
   updateLogo: (data) => api.patch('/settings/logo', data)
 };

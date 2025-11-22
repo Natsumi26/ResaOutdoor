@@ -1,14 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI, settingsAPI, uploadAPI, categoriesAPI, getUploadUrl } from '../services/api';
 import styles from './Common.module.css';
 import ActivityFormConfig from '../components/ActivityFormConfig';
+import ResellerManagement from '../components/ResellerManagement';
+import PaymentPreferences from './PaymentPreferences';
 
 const Preferences = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const activityFormConfigRef = useRef(null);
+
+  // État pour les sections déroulantes (toutes fermées par défaut)
+  const [openSections, setOpenSections] = useState({
+    infos: false,
+    activities: false,
+    formConfig: false,
+    resellers: false,
+    payment: false,
+    theme: false
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Préférences personnelles
   const [companyName, setCompanyName] = useState('');
@@ -28,11 +45,6 @@ const Preferences = () => {
     danger: '#dc3545',
     warning: '#ffc107',
   });
-
-  // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
-  const [bookingReminders, setBookingReminders] = useState(true);
 
   // Activités pratiquées par le guide (pré-définies)
   const predefinedActivities = [
@@ -226,17 +238,34 @@ const Preferences = () => {
         {/* Informations personnelles */}
         <div className={styles.section} style={{
           background: 'white',
-          padding: '30px',
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
+          marginBottom: '20px',
+          overflow: 'hidden'
         }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
-            Informations personnelles
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Mettez à jour vos coordonnées pour être contacté par vos clients
-          </p>
+          <div
+            onClick={() => toggleSection('infos')}
+            style={{
+              padding: '20px 25px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: openSections.infos ? '1px solid #eee' : 'none',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>📋 Informations personnelles</h2>
+              <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                Coordonnées pour être contacté par vos clients
+              </p>
+            </div>
+            <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.infos ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </div>
+          <div style={{ padding: openSections.infos ? '25px' : '0 25px', maxHeight: openSections.infos ? '2000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
@@ -407,96 +436,145 @@ const Preferences = () => {
               onClick={handleSave}
               disabled={loading}
               style={{
-                padding: '12px 28px',
+                padding: '10px 24px',
                 background: loading ? '#dee2e6' : '#28a745',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 fontWeight: '600',
                 transition: 'all 0.2s',
                 boxShadow: loading ? 'none' : '0 2px 6px rgba(40, 167, 69, 0.3)'
               }}
-              onMouseEnter={(e) => {
-                if (!loading) e.target.style.background = '#218838';
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) e.target.style.background = '#28a745';
-              }}
+              onMouseEnter={(e) => { if (!loading) e.target.style.background = '#218838'; }}
+              onMouseLeave={(e) => { if (!loading) e.target.style.background = '#28a745'; }}
             >
               {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
+          </div>
           </div>
         </div>
 
         {/* Activités pratiquées */}
         <div className={styles.section} style={{
           background: 'white',
-          padding: '30px',
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
+          marginBottom: '20px',
+          overflow: 'hidden'
         }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px' }}>
-            🏃 Activités pratiquées
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-            Sélectionnez les activités que vous pratiquez. Cela permettra de filtrer le type d'activité lors de la création de produits.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
-            {predefinedActivities.map((activity) => (
-              <label
-                key={activity.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 15px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  background: practiceActivities.includes(activity.id) ? 'rgba(52, 152, 219, 0.1)' : 'white',
-                  borderColor: practiceActivities.includes(activity.id) ? '#3498db' : '#e5e7eb',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (!practiceActivities.includes(activity.id)) {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!practiceActivities.includes(activity.id)) {
-                    e.currentTarget.style.background = 'white';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                  }
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={practiceActivities.includes(activity.id)}
-                  onChange={() => handleActivityToggle(activity.id)}
+          <div
+            onClick={() => toggleSection('activities')}
+            style={{
+              padding: '20px 25px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: openSections.activities ? '1px solid #eee' : 'none',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>🏃 Activités pratiquées</h2>
+              <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                Sélectionnez les activités que vous pratiquez
+              </p>
+            </div>
+            <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.activities ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </div>
+          <div style={{ padding: openSections.activities ? '25px' : '0 25px', maxHeight: openSections.activities ? '1000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+              {predefinedActivities.map((activity) => (
+                <label
+                  key={activity.id}
                   style={{
-                    marginRight: '10px',
-                    width: '18px',
-                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 15px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    accentColor: '#3498db'
+                    background: practiceActivities.includes(activity.id) ? 'rgba(52, 152, 219, 0.1)' : 'white',
+                    borderColor: practiceActivities.includes(activity.id) ? '#3498db' : '#e5e7eb',
+                    transition: 'all 0.2s'
                   }}
-                />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#2c3e50' }}>
-                    {activity.name}
-                  </div>
-                  {activity.description && (
-                    <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '2px' }}>
-                      {activity.description}
+                  onMouseEnter={(e) => {
+                    if (!practiceActivities.includes(activity.id)) {
+                      e.currentTarget.style.background = '#f8f9fa';
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!practiceActivities.includes(activity.id)) {
+                      e.currentTarget.style.background = 'white';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                    }
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={practiceActivities.includes(activity.id)}
+                    onChange={() => handleActivityToggle(activity.id)}
+                    style={{
+                      marginRight: '10px',
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: '#3498db'
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#2c3e50' }}>
+                      {activity.name}
                     </div>
-                  )}
+                    {activity.description && (
+                      <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '2px' }}>
+                        {activity.description}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '15px', marginTop: '20px' }}>
+              {saveMessage && (
+                <div style={{
+                  padding: '10px 16px',
+                  background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
+                  color: saveMessage.includes('✅') ? '#155724' : '#721c24',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+                }}>
+                  {saveMessage}
                 </div>
-              </label>
-            ))}
+              )}
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                style={{
+                  padding: '10px 24px',
+                  background: loading ? '#dee2e6' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  boxShadow: loading ? 'none' : '0 2px 6px rgba(40, 167, 69, 0.3)'
+                }}
+                onMouseEnter={(e) => { if (!loading) e.target.style.background = '#218838'; }}
+                onMouseLeave={(e) => { if (!loading) e.target.style.background = '#28a745'; }}
+              >
+                {loading ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -504,313 +582,300 @@ const Preferences = () => {
         {practiceActivities.length > 0 && (
           <div className={styles.section} style={{
             background: 'white',
-            padding: '30px',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginBottom: '30px'
+            marginBottom: '20px',
+            overflow: 'hidden'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              ⚙️ Configuration des formulaires
-            </h2>
-            <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-              Personnalisez les champs du formulaire participant pour chaque activité et configurez la marque de combinaison pour le canyoning.
-            </p>
-            <ActivityFormConfig practiceActivities={practiceActivities} />
+            <div
+              onClick={() => toggleSection('formConfig')}
+              style={{
+                padding: '20px 25px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: openSections.formConfig ? '1px solid #eee' : 'none',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+            >
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.1rem' }}>⚙️ Configuration des formulaires</h2>
+                <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                  Personnalisez les champs du formulaire participant
+                </p>
+              </div>
+              <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.formConfig ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            </div>
+            <div style={{ padding: openSections.formConfig ? '25px' : '0 25px', maxHeight: openSections.formConfig ? '2000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+              <ActivityFormConfig ref={activityFormConfigRef} practiceActivities={practiceActivities} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '20px' }}>
+                <button
+                  onClick={() => activityFormConfigRef.current?.reset()}
+                  style={{
+                    padding: '10px 24px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  Réinitialiser par défaut
+                </button>
+                <button
+                  onClick={() => activityFormConfigRef.current?.save()}
+                  style={{
+                    padding: '10px 24px',
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 6px rgba(40, 167, 69, 0.3)'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#218838'}
+                  onMouseLeave={(e) => e.target.style.background = '#28a745'}
+                >
+                  Enregistrer
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Thème Guide */}
+        {/* Revendeurs */}
         <div className={styles.section} style={{
           background: 'white',
-          padding: '30px',
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
+          marginBottom: '20px',
+          overflow: 'hidden'
         }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            👨‍💼 Thème Guide
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Personnalisez le dégradé de l'interface guide (sidebar et bouton Session)
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+          <div
+            onClick={() => toggleSection('resellers')}
+            style={{
+              padding: '20px 25px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: openSections.resellers ? '1px solid #eee' : 'none',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+          >
             <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Dégradé - Début
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>🏪 Revendeurs</h2>
+              <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                Gérez vos partenaires revendeurs et leurs commissions
+              </p>
+            </div>
+            <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.resellers ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </div>
+          <div style={{ padding: openSections.resellers ? '25px' : '0 25px', maxHeight: openSections.resellers ? '3000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <ResellerManagement />
+          </div>
+        </div>
+
+        {/* Moyens de paiement */}
+        <div className={styles.section} style={{
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '20px',
+          overflow: 'hidden'
+        }}>
+          <div
+            onClick={() => toggleSection('payment')}
+            style={{
+              padding: '20px 25px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: openSections.payment ? '1px solid #eee' : 'none',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>💳 Moyens de paiement</h2>
+              <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                Configuration des préférences de paiement et Stripe
+              </p>
+            </div>
+            <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.payment ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </div>
+          <div style={{ padding: openSections.payment ? '0px' : '0 25px', maxHeight: openSections.payment ? '4000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <PaymentPreferences embedded={true} />
+          </div>
+        </div>
+
+        {/* Thèmes */}
+        <div className={styles.section} style={{
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '20px',
+          overflow: 'hidden'
+        }}>
+          <div
+            onClick={() => toggleSection('theme')}
+            style={{
+              padding: '20px 25px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: openSections.theme ? '1px solid #eee' : 'none',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>🎨 Personnalisation des couleurs</h2>
+              <p style={{ color: '#6c757d', margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+                Couleurs de l'interface guide et client
+              </p>
+            </div>
+            <span style={{ fontSize: '1.2rem', color: '#6c757d', transition: 'transform 0.2s', transform: openSections.theme ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </div>
+          <div style={{ padding: openSections.theme ? '25px' : '0 25px', maxHeight: openSections.theme ? '1000px' : '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+            {/* Interface Guide - Dégradé début */}
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#495057', fontSize: '0.9rem' }}>
+                Guide - Dégradé début
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="color"
                   value={themeColors.primary}
                   onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{ width: '50px', height: '36px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={themeColors.primary}
                   onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                  style={{ flex: 1, padding: '6px 8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.85rem' }}
                 />
               </div>
             </div>
 
+            {/* Interface Guide - Dégradé fin */}
             <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Dégradé - Fin
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#495057', fontSize: '0.9rem' }}>
+                Guide - Dégradé fin
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="color"
                   value={themeColors.secondary}
                   onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{ width: '50px', height: '36px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={themeColors.secondary}
                   onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                  style={{ flex: 1, padding: '6px 8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.85rem' }}
                 />
               </div>
             </div>
-          </div>
 
-          <div style={{
-            padding: '12px 16px',
-            background: '#f8f9fa',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            color: '#6c757d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            ℹ️ Ces couleurs s'appliquent uniquement à l'interface guide (sidebar et bouton Session)
-          </div>
-        </div>
-
-        {/* Thème Client */}
-        <div className={styles.section} style={{
-          background: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
-        }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            👥 Thème Client
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Personnalisez la couleur de l'interface client
-          </p>
-
-          <div style={{ marginBottom: '20px' }}>
+            {/* Interface Client */}
             <div>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
-                Couleur du thème
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#495057', fontSize: '0.9rem' }}>
+                Client - Couleur principale
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '400px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="color"
                   value={themeColors.clientButton}
                   onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
-                  style={{ width: '60px', height: '40px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
+                  style={{ width: '50px', height: '36px', border: '1px solid #dee2e6', borderRadius: '6px', cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={themeColors.clientButton}
                   onChange={(e) => setThemeColors({ ...themeColors, clientButton: e.target.value, clientAccent: e.target.value })}
-                  style={{ flex: 1, padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.9rem' }}
+                  style={{ flex: 1, padding: '6px 8px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.85rem' }}
                 />
               </div>
             </div>
           </div>
 
-          <div style={{
-            padding: '12px 16px',
-            background: '#f8f9fa',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            color: '#6c757d',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            ℹ️ Cette couleur s'applique à tous les éléments de l'interface client
-          </div>
-        </div>
-
-        {/* Bouton Reset */}
-        <div className={styles.section} style={{
-          background: 'white',
-          padding: '20px 30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
-        }}>
-          <button
-            onClick={handleResetTheme}
-            style={{
-              padding: '12px 24px',
-              background: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              fontWeight: '500'
-            }}
-          >
-            🔄 Réinitialiser toutes les couleurs
-          </button>
-        </div>
-
-        {/* Notifications */}
-        <div className={styles.section} style={{
-          background: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
-        }}>
-          <h2 style={{ marginTop: 0, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            🔔 Notifications
-          </h2>
-          <p style={{ color: '#6c757d', marginBottom: '30px' }}>
-            Choisissez comment vous souhaitez être informé
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '15px',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#e9ecef'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#f8f9fa'}
-            >
-              <input
-                type="checkbox"
-                checked={emailNotifications}
-                onChange={(e) => setEmailNotifications(e.target.checked)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-              />
-              <div>
-                <div style={{ fontWeight: '600', marginBottom: '4px' }}>📧 Notifications par email</div>
-                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>
-                  Recevoir des emails pour les nouvelles réservations et modifications
-                </div>
-              </div>
-            </label>
-
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '15px',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#e9ecef'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#f8f9fa'}
-            >
-              <input
-                type="checkbox"
-                checked={smsNotifications}
-                onChange={(e) => setSmsNotifications(e.target.checked)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-              />
-              <div>
-                <div style={{ fontWeight: '600', marginBottom: '4px' }}>📱 Notifications par SMS</div>
-                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>
-                  Recevoir des SMS pour les réservations urgentes (nécessite un numéro de téléphone)
-                </div>
-              </div>
-            </label>
-
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '15px',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#e9ecef'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#f8f9fa'}
-            >
-              <input
-                type="checkbox"
-                checked={bookingReminders}
-                onChange={(e) => setBookingReminders(e.target.checked)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-              />
-              <div>
-                <div style={{ fontWeight: '600', marginBottom: '4px' }}>⏰ Rappels de réservation</div>
-                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>
-                  Recevoir un rappel 24h avant chaque session
-                </div>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        {/* Boutons d'action */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '15px',
-          marginTop: '30px',
-          alignItems: 'center'
-        }}>
-          {saveMessage && (
-            <div style={{
-              padding: '12px 20px',
-              background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
-              color: saveMessage.includes('✅') ? '#155724' : '#721c24',
-              borderRadius: '6px',
-              fontSize: '0.95rem',
-              fontWeight: '500'
-            }}>
-              {saveMessage}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '0.85rem', color: '#6c757d' }}>
+              ℹ️ Les couleurs "Guide" s'appliquent à la sidebar, les couleurs "Client" à l'interface de réservation
             </div>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            style={{
-              padding: '14px 35px',
-              background: loading ? '#dee2e6' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              transition: 'all 0.2s',
-              boxShadow: loading ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.background = '#218838';
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.background = '#28a745';
-            }}
-          >
-            {loading ? '⏳ Enregistrement...' : '💾 Enregistrer les préférences'}
-          </button>
+            <button
+              onClick={handleResetTheme}
+              style={{
+                padding: '8px 16px',
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              🔄 Réinitialiser
+            </button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '15px' }}>
+            {saveMessage && (
+              <div style={{
+                padding: '10px 16px',
+                background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
+                color: saveMessage.includes('✅') ? '#155724' : '#721c24',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+              }}>
+                {saveMessage}
+              </div>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              style={{
+                padding: '10px 24px',
+                background: loading ? '#dee2e6' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                boxShadow: loading ? 'none' : '0 2px 6px rgba(40, 167, 69, 0.3)'
+              }}
+              onMouseEnter={(e) => { if (!loading) e.target.style.background = '#218838'; }}
+              onMouseLeave={(e) => { if (!loading) e.target.style.background = '#28a745'; }}
+            >
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+          </div>
         </div>
+
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { usersAPI, settingsAPI, stripeAPI } from '../services/api';
 import styles from './Common.module.css';
 
-const PaymentPreferences = () => {
+const PaymentPreferences = ({ embedded = false }) => {
   const { user, updateUser } = useAuth();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -16,6 +16,7 @@ const PaymentPreferences = () => {
   // État pour Stripe (Vente en ligne)
   const [stripeAccount, setStripeAccount] = useState(null);
   const [stripeLoading, setStripeLoading] = useState(true);
+  const [confirmationRedirectUrl, setConfirmationRedirectUrl] = useState('');
   const [themeColors, setThemeColors] = useState({
     primary: '#667eea',
     secondary: '#764ba2'
@@ -88,6 +89,10 @@ const PaymentPreferences = () => {
     try {
       const response = await settingsAPI.get();
       const settings = response.data.settings;
+
+      // Charger l'URL de redirection
+      setConfirmationRedirectUrl(settings?.confirmationRedirectUrl || '');
+
       if (settings?.primaryColor) {
         const primaryColor = settings.primaryColor;
         const secondaryColor = settings.secondaryColor || settings.primaryColor;
@@ -220,13 +225,15 @@ const PaymentPreferences = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>💳 Moyens de paiement</h1>
-        <p>Configurez vos préférences de paiement pour les réservations en ligne</p>
-      </div>
+    <div className={embedded ? '' : styles.container}>
+      {!embedded && (
+        <div className={styles.header}>
+          <h1>💳 Moyens de paiement</h1>
+          <p>Configurez vos préférences de paiement pour les réservations en ligne</p>
+        </div>
+      )}
 
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ maxWidth: embedded ? '100%' : '900px', margin: '0 auto' }}>
         {/* Onglets */}
         <div style={{
           display: 'flex',
@@ -666,6 +673,88 @@ const PaymentPreferences = () => {
                 <li>100% des paiements vont directement sur votre compte</li>
               </ol>
             </div>
+          </div>
+
+          {/* Section URL de redirection */}
+          <div className={styles.section} style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '10px' }}>🔗 Redirection après paiement</h2>
+            <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+              Configurez une URL de redirection personnalisée après la confirmation de paiement (utile pour le tracking Google Ads)
+            </p>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                URL de redirection après confirmation
+              </label>
+              <input
+                type="url"
+                value={confirmationRedirectUrl}
+                onChange={(e) => setConfirmationRedirectUrl(e.target.value)}
+                placeholder="https://votre-site.com/merci"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              />
+              <small style={{ display: 'block', marginTop: '6px', color: '#6c757d' }}>
+                Après un paiement réussi, le client sera redirigé vers cette URL après 3 secondes. Laissez vide pour utiliser la page de confirmation par défaut.
+              </small>
+            </div>
+
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  await settingsAPI.update({ confirmationRedirectUrl });
+                  setSaveMessage('✅ URL de redirection sauvegardée !');
+                  setTimeout(() => setSaveMessage(''), 3000);
+                } catch (error) {
+                  console.error('Erreur sauvegarde URL:', error);
+                  setSaveMessage('❌ Erreur lors de la sauvegarde');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              style={{
+                marginTop: '20px',
+                padding: '12px 24px',
+                background: loading ? '#dee2e6' : 'var(--guide-primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+            >
+              {loading ? '⏳ Enregistrement...' : '💾 Sauvegarder'}
+            </button>
+
+            {saveMessage && (
+              <div style={{
+                marginTop: '15px',
+                padding: '12px 20px',
+                background: saveMessage.includes('✅') ? '#d4edda' : '#f8d7da',
+                color: saveMessage.includes('✅') ? '#155724' : '#721c24',
+                borderRadius: '6px',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                border: `1px solid ${saveMessage.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+              }}>
+                {saveMessage}
+              </div>
+            )}
           </div>
         </div>
         )}
