@@ -595,6 +595,9 @@ router.post('/webhook', async (req, res) => {
                 message,
                 notes: `Payment Intent: ${paymentIntent.id}`,
                 expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 an
+              },
+              include: {
+                user: true
               }
             });
 

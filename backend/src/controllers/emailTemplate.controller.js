@@ -925,7 +925,8 @@ export const getAvailableVariables = async (req, res) => {
         { key: '{{bookingLink}}', description: 'Lien vers la réservation' },
         { key: '{{postBookingMessage}}', description: 'Message post-réservation' },
         { key: '{{wazeLink}}', description: 'Lien Waze' },
-        { key: '{{googleMapsLink}}', description: 'Lien Google Maps' }
+        { key: '{{googleMapsLink}}', description: 'Lien Google Maps' },
+        { key: '{{equipmentList}}', description: 'Liste du matériel à apporter' }
       ],
       booking_reminder: [
         ...commonVariables,
@@ -934,7 +935,8 @@ export const getAvailableVariables = async (req, res) => {
         { key: '{{productName}}', description: 'Nom du produit/activité' },
         { key: '{{sessionDate}}', description: 'Date de la session' },
         { key: '{{sessionStartTime}}', description: 'Heure de début' },
-        { key: '{{guideName}}', description: 'Nom du guide' }
+        { key: '{{guideName}}', description: 'Nom du guide' },
+        { key: '{{equipmentList}}', description: 'Liste du matériel à apporter' }
       ],
       payment_confirmation: [
         ...commonVariables,
@@ -950,10 +952,12 @@ export const getAvailableVariables = async (req, res) => {
       ],
       gift_voucher: [
         ...commonVariables,
-        { key: '{{clientFirstName}}', description: 'Prénom du client' },
-        { key: '{{giftCode}}', description: 'Code du bon cadeau' },
-        { key: '{{totalPrice}}', description: 'Montant du bon cadeau' },
-        { key: '{{companyWebsite}}', description: 'Site web de l\'entreprise' }
+        { key: '{{clientFirstName}}', description: 'Prénom du destinataire' },
+        { key: '{{giftSender}}', description: 'Email de l\'acheteur' },
+        { key: '{{giftRecipient}}', description: 'Email du destinataire' },
+        { key: '{{giftAmount}}', description: 'Montant du bon cadeau' },
+        { key: '{{giftMessage}}', description: 'Message personnel' },
+        { key: '{{giftCode}}', description: 'Code du bon cadeau' }
       ],
       guide_notification: [
         ...commonVariables,
@@ -971,7 +975,18 @@ export const getAvailableVariables = async (req, res) => {
         { key: '{{amountPaid}}', description: 'Montant déjà payé' },
         { key: '{{amountDue}}', description: 'Reste à payer sur place' },
         { key: '{{remainingSpots}}', description: 'Places restantes dans la session' },
-        { key: '{{bookingAdminLink}}', description: 'Lien vers la réservation (back-office)' }
+        { key: '{{bookingAdminLink}}', description: 'Lien vers la réservation (back-office)' },
+        { key: '{{equipmentList}}', description: 'Liste du matériel à apporter' }
+      ],
+      form_reminder: [
+        ...commonVariables,
+        { key: '{{clientFirstName}}', description: 'Prénom du client' },
+        { key: '{{clientLastName}}', description: 'Nom du client' },
+        { key: '{{productName}}', description: 'Nom du produit/activité' },
+        { key: '{{date}}', description: 'Date de la session' },
+        { key: '{{timeSlot}}', description: 'Heure de début' },
+        { key: '{{formLink}}', description: 'Lien vers le formulaire participants' },
+        { key: '{{equipmentList}}', description: 'Liste du matériel à apporter' }
       ]
     };
 
