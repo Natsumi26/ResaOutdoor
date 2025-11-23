@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { copyEmailTemplates, getSuperAdminId } from '../utils/templateCopy.js';
 
 // Lister tous les utilisateurs (admin seulement)
 export const getAllUsers = async (req, res, next) => {
@@ -96,6 +97,15 @@ export const createUser = async (req, res, next) => {
         createdAt: true
       }
     });
+
+    // Copier les templates email du super_admin vers le nouvel utilisateur
+    try {
+      const superAdminId = await getSuperAdminId();
+      await copyEmailTemplates(superAdminId, user.id);
+    } catch (templateError) {
+      console.error('⚠️ Erreur lors de la copie des templates email:', templateError);
+      // Ne pas bloquer la création de l'utilisateur si la copie des templates échoue
+    }
 
     res.status(201).json({
       success: true,

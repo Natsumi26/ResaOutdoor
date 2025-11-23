@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import bcrypt from 'bcryptjs';
+import { copyEmailTemplates, getSuperAdminId } from '../utils/templateCopy.js';
 
 /**
  * Récupérer tous les membres de l'équipe du leader connecté
@@ -118,6 +119,15 @@ export const addTeamMember = async (req, res) => {
         createdAt: true
       }
     });
+
+    // Copier les templates email du super_admin vers le nouveau membre
+    try {
+      const superAdminId = await getSuperAdminId();
+      await copyEmailTemplates(superAdminId, newMember.id);
+    } catch (templateError) {
+      console.error('⚠️ Erreur lors de la copie des templates email:', templateError);
+      // Ne pas bloquer la création du membre si la copie des templates échoue
+    }
 
     res.status(201).json({ member: newMember, message: 'Membre ajouté avec succès' });
   } catch (error) {

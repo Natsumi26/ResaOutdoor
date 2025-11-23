@@ -41,7 +41,8 @@
       "Bash(server.js)",
       "Bash(timeout:*)",
       "Bash(npx prisma:*)",
-      "Bash(prisma/migrations/0_init/migration.sql)"
+      "Bash(prisma/migrations/0_init/migration.sql)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
