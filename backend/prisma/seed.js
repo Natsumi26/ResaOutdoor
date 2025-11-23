@@ -369,115 +369,155 @@ Tél : {{companyPhone}}`,
         htmlContent: `<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .logo { text-align: center; margin-bottom: 20px; }
-    .logo img { max-width: 250px; height: auto; }
-    h2 { color: #1a5f7a; text-align: center; }
-    .warning { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107; }
-    .payment { background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745; }
-    .btn { display: inline-block; padding: 12px 24px; background: #1a5f7a; color: #ffffff; text-decoration: none; border-radius: 6px; margin: 12px 0; font-weight: bold; }
-    .footer { font-size: 14px; color: #555; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .warning {
+      background: #fff9c4;
+      border-left: 4px solid #fbc02d;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    .payment {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    a {
+      color: #1976d2;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    ul {
+      margin: 10px 0;
+      padding-left: 25px;
+    }
+    ul li {
+      margin: 8px 0;
+    }
+    .amount {
+      font-weight: bold;
+      color: #1976d2;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">
-      <img src="{{logo}}" alt="Logo {{companyName}}">
-    </div>
-
-    <h2>C'est confirmé ! 🎉</h2>
-
-    <p>Salut {{clientFirstName}},</p>
-
-    <p>Top ! Ta réservation pour <strong>{{productName}}</strong> est bien enregistrée.</p>
-
-    <p><strong>📅 Rendez-vous le {{sessionDate}} à {{sessionStartTime}}</strong></p>
-
-    <div class="warning">
-      <p><strong>⚠️ Important :</strong></p>
-      {{#postBookingMessage}}
-      <p>{{postBookingMessage}}</p>
-      {{/postBookingMessage}}
-      {{#equipmentList}}
-      <p><strong>Matériel à apporter :</strong></p>
-      <p style="white-space: pre-line;">{{equipmentList}}</p>
-      {{/equipmentList}}
-    </div>
-
-    <div class="payment">
-      <p><strong>💰 Paiement :</strong></p>
-      <p>Prix total : {{totalPrice}}€<br>
-      Déjà payé : {{amountPaid}}€<br>
-      Reste à régler : {{amountDue}}€</p>
-    </div>
-
-    <p style="text-align: center;">
-      <a href="{{bookingLink}}" class="btn">📋 Voir ma réservation</a>
-    </p>
-
-    {{#wazeLink}}
-    <p>🚗 <a href="{{wazeLink}}" target="_blank">Itinéraire Waze</a></p>
-    {{/wazeLink}}
-
-    {{#googleMapsLink}}
-    <p>🗺️ <a href="{{googleMapsLink}}" target="_blank">Itinéraire Google Maps</a></p>
-    {{/googleMapsLink}}
-
-    <p>Une question ? N'hésite pas à me contacter !</p>
-
-    <p>À très vite,<br>{{guideName}}</p>
-
-    <div class="footer">
-      <p><strong>{{companyName}}</strong></p>
-      <p>
-        🌐 <a href="{{companyWebsite}}">{{companyWebsite}}</a><br>
-        📧 <a href="mailto:{{companyEmail}}">{{companyEmail}}</a><br>
-        📞 <a href="tel:{{companyPhone}}">{{companyPhone}}</a>
-      </p>
-    </div>
+  <div class="logo">
+    <img src="{{logo}}" alt="{{companyName}}" style="max-width: 250px; height: auto;" />
   </div>
+
+  <p>Bonjour {{clientFirstName}},</p>
+
+  <p>Ta réservation est bien confirmée pour le {{productName}}, le {{sessionDate}} à {{sessionStartTime}} !</p>
+
+  <div class="payment">
+    <h3>💳 Récapitulatif de ta réservation</h3>
+    <p>
+      <strong>Prix total :</strong>
+      <span class="amount">{{totalPrice}} €</span>
+      <strong> → Déjà payé :</strong>
+      <span class="amount">{{amountPaid}} €</span>
+    </p>
+    <p>
+      <strong>Reste à payer sur place :</strong>
+      <span class="amount">{{amountDue}} €</span>
+    </p>
+  </div>
+
+  <div class="warning">
+    ⚠️ <strong>Important</strong> : si ce n'est pas déjà fait, pense à
+    <a href="{{bookingLink}}">remplir le formulaire</a> concernant les participants.<br>
+    Tu pourras encore le modifier jusqu'à la veille de l'activité.
+  </div>
+
+  <p>Pour que tout se passe au mieux, merci d'arriver environ 10 minutes avant l'heure du rendez-vous, le temps de te préparer tranquillement.</p>
+
+  <p>
+    <strong>Point de rendez-vous :</strong>
+    <a href="{{googleMapsLink}}">Google Maps</a> /
+    <a href="{{wazeLink}}">Waze</a>
+  </p>
+
+  <p><strong>N'oublie pas d'emporter avec toi :</strong></p>
+
+  <ul>
+    <li>Des chaussures fermées qui accrochent (type baskets ou chaussures de sport).</li>
+    <li>Des vêtements de sport adaptés à la météo du jour.</li>
+    <li>Une petite veste ou coupe-vent si les conditions sont fraîches.</li>
+    <li>Une bouteille d'eau pour rester bien hydraté(e).</li>
+    <li>Un petit encas si tu as tendance à avoir faim facilement.</li>
+  </ul>
+
+  <p>Et surtout, amène ta bonne humeur 😄 !</p>
+
+  <p>Avec ça, on est sûr de passer un super moment ensemble en plein air !</p>
+
+  <p>À très bientôt,</p>
+
+  <p><strong>L'équipe {{companyName}}</strong></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="signature" style="font-size: 14px; color: #555; text-align: center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank" style="color: #1976d2;">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}" style="color: #1976d2;">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}" style="color: #1976d2;">{{companyPhone}}</a>
+    </p>
+  </div>
+
 </body>
 </html>`,
-        textContent: `Salut {{clientFirstName}},
+        textContent: `{{companyName}}
 
-Top ! Ta réservation pour {{productName}} est bien enregistrée.
+Bonjour {{clientFirstName}},
 
-📅 Rendez-vous le {{sessionDate}} à {{sessionStartTime}}
+Ta réservation est bien confirmée pour le {{productName}}, le {{sessionDate}} à {{sessionStartTime}} !
 
-⚠️ Important :
-{{postBookingMessage}}
+Récapitulatif de ta réservation :
+- Prix total : {{totalPrice}} €
+- Déjà payé : {{amountPaid}} €
+- Reste à payer sur place : {{amountDue}} €
 
-{{#equipmentList}}
-Matériel à apporter :
+Important :
+Si ce n'est pas déjà fait, pense à remplir le formulaire concernant les participants :
+{{bookingLink}}
+Tu pourras encore le modifier jusqu'à la veille de l'activité.
+
+Pour que tout se passe au mieux, merci d'arriver environ 10 minutes avant l'heure du rendez-vous, le temps de te préparer tranquillement.
+
+Point de rendez-vous :
+- Google Maps : {{googleMapsLink}}
+- Waze : {{wazeLink}}
+
+Équipement à prévoir :
 {{equipmentList}}
-{{/equipmentList}}
 
-💰 Paiement :
-Prix total : {{totalPrice}}€
-Déjà payé : {{amountPaid}}€
-Reste à régler : {{amountDue}}€
+À très bientôt,
 
-📋 Voir ma réservation : {{bookingLink}}
+L'équipe {{companyName}}
 
-{{#wazeLink}}
-🚗 Itinéraire Waze : {{wazeLink}}
-{{/wazeLink}}
-
-{{#googleMapsLink}}
-🗺️ Itinéraire Google Maps : {{googleMapsLink}}
-{{/googleMapsLink}}
-
-Une question ? N'hésite pas à me contacter !
-
-À très vite,
-{{guideName}}
-
+---
 {{companyName}}
-{{companyWebsite}}
-{{companyEmail}}
-{{companyPhone}}`,
+Site : {{companyWebsite}}
+Email : {{companyEmail}}
+Tél : {{companyPhone}}`,
         variables: JSON.stringify([
           'clientFirstName',
           'clientLastName',
@@ -493,7 +533,6 @@ Une question ? N'hésite pas à me contacter !
           'amountDue',
           'bookingId',
           'bookingLink',
-          'postBookingMessage',
           'equipmentList',
           'wazeLink',
           'googleMapsLink',
@@ -516,115 +555,155 @@ Une question ? N'hésite pas à me contacter !
         htmlContent: `<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .logo { text-align: center; margin-bottom: 20px; }
-    .logo img { max-width: 250px; height: auto; }
-    h2 { color: #1a5f7a; text-align: center; }
-    .warning { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107; }
-    .payment { background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745; }
-    .btn { display: inline-block; padding: 12px 24px; background: #1a5f7a; color: #ffffff; text-decoration: none; border-radius: 6px; margin: 12px 0; font-weight: bold; }
-    .footer { font-size: 14px; color: #555; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .warning {
+      background: #fff9c4;
+      border-left: 4px solid #fbc02d;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    .payment {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    a {
+      color: #1976d2;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    ul {
+      margin: 10px 0;
+      padding-left: 25px;
+    }
+    ul li {
+      margin: 8px 0;
+    }
+    .amount {
+      font-weight: bold;
+      color: #1976d2;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">
-      <img src="{{logo}}" alt="Logo {{companyName}}">
-    </div>
-
-    <h2>C'est confirmé ! 🎉</h2>
-
-    <p>Salut {{clientFirstName}},</p>
-
-    <p>Top ! Ta réservation pour <strong>{{productName}}</strong> est bien enregistrée.</p>
-
-    <p><strong>📅 Rendez-vous le {{sessionDate}} à {{sessionStartTime}}</strong></p>
-
-    <div class="warning">
-      <p><strong>⚠️ Important :</strong></p>
-      {{#postBookingMessage}}
-      <p>{{postBookingMessage}}</p>
-      {{/postBookingMessage}}
-      {{#equipmentList}}
-      <p><strong>Matériel à apporter :</strong></p>
-      <p style="white-space: pre-line;">{{equipmentList}}</p>
-      {{/equipmentList}}
-    </div>
-
-    <div class="payment">
-      <p><strong>💰 Paiement :</strong></p>
-      <p>Prix total : {{totalPrice}}€<br>
-      Déjà payé : {{amountPaid}}€<br>
-      Reste à régler : {{amountDue}}€</p>
-    </div>
-
-    <p style="text-align: center;">
-      <a href="{{bookingLink}}" class="btn">📋 Voir ma réservation</a>
-    </p>
-
-    {{#wazeLink}}
-    <p>🚗 <a href="{{wazeLink}}" target="_blank">Itinéraire Waze</a></p>
-    {{/wazeLink}}
-
-    {{#googleMapsLink}}
-    <p>🗺️ <a href="{{googleMapsLink}}" target="_blank">Itinéraire Google Maps</a></p>
-    {{/googleMapsLink}}
-
-    <p>Une question ? N'hésite pas à me contacter !</p>
-
-    <p>À très vite,<br>{{guideName}}</p>
-
-    <div class="footer">
-      <p><strong>{{companyName}}</strong></p>
-      <p>
-        🌐 <a href="{{companyWebsite}}">{{companyWebsite}}</a><br>
-        📧 <a href="mailto:{{companyEmail}}">{{companyEmail}}</a><br>
-        📞 <a href="tel:{{companyPhone}}">{{companyPhone}}</a>
-      </p>
-    </div>
+  <div class="logo">
+    <img src="{{logo}}" alt="{{companyName}}" style="max-width: 250px; height: auto;" />
   </div>
+
+  <p>Bonjour {{clientFirstName}},</p>
+
+  <p>Ta réservation est bien confirmée pour le {{productName}}, le {{sessionDate}} à {{sessionStartTime}} !</p>
+
+  <div class="payment">
+    <h3>💳 Récapitulatif de ta réservation</h3>
+    <p>
+      <strong>Prix total :</strong>
+      <span class="amount">{{totalPrice}} €</span>
+      <strong> → Déjà payé :</strong>
+      <span class="amount">{{amountPaid}} €</span>
+    </p>
+    <p>
+      <strong>Reste à payer sur place :</strong>
+      <span class="amount">{{amountDue}} €</span>
+    </p>
+  </div>
+
+  <div class="warning">
+    ⚠️ <strong>Important</strong> : si ce n'est pas déjà fait, pense à
+    <a href="{{bookingLink}}">remplir le formulaire</a> concernant les participants.<br>
+    Tu pourras encore le modifier jusqu'à la veille de l'activité.
+  </div>
+
+  <p>Pour que tout se passe au mieux, merci d'arriver environ 10 minutes avant l'heure du rendez-vous, le temps de te préparer tranquillement.</p>
+
+  <p>
+    <strong>Point de rendez-vous :</strong>
+    <a href="{{googleMapsLink}}">Google Maps</a> /
+    <a href="{{wazeLink}}">Waze</a>
+  </p>
+
+  <p><strong>N'oublie pas d'emporter avec toi :</strong></p>
+
+  <ul>
+    <li>Des chaussures fermées qui accrochent (type baskets ou chaussures de sport).</li>
+    <li>Des vêtements de sport adaptés à la météo du jour.</li>
+    <li>Une petite veste ou coupe-vent si les conditions sont fraîches.</li>
+    <li>Une bouteille d'eau pour rester bien hydraté(e).</li>
+    <li>Un petit encas si tu as tendance à avoir faim facilement.</li>
+  </ul>
+
+  <p>Et surtout, amène ta bonne humeur 😄 !</p>
+
+  <p>Avec ça, on est sûr de passer un super moment ensemble en plein air !</p>
+
+  <p>À très bientôt,</p>
+
+  <p><strong>L'équipe {{companyName}}</strong></p>
+
+  <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="signature" style="font-size: 14px; color: #555; text-align: center;">
+    <p><strong>{{companyName}}</strong></p>
+    <p>
+      🌐 <a href="{{companyWebsite}}" target="_blank" style="color: #1976d2;">{{companyWebsite}}</a><br>
+      📧 <a href="mailto:{{companyEmail}}" style="color: #1976d2;">{{companyEmail}}</a><br>
+      📞 <a href="tel:{{companyPhone}}" style="color: #1976d2;">{{companyPhone}}</a>
+    </p>
+  </div>
+
 </body>
 </html>`,
-        textContent: `Salut {{clientFirstName}},
+        textContent: `{{companyName}}
 
-Top ! Ta réservation pour {{productName}} est bien enregistrée.
+Bonjour {{clientFirstName}},
 
-📅 Rendez-vous le {{sessionDate}} à {{sessionStartTime}}
+Ta réservation est bien confirmée pour le {{productName}}, le {{sessionDate}} à {{sessionStartTime}} !
 
-⚠️ Important :
-{{postBookingMessage}}
+Récapitulatif de ta réservation :
+- Prix total : {{totalPrice}} €
+- Déjà payé : {{amountPaid}} €
+- Reste à payer sur place : {{amountDue}} €
 
-{{#equipmentList}}
-Matériel à apporter :
+Important :
+Si ce n'est pas déjà fait, pense à remplir le formulaire concernant les participants :
+{{bookingLink}}
+Tu pourras encore le modifier jusqu'à la veille de l'activité.
+
+Pour que tout se passe au mieux, merci d'arriver environ 10 minutes avant l'heure du rendez-vous, le temps de te préparer tranquillement.
+
+Point de rendez-vous :
+- Google Maps : {{googleMapsLink}}
+- Waze : {{wazeLink}}
+
+Équipement à prévoir :
 {{equipmentList}}
-{{/equipmentList}}
 
-💰 Paiement :
-Prix total : {{totalPrice}}€
-Déjà payé : {{amountPaid}}€
-Reste à régler : {{amountDue}}€
+À très bientôt,
 
-📋 Voir ma réservation : {{bookingLink}}
+L'équipe {{companyName}}
 
-{{#wazeLink}}
-🚗 Itinéraire Waze : {{wazeLink}}
-{{/wazeLink}}
-
-{{#googleMapsLink}}
-🗺️ Itinéraire Google Maps : {{googleMapsLink}}
-{{/googleMapsLink}}
-
-Une question ? N'hésite pas à me contacter !
-
-À très vite,
-{{guideName}}
-
+---
 {{companyName}}
-{{companyWebsite}}
-{{companyEmail}}
-{{companyPhone}}`,
+Site : {{companyWebsite}}
+Email : {{companyEmail}}
+Tél : {{companyPhone}}`,
         variables: JSON.stringify([
           'clientFirstName',
           'clientLastName',
@@ -640,7 +719,6 @@ Une question ? N'hésite pas à me contacter !
           'amountDue',
           'bookingId',
           'bookingLink',
-          'postBookingMessage',
           'equipmentList',
           'wazeLink',
           'googleMapsLink',

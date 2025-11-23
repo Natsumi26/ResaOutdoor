@@ -13,7 +13,7 @@ const BookingForm = ({ session, onSubmit, onCancel }) => {
     productId: '',
     totalPrice: 0,
     amountPaid: 0,
-    status: 'pending',
+    status: 'confirmed',
     resellerId: null,
     voucherCode: null,
     discountAmount: 0
