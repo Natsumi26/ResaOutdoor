@@ -13,12 +13,12 @@ async function main() {
     where: { login: 'canyonlife' },
     update: {
       role: 'super_admin', // Mettre à jour le rôle si l'utilisateur existe déjà
-      email: 'vincent.garcia95@wanadoo.fr' // Mettre à jour l'email aussi
+      email: 'marion.redon26@yahoo.fr' // Mettre à jour l'email aussi
     },
     create: {
       login: 'canyonlife',
       password: hashedPassword,
-      email: 'vincent.garcia95@wanadoo.fr',
+      email: 'marion.redon26@yahoo.fr',
       role: 'super_admin', // Nouveau rôle super_admin au lieu de admin
       stripeAccount: null
     }
