@@ -24,10 +24,6 @@ async function main() {
     }
   });
 
-  console.log('✅ Utilisateur super admin créé:', admin.login);
-
-  console.log('✅ Base de données initialisée (vide - catégories à créer manuellement par les guides)');
-
   // Créer des produits d'exemple
   // const products = await Promise.all([
   //   prisma.product.upsert({
