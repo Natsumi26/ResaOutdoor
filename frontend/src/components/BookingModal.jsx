@@ -90,7 +90,6 @@ const BookingModal = ({ bookingId, onClose, onUpdate }) => {
       setLoading(false);
     }
   };
-console.log('Booking data:', booking);
   if (booking?.reseller) {
     console.log('Reseller data:', booking.reseller);
     console.log('Reseller website:', booking.reseller.website);
@@ -613,7 +612,7 @@ Cet email a été envoyé automatiquement, merci de ne pas y répondre.
 
     return phone; // Retourner le numéro original si le format n'est pas reconnu
   };
-  console.log(booking.totalPrice)
+  
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>

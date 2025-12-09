@@ -239,7 +239,7 @@ const ProductForm = ({ product, categories: initialCategories, users, currentUse
       const response = await fetch(`${BASE_URL}/api/upload/images`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
         body: formDataUpload
       });

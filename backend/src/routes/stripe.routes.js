@@ -217,191 +217,6 @@ router.post('/', async (req, res) => {
 
       // Gérer les différents types d'événements
       switch (event.type) {
-        case 'checkout.session.completed': {
-          const stripeSession = event.data.object;
-
-          // CAS 1: Nouvelle réservation avec paiement Stripe
-          if (stripeSession.metadata && stripeSession.metadata.type === 'new_booking') {
-            try {
-              console.log('🆕 Création de réservation après paiement Stripe');
-
-              const sessionId = stripeSession.metadata.sessionId;
-              const productId = stripeSession.metadata.productId;
-              const bookingData = JSON.parse(stripeSession.metadata.bookingData);
-              const participants = stripeSession.metadata.participants ? JSON.parse(stripeSession.metadata.participants) : null;
-              const amountPaid = stripeSession.amount_total / 100;
-
-              // Créer la réservation avec transaction
-              const booking = await prisma.$transaction(async (tx) => {
-                const newBooking = await tx.booking.create({
-                  data: {
-                    clientFirstName: bookingData.clientFirstName,
-                    clientLastName: bookingData.clientLastName,
-                    clientEmail: bookingData.clientEmail,
-                    clientPhone: bookingData.clientPhone,
-                    clientNationality: bookingData.clientNationality,
-                    numberOfPeople: parseInt(bookingData.numberOfPeople),
-                    totalPrice: parseFloat(bookingData.totalPrice),
-                    amountPaid: amountPaid,
-                    status: 'confirmed',
-                    sessionId: sessionId,
-                    productId: productId,
-                    voucherCode: bookingData.voucherCode || null,
-                    discountAmount: bookingData.discountAmount || null
-                  },
-                  include: {
-                    session: {
-                      include: {
-                        guide: true
-                      }
-                    },
-                    product: true
-                  }
-                });
-
-                // Créer l'entrée historique
-                await tx.bookingHistory.create({
-                  data: {
-                    action: 'created',
-                    details: `Réservation créée avec paiement Stripe de ${amountPaid}€`,
-                    bookingId: newBooking.id
-                  }
-                });
-
-                // Créer le paiement
-                await tx.payment.create({
-                  data: {
-                    amount: amountPaid,
-                    method: 'stripe',
-                    notes: `Payment Intent: ${stripeSession.payment_intent}`,
-                    voucherCode: bookingData.voucherCode,
-                    discountAmount: bookingData.discountAmount,
-                    bookingId: newBooking.id
-                  }
-                });
-
-                // Enregistrer les participants s'ils existent
-                if (participants && participants.length > 0) {
-                  for (const participant of participants) {
-                    await tx.participant.create({
-                      data: {
-                        bookingId: newBooking.id,
-                        firstName: participant.firstName || '',
-                        age: participant.age ? parseInt(participant.age) : null,
-                        weight: participant.weight ? parseFloat(participant.weight) : null,
-                        height: participant.height ? parseFloat(participant.height) : null,
-                        shoeRental: participant.shoeRental || false,
-                        shoeSize: participant.shoeSize ? parseInt(participant.shoeSize) : null
-                      }
-                    });
-                  }
-                }
-
-                return newBooking;
-              });
-
-              // Envoyer l'email de confirmation
-              sendBookingConfirmation(booking).catch(err => {
-                console.error('Erreur envoi email de confirmation:', err);
-              });
-
-              // Envoyer email de notification au guide
-              sendGuideNewBookingNotification(booking).catch(err => {
-                console.error('Erreur envoi email au guide:', err);
-              });
-
-              // Envoyer notification en temps réel aux admins
-              const notification = createNewBookingNotification({
-                id: booking.id,
-                clientName: `${bookingData.clientFirstName} ${bookingData.clientLastName}`,
-                productName: booking.product.name,
-                sessionDate: booking.session.date,
-                totalAmount: bookingData.amountPaid
-              });
-              notifyAdmins(notification);
-
-              // Mettre à jour le calendrier
-              updateCalendar({
-                action: 'booking-created',
-                bookingId: booking.id,
-                sessionId: booking.sessionId
-              });
-
-              console.log('✅ Réservation créée avec succès:', booking.id);
-            } catch (error) {
-              console.error('❌ Erreur création réservation après paiement:', error);
-            }
-
-            break;
-          }
-
-          // CAS 2 : Paiement de réservation existante (ancien flux)
-          // Sinon, c'est un paiement de réservation classique
-          const bookingId = stripeSession.client_reference_id || stripeSession.metadata.bookingId;
-        if (!bookingId) {
-          console.error('Aucun bookingId dans la session Stripe');
-          break;
-        }
-
-        const booking = await prisma.booking.findUnique({where: { id: bookingId }});
-        if (!booking) {
-          console.error('Réservation non trouvée:', bookingId);
-          break;
-        }
-
-        // Montant payé (en euros)
-        const amountPaid = session.amount_total / 100;
-
-        // Créer l'entrée de paiement
-        await prisma.payment.create({
-          data: {
-            amount: amountPaid,
-            method: 'stripe',
-            notes: `Payment Intent: ${session.payment_intent}`,
-            voucherCode: booking.voucherCode,
-            discountAmount: booking.discountAmount,
-            bookingId: booking.id
-          }
-        });
-
-        // Mettre à jour le montant total payé
-        const newTotalPaid = booking.amountPaid + amountPaid;
-
-        const updatedBooking = await prisma.booking.update({
-          where: { id: booking.id },
-          data: {
-            amountPaid: newTotalPaid,
-            status: newTotalPaid >= (booking.totalPrice - booking.discountAmount) ? 'confirmed' : booking.status
-          },
-          include: {
-            session: {
-              include: {
-                guide: true
-              }
-            },
-            product: true
-          }
-        });
-
-        // Ajouter à l'historique
-        await prisma.bookingHistory.create({
-          data: {
-            action: 'payment',
-            details: `Paiement Stripe de ${amountPaid}€`,
-            bookingId: booking.id
-          }
-        });
-
-        console.log('Paiement confirmé pour la réservation:', bookingId);
-
-        // Envoyer l'email de confirmation de paiement
-        sendPaymentConfirmation(updatedBooking, amountPaid).catch(err => {
-          console.error('Erreur envoi email de confirmation de paiement:', err);
-          // L'email échoue mais le paiement est enregistré
-        });
-
-        break;
-      }
 
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
@@ -530,7 +345,6 @@ router.post('/', async (req, res) => {
             const message = paymentIntent.metadata.message || null;
             const guideId = paymentIntent.metadata.guideId || null;
             const teamName = paymentIntent.metadata.teamName || null;
-            console.log(paymentIntent.metadata)
             // Déterminer le guide ou team leader à associer au bon cadeau
             let targetUserId = null;
 
@@ -655,7 +469,6 @@ router.post('/connect/onboard', authMiddleware, async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
-console.log(user)
     if (!user) {
       throw new AppError('Utilisateur non trouvé', 404);
     }

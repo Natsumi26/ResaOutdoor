@@ -177,8 +177,8 @@ const WetsuitSummary = ({ sessionId, onClose }) => {
           <button
             onClick={() => {
               const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-              const token = localStorage.getItem('token');
-              console.log('Token stocké :', localStorage.getItem('token'));
+              const token = localStorage.getItem('accessToken');
+              console.log('Token stocké :', localStorage.getItem('accessToken'));
               console.log(token)
               window.open(`${API_URL}/participants/session/${sessionId}/print?token=${token}`, '_blank');
             }}

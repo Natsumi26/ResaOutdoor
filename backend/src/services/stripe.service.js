@@ -77,7 +77,7 @@ export const createConnectAccountLink = async (userId, email) => {
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/refresh`,
-      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/return`,
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/preferences/payment-preferences`,
       type: 'account_onboarding'
     });
 
@@ -101,7 +101,7 @@ export const createConnectAccountLinkForExisting = async (accountId) => {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/refresh`,
-      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/stripe/return`,
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings/preferences/payment-preferences`,
       type: 'account_onboarding'
     });
 
@@ -200,6 +200,7 @@ export const createPaymentIntent = async (sessionId, productId, bookingData, amo
       }
       isDeposit = true;
     }
+
 
     // Déterminer le compte Stripe à utiliser
     let stripeAccountId = null;

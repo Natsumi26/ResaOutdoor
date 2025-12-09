@@ -1,13 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import prisma from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { sendPasswordResetEmail, sendTwoFactorCode } from '../services/email.service.js';
 
 export const login = async (req, res, next) => {
   try {
-    const { login, password, deviceToken } = req.body;
+    const { login, password} = req.body;
 
     if (!login || !password) {
       throw new AppError('Login et mot de passe requis', 400);
@@ -40,32 +41,34 @@ export const login = async (req, res, next) => {
 
     // Vérification du mot de passe
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
       throw new AppError('Identifiants incorrects', 401);
     }
 
-    // Vérifier si un appareil de confiance existe et est valide
-    let trustedDevice = null;
-    if (deviceToken && user.twoFactorEnabled) {
-      trustedDevice = await prisma.trustedDevice.findUnique({
-        where: { deviceToken },
-      });
+    // 🔎 Vérifier si un refresh token déjà présent en cookie correspond à un TrustedDevice actif
+    const existingToken = req.cookies.refreshToken;
+    if (existingToken && user.twoFactorEnabled) {
+      try {
+        const payload = jwt.verify(existingToken, process.env.REFRESH_SECRET);
+        const device = await prisma.trustedDevice.findUnique({ where: { jti: payload.jti } });
 
-      // Vérifier que le device appartient à l'utilisateur et n'est pas expiré
-      if (trustedDevice && trustedDevice.userId === user.id && new Date() < trustedDevice.expiresAt) {
-        // Mettre à jour la date de dernière utilisation
-        await prisma.trustedDevice.update({
-          where: { id: trustedDevice.id },
-          data: { lastUsedAt: new Date() }
-        });
-      } else {
-        trustedDevice = null;
+        if (device && !device.revoked && device.expiresAt > new Date()) {
+          // ✅ Appareil de confiance → pas besoin de redemander 2FA
+          const accessToken = jwt.sign(
+            { userId: user.id, login: user.login, role: user.role, teamName: user.teamName },
+            process.env.ACCESS_SECRET,
+            { expiresIn: '15m' }
+          );
+
+          return res.json({ success: true, accessToken, user });
+        }
+      } catch (err) {
+        // Token invalide ou expiré → on continue le flux normal
       }
     }
 
-    // Si le 2FA est activé, envoyer un code par email (sauf si appareil de confiance)
-    if (user.twoFactorEnabled && user.email && !trustedDevice) {
+    // Si le 2FA est activé → toujours demander le code 2FA
+    if (user.twoFactorEnabled && user.email) {
       // Générer un code à 6 chiffres
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -96,24 +99,24 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Génération du token JWT (si pas de 2FA ou pas d'email)
-    const token = jwt.sign(
+    // Si pas de 2FA activé → connexion directe (ne PAS créer de TrustedDevice)
+    const accessToken = jwt.sign(
       {
         userId: user.id,
         login: user.login,
         role: user.role,
         teamName: user.teamName
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      process.env.ACCESS_SECRET,
+      { expiresIn: '15m' }
     );
 
-    // Réponse (sans le mot de passe)
+    // Nouvelle réponse JSON (sans refresh token ni cookie pour les utilisateurs sans 2FA)
     const { password: _, twoFactorEnabled: __, ...userWithoutPassword } = user;
 
     res.json({
       success: true,
-      token,
+      accessToken,
       user: userWithoutPassword
     });
   } catch (error) {
@@ -190,7 +193,7 @@ export const superLogin = async (req, res) => {
       teamName: user.teamName,
       impersonated: true
     },
-    process.env.JWT_SECRET,
+    process.env.ACCESS_SECRET,
     { expiresIn: '7d' }
   );
 
@@ -219,96 +222,81 @@ export const verifyTwoFactorCode = async (req, res, next) => {
     // Rechercher le code 2FA dans la base de données
     const twoFactorEntry = await prisma.twoFactorCode.findUnique({
       where: { tempToken },
-      include: {
-        user: {
-          select: {
-            id: true,
-            login: true,
-            email: true,
-            phone: true,
-            role: true,
-            teamName: true,
-            stripeAccount: true,
-            paymentMode: true,
-            depositType: true,
-            depositAmount: true,
-            practiceActivities: true,
-            confidentialityPolicy: true
-          }
-        }
-      }
     });
 
     // Vérifier que le code existe et n'est pas expiré
-    if (!twoFactorEntry || new Date() > twoFactorEntry.expiresAt) {
+    if (!twoFactorEntry || new Date() > twoFactorEntry.expiresAt|| twoFactorEntry.code !== code) {
       throw new AppError('Code invalide ou expiré', 400);
     }
 
-    // Vérifier que le code n'a pas déjà été vérifié
-    if (twoFactorEntry.verified) {
-      throw new AppError('Code déjà utilisé', 400);
-    }
-
-    // Vérifier le nombre de tentatives (max 3)
-    if (twoFactorEntry.attempts >= 3) {
-      throw new AppError('Trop de tentatives. Veuillez demander un nouveau code.', 429);
-    }
-
-    // Vérifier le code
-    if (twoFactorEntry.code !== code) {
-      // Incrémenter le nombre de tentatives
-      await prisma.twoFactorCode.update({
-        where: { id: twoFactorEntry.id },
-        data: { attempts: twoFactorEntry.attempts + 1 }
-      });
-
-      const remainingAttempts = 3 - (twoFactorEntry.attempts + 1);
-      throw new AppError(`Code incorrect. ${remainingAttempts} tentative(s) restante(s).`, 400);
-    }
-
-    // Marquer le code comme vérifié
-    await prisma.twoFactorCode.update({
-      where: { id: twoFactorEntry.id },
-      data: { verified: true }
+    const user = await prisma.user.findUnique({
+      where: { id: twoFactorEntry.userId },
+      select: {
+        id: true,
+        login: true,
+        email: true,
+        phone: true,
+        role: true,
+        teamName: true,
+        stripeAccount: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
+        practiceActivities: true,
+        confidentialityPolicy: true
+      }
     });
 
-    // Si l'utilisateur veut faire confiance à cet appareil
-    let deviceToken = null;
+    // ✅ Génération Access Token
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        login: user.login,
+        role: user.role,
+        teamName: user.teamName
+      },
+      process.env.ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // ✅ Générer refresh token UNIQUEMENT si l'utilisateur a coché "Se souvenir de moi"
     if (trustDevice) {
-      deviceToken = crypto.randomBytes(32).toString('hex');
+      const jti = uuidv4();
+      const refreshExpiryDays = 2; // 60 jours pour les appareils de confiance / 2 jours en test
+      const refreshToken = jwt.sign(
+        { sub: user.id, jti },
+        process.env.REFRESH_SECRET,
+        { expiresIn: `${refreshExpiryDays}d` }
+      );
 
       await prisma.trustedDevice.create({
         data: {
-          userId: twoFactorEntry.user.id,
-          deviceToken,
-          deviceName: deviceName || 'Appareil inconnu',
-          expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 jours
+          userId: user.id,
+          jti,
+          deviceName: deviceName || req.headers['user-agent'],
+          expiresAt: new Date(Date.now() + refreshExpiryDays * 24 * 60 * 60 * 1000)
         }
       });
 
-      console.log(`[2FA] Appareil de confiance créé pour ${twoFactorEntry.user.login}, expire dans 60 jours`);
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        path: "/",
+        maxAge: refreshExpiryDays * 24 * 60 * 60 * 1000
+      });
     }
 
-    // Générer le token JWT (60 jours si trusted device, sinon 7 jours)
-    const expiresIn = trustDevice ? '60d' : '7d';
-    const token = jwt.sign(
-      {
-        userId: twoFactorEntry.user.id,
-        login: twoFactorEntry.user.login,
-        role: twoFactorEntry.user.role,
-        teamName: twoFactorEntry.user.teamName
-      },
-      process.env.JWT_SECRET,
-      { expiresIn }
-    );
+    // Marquer le code 2FA comme vérifié et le supprimer
+    await prisma.twoFactorCode.delete({
+      where: { tempToken }
+    });
 
-    console.log(`[2FA] Connexion réussie pour ${twoFactorEntry.user.login} à ${new Date().toISOString()}`);
 
     res.json({
       success: true,
-      token,
-      user: twoFactorEntry.user,
-      deviceToken // Renvoyer le deviceToken pour le stocker côté client
+      accessToken,
+      user,
     });
   } catch (error) {
     next(error);
@@ -337,30 +325,14 @@ export const requestPasswordReset = async (req, res, next) => {
     });
 
     // Pour des raisons de sécurité, on retourne toujours un succès même si l'utilisateur n'existe pas ou si l'email ne correspond pas
-    if (!user) {
+    if (!user|| !user.email || user.email.toLowerCase() !== email.toLowerCase()) {
       return res.json({
         success: true,
         message: 'Si un compte existe avec ces identifiants, un email de réinitialisation a été envoyé.'
       });
     }
 
-    // Vérifier que l'utilisateur a un email
-    if (!user.email) {
-      return res.json({
-        success: true,
-        message: 'Si un compte existe avec ces identifiants, un email de réinitialisation a été envoyé.'
-      });
-    }
-
-    // Vérifier que l'email fourni correspond à celui de l'utilisateur
-    if (user.email.toLowerCase() !== email.toLowerCase()) {
-      return res.json({
-        success: true,
-        message: 'Si un compte existe avec ces identifiants, un email de réinitialisation a été envoyé.'
-      });
-    }
-
-    // Générer un token de réinitialisation sécurisé
+    // Générer un token brut + hash
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
@@ -492,3 +464,110 @@ export const resetPassword = async (req, res, next) => {
 };
 
 
+/**
+ * Refresh token
+ */
+export const refresh = async (req, res, next) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+      return res.status(401).json({ error: "No refresh token provided" });
+    }
+
+    // Vérification du refresh token
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.REFRESH_SECRET);
+    } catch (err) {
+      return res.status(403).json({ error: "Invalid or expired refresh token" });
+    }
+
+    // Vérifier en BDD si le jti existe et n'est pas révoqué
+    const device = await prisma.trustedDevice.findUnique({
+      where: { jti: payload.jti },
+    });
+
+    if (!device || device.revoked || device.expiresAt < new Date()) {
+      return res.status(403).json({ error: "Device not trusted or expired" });
+    }
+
+    // Révoquer l'ancien refresh token
+    await prisma.trustedDevice.update({
+      where: { jti: payload.jti },
+      data: { revoked: true, lastUsedAt: new Date() },
+    });
+
+    // Générer un nouveau refresh token
+    const newJti = uuidv4();
+    const newRefreshToken = jwt.sign(
+      { sub: payload.sub, jti: newJti },
+      process.env.REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    await prisma.trustedDevice.create({
+      data: {
+        userId: payload.sub,
+        jti: newJti,
+        deviceName: device.deviceName,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    // Générer un nouvel access token
+    const newAccessToken = jwt.sign(
+      { userId: payload.sub },
+      process.env.ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // Mettre le nouveau refresh token en cookie
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/", // important pour le clearCookie
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * déconnexion
+ */
+export const logout = async (req, res, next) => {
+  try {
+    const token = req.cookies.refreshToken;
+
+    // Si un refresh token existe, révoquer le TrustedDevice correspondant
+    if (token) {
+      try {
+        const payload = jwt.verify(token, process.env.REFRESH_SECRET);
+        if (payload.jti) {
+          await prisma.trustedDevice.updateMany({
+            where: { jti: payload.jti },
+            data: { revoked: true }
+          });
+        }
+      } catch (err) {
+        // Token invalide, on continue quand même
+      }
+    }
+
+    // Toujours effacer le cookie côté client
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/"
+    });
+
+    return res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

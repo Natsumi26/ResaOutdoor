@@ -50,8 +50,6 @@ export const upsertParticipants = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
     const { participants } = req.body;
-    console.log('bookingId reçus:', req.params.bookingId);
-    console.log('Participants reçus:', req.body.participants);
 
     if (!Array.isArray(participants)) {
       throw new AppError('Les participants doivent être un tableau', 400);
@@ -106,9 +104,7 @@ export const upsertParticipants = async (req, res, next) => {
     if (booking.session.shoeRentalAvailable && booking.session.shoeRentalPrice) {
       const shoesCount = participants.filter(p => p.shoeRental).length;
       newShoeRentalTotal = shoesCount * booking.session.shoeRentalPrice;
-      console.log('Shoes count:', shoesCount, 'Price:', booking.session.shoeRentalPrice);
     }
-    console.log('New shoe rental total:', newShoeRentalTotal);
 
     // Créer les nouveaux participants avec calcul de taille de combinaison
     const createdParticipants = await Promise.all(

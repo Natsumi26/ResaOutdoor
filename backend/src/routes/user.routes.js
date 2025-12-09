@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, createUser, updateUser, deleteUser } from '../controllers/user.controller.js';
+import { getAllUsers, getUsersById, createUser, updateUser, deleteUser } from '../controllers/user.controller.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -9,6 +9,8 @@ router.use(authMiddleware);
 
 
 router.get('/', getAllUsers);
+router.get('/:id', getUsersById);
+
 router.post('/', createUser);
 router.put('/:id', updateUser);
 router.delete('/:id', deleteUser);

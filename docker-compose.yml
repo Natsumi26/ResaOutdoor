@@ -1,0 +1,63 @@
+services: 
+  postgres : 
+    image :  postgres:18
+    environment : 
+      -  POSTGRES_USER=${POSTGRES_USER} 
+      -  POSTGRES_PASSWORD=${POSTGRES_PASSWORD} 
+      -  POSTGRES_DB=${POSTGRES_DB} 
+    ports : 
+      -  "5432:5432" 
+    volumes : 
+      -  postgres_data:/var/lib/postgresql
+      -  ./booking_Saas_data.sql:/docker-entrypoint-initdb.d/booking_Saas_data.sql
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin4
+    ports:
+      - 5050:80
+    environment:
+      # Required by pgAdmin
+      PGADMIN_DEFAULT_EMAIL: marion.redon26@yahoo.fr
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+
+      # Don't require the user to login
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+      # Don't require a "master" password after logging in
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+  frontend: 
+    build: 
+      context:  ./frontend 
+      dockerfile:  Dockerfile 
+    container_name:  booking_saas-frontend 
+    ports: 
+      -  "3000:3000" 
+    environment: 
+      -  REACT_APP_BACKEND_URL= ${APP_URL}
+    volumes: 
+      -  ./frontend:/app 
+      -  /app/node_modules 
+
+
+  backend: 
+    build: 
+      context:  ./backend 
+      dockerfile:  Dockerfile 
+    container_name:  booking_saas-backend 
+    ports: 
+      -  "5000:5000" 
+    environment: 
+      -  FRONTEND_URL= ${FRONTEND_URL} 
+      -  PGUSER=${POSTGRES_USER}
+      -  PGHOST=postgres
+      -  PGDATABASE=${POSTGRES_DB}
+      -  PGPASSWORD=${POSTGRES_PASSWORD} 
+      -  PGPORT=5432
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+
+    depends_on : 
+      -  postgres 
+
+volumes : 
+  postgres_data : 

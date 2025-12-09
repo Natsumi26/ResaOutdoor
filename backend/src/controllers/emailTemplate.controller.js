@@ -157,14 +157,6 @@ export const updateTemplate = async (req, res) => {
     const userId = req.user.userId || req.user.id; // Supporter les deux formats
     const userRole = req.user.role; // "admin" ou "guide"
 
-    // LOGS DE DÉBOGAGE
-    console.log('\n🔍 ===== MISE À JOUR TEMPLATE - DEBUG =====');
-    console.log('req.user complet:', JSON.stringify(req.user, null, 2));
-    console.log('userId récupéré:', userId);
-    console.log('userRole récupéré:', userRole);
-    console.log('Template ID à modifier:', id);
-    console.log('==========================================\n');
-
     // Récupérer le template à modifier
     const originalTemplate = await prisma.emailTemplate.findUnique({
       where: { id }

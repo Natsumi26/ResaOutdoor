@@ -1,16 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 
-const NotificationContext = createContext();
-
-export const useNotifications = () => {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
-};
+export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
@@ -23,7 +15,7 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!user) return;
 
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_BACK_URL || 'http://localhost:5000/api';
 
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -72,7 +64,7 @@ export const NotificationProvider = ({ children }) => {
     });
 
     setSocket(newSocket);
-
+console.log("Socket initialisé:", newSocket);
     // Cleanup à la déconnexion
     return () => {
       newSocket.close();
@@ -156,7 +148,7 @@ export const NotificationProvider = ({ children }) => {
     removeNotification,
     clearAll
   };
-
+  
   return (
     <NotificationContext.Provider value={value}>
       {children}

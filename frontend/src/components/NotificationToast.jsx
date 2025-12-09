@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '../contexts/useNotifications';
 import './NotificationToast.css';
 
 const NotificationToast = () => {

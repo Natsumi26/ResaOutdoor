@@ -29,25 +29,18 @@ const TwoFactorVerify = () => {
     setLoading(true);
 
     try {
-      // Récupérer le user agent pour le deviceName
-      const deviceName = navigator.userAgent;
 
       const response = await api.post('/auth/verify-2fa', {
         tempToken,
         code,
         trustDevice,
-        deviceName
+        deviceName: navigator.userAgent
       });
-
+      console.log(response)
       if (response.data.success) {
         // Sauvegarder le token et les données utilisateur
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-
-        // Si un deviceToken est retourné, le sauvegarder
-        if (response.data.deviceToken) {
-          localStorage.setItem('deviceToken', response.data.deviceToken);
-        }
 
         // Mettre à jour le contexte d'authentification directement
         setUser(response.data.user);

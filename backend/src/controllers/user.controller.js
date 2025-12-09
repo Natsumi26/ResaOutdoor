@@ -35,6 +35,44 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
+// Obtenir un user par ID
+export const getUsersById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        login: true,
+        email: true,
+        phone: true,
+        role: true,
+        confidentialityPolicy: true,
+        stripeAccount: true,
+        teamName: true,
+        teamLeaderId: true,
+        paymentMode: true,
+        depositType: true,
+        depositAmount: true,
+        practiceActivities: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+    if (!user) {
+      throw new AppError('User non trouvé', 404);
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Créer un utilisateur (admin seulement)
 export const createUser = async (req, res, next) => {
   try {

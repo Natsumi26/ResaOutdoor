@@ -140,6 +140,8 @@
   "BuyOtherBon": "Buy another gift voucher",
   "MailCode": "A confirmation email with your code has been sent to your address.",
   "SaveInfos": "✅ Information successfully saved! Thank you.",
+  "ClosePageMessage": "Information successfully saved!, you can close the windows.",
+  "ClosePageButton": "Close",
   "SaveInfosFail": "❌ Error while saving. Please try again.",
   "InfosGroup": "Your group information",
   "Fournir": "To provide you with a",
