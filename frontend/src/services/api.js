@@ -20,15 +20,16 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Intercepteur pour ajouter le token d'authentification
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -40,21 +41,42 @@ api.interceptors.request.use(
 // Intercepteur pour gérer les erreurs de réponse
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Ne déconnecter que si c'est une erreur d'authentification de l'application
     // Pas si c'est une erreur Stripe ou autre service externe
     // Ou si on est sur une page client publique
     if (error.response?.status === 401) {
+      const originalRequest = error.config;
+
+
       const url = error.config?.url || '';
       const isStripeError = url.includes('/stripe/');
       const isClientPage = window.location.pathname.startsWith('/client/');
 
       // Si ce n'est pas une erreur Stripe et qu'on n'est pas sur une page client, c'est probablement un problème d'auth
       if (!isStripeError && !isClientPage) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+              // ⚠️ éviter boucle infinie
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          // ✅ Appel au backend pour refresh (cookie HTTPOnly est envoyé automatiquement)
+          const refreshResponse = await api.post("/auth/refresh");
+
+          const newAccessToken = refreshResponse.data.accessToken;
+          localStorage.setItem("accessToken", newAccessToken);
+
+          // ✅ Réessayer la requête initiale avec le nouveau token
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Si le refresh échoue → déconnexion
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
       }
+    }
     }
     return Promise.reject(error);
   }
@@ -69,6 +91,7 @@ export const authAPI = {
 // Users
 export const usersAPI = {
   getAll: () => api.get('/users'),
+  getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`)

@@ -122,6 +122,11 @@ const MyBooking = () => {
     try {
       setSaving(true);
 
+      // Vérifier si on vient d'une navigation iframe (présence de paramètres guideId ou teamName)
+      const guideId = searchParams.get('guideId');
+      const teamName = searchParams.get('teamName');
+      const fromIframeNavigation = !!(guideId || teamName);
+
       // Calculer le nombre de locations de chaussures
       const shoeRentalCount = participants.filter(p => p.shoeRental).length;
 
@@ -147,20 +152,42 @@ const MyBooking = () => {
           totalPrice: newTotalPrice
         });
 
-        // Recharger la réservation pour avoir les nouvelles valeurs
-        await loadBooking();
       }
 
-      alert(t('SaveInfos'));
-      const params = new URLSearchParams();
-      const guideId = searchParams.get('guideId');
-      const teamName = searchParams.get('teamName');
+      // Si on vient de l'iframe (avec guideId/teamName), on redirige
+      if (fromIframeNavigation) {
+        const params = new URLSearchParams();
+        if (guideId) params.set('guideId', guideId);
+        if (teamName) params.set('teamName', teamName);
+        const color = searchParams.get('color');
+        if (color) params.set('color', color);
 
-      if (guideId) params.set('guideId', guideId);
-      if (teamName) params.set('teamName', teamName);
-      const color = searchParams.get('color');
-      if (color) params.set('color', color);
-      navigate(`/client/search?${params.toString()}`);
+        // Redirection vers la page de recherche
+        navigate(`/client/search?${params.toString()}`);
+      } else {
+        // Cas lien direct depuis un mail → on ferme la page
+        alert(t('SaveInfos'));
+
+        // Tenter de fermer la fenêtre
+        window.close();
+
+        // Fallback si window.close() est bloqué par le navigateur
+        setTimeout(() => {
+          document.body.innerHTML = `
+            <div style="text-align: center; margin-top: 100px; font-family: Arial, sans-serif;">
+              <h2>${t('SaveInfos')}</h2>
+              <p style="margin: 20px 0;">${t('ClosePageMessage')}</p>
+              <button
+                id="closeBtn"
+                style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;"
+              >
+                ${t('ClosePageButton')}
+              </button>
+            </div>
+          `;
+          document.getElementById("closeBtn").onclick = () => window.close();
+        }, 100);
+      }
 
     } catch (error) {
       console.error('Erreur sauvegarde participants:', error);
@@ -184,10 +211,11 @@ const MyBooking = () => {
 
   return (
     <div className={styles.clientContainer}>
-      {/* Bouton retour */}
-      <button
-        onClick={() => navigate(-1)}
-        style={{
+      {/* Bouton retour - seulement si on vient de l'iframe */}
+      {(searchParams.get('guideId') || searchParams.get('teamName')) && (
+        <button
+          onClick={() => navigate(-1)}
+          style={{
           position: 'fixed',
           top: '20px',
           left: '20px',
@@ -221,6 +249,7 @@ const MyBooking = () => {
           <path d="M15 18L9 12L15 6" stroke="#2c3e50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
+      )}
 
       <div className={styles.myBookingContainer}>
         {/* En-tête simplifié */}

@@ -38,7 +38,7 @@ const SessionDeleteDialog = ({ sessions, onConfirm, onCancel }) => {
   const fetchAlternativeSessions = async (sessionId) => {
     setLoadingAlternatives(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${sessionId}/alternatives`, {
         headers: {
           'Authorization': `Bearer ${token}`

@@ -23,6 +23,7 @@ const Team = () => {
     depositType: 'percentage',
     depositAmount: ''
   });
+  const [formType, setFormType] = useState(null); // "monCompte" ou "member"
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -56,7 +57,9 @@ const Team = () => {
         setAllUsers(usersResponse.data.users || []);
       }
       if (currentUser?.role === 'leader'|| currentUser?.role === 'super_admin') {
-        setMonCompte(currentUser);
+        // charger mon compte
+        const response = await usersAPI.getById(currentUser.id);
+        setMonCompte(response.data.user);
       }
     } catch (error) {
       console.error('Erreur:', error);
@@ -68,15 +71,22 @@ const Team = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (formType === 'monCompte') {
+        // Mise à jour de mon compte
+      await usersAPI.update(currentUser.id, formData);
+      alert('Votre compte a été modifié avec succès ✅');
+    } else if (formType === 'member') {
+      // Ajout ou modification d’un membre
       if (editingId) {
         console.log(formData)
         await teamAPI.updateMember(editingId, formData);
       } else {
         await teamAPI.addMember(formData);
       }
+      alert('Membre ' + (editingId ? 'modifié' : 'ajouté') + ' avec succès');
+    }
       loadData();
       closeModal();
-      alert('Membre ' + (editingId ? 'modifié' : 'ajouté') + ' avec succès');
     } catch (error) {
       alert(error.response?.data?.error || 'Erreur');
     }
@@ -106,7 +116,7 @@ const Team = () => {
         confidentialityPolicy: member.confidentialityPolicy || '',
         paymentMode: member.paymentMode || 'onsite_only',
         depositType: member.depositType || 'percentage',
-        depositAmount: member.depositAmount || ''
+        depositAmount: member.depositAmount || null
       });
     }
     setShowModal(true);
@@ -339,6 +349,15 @@ const Team = () => {
               </div>
 
               <div className={styles.formGroup}>
+                <label>Compte Stripe</label>
+                <input
+                  type="text"
+                  value={formData.stripeAccount}
+                  onChange={(e) => setFormData({ ...formData, stripeAccount: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
                 <label>Rôle *</label>
                 <select
                   value={formData.role}
@@ -502,11 +521,8 @@ const Team = () => {
                   <td>{monCompte.phone || '-'}</td>
                   <td>{getRoleBadge(monCompte.role)}</td>
                   <td>
-                    <button className={styles.btnEdit} onClick={() => openModal(monCompte)}>
+                    <button className={styles.btnEdit} onClick={() => {setFormType('monCompte'); openModal(monCompte)}}>
                       ✏️
-                    </button>
-                    <button className={styles.btnDelete} onClick={() => handleDelete(monCompte.id)}>
-                      🗑️
                     </button>
                   </td>
                 </tr>
@@ -545,7 +561,7 @@ const Team = () => {
                     {new Date(member.createdAt).toLocaleDateString('fr-FR')}
                   </td>
                   <td>
-                    <button className={styles.btnEdit} onClick={() => openModal(member)}>
+                    <button className={styles.btnEdit} onClick={() => {setFormType('member');openModal(member)}}>
                       ✏️
                     </button>
                     <button className={styles.btnDelete} onClick={() => handleDelete(member.id)}>
@@ -600,6 +616,15 @@ const Team = () => {
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Compte Stripe</label>
+                <input
+                  type="text"
+                  value={formData.stripeAccount}
+                  onChange={(e) => setFormData({ ...formData, stripeAccount: e.target.value })}
                 />
               </div>
 

@@ -20,14 +20,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       try {
         const response = await authAPI.getCurrentUser();
         setUser(response.data.user);
       } catch (error) {
         console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
       }
     }
@@ -36,13 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      // Récupérer le deviceToken s'il existe
-      const deviceToken = localStorage.getItem('deviceToken');
       const loginData = { ...credentials };
-
-      if (deviceToken) {
-        loginData.deviceToken = deviceToken;
-      }
 
       const response = await authAPI.login(loginData);
 
@@ -56,9 +50,9 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      const { token, user } = response.data;
+      const { accessToken, user } = response.data;
 
-      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
 
@@ -72,10 +66,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     localStorage.removeItem('impersonated');
-    // Ne PAS supprimer deviceToken - il doit persister pour éviter le 2FA lors de la reconnexion
     setUser(null);
   };
 
@@ -89,8 +82,8 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
-      localStorage.setItem('token', data.token);
+      console.log(data)
+      localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('impersonated', 'true');
       setUser(data.user);

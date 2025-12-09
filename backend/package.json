@@ -16,9 +16,10 @@
     "prisma:seed": "node prisma/seed.js",
     "prisma:pull": "prisma db pull",
     "db:backup": "node scripts/backup-db.js",
-    "setup": "npm install && prisma generate && prisma migrate deploy"
+    "setup": "npm install && prisma generate && prisma migrate deploy",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
- "prisma": {
+  "prisma": {
     "seed": "node prisma/seed.js"
   },
   "keywords": [
@@ -31,6 +32,7 @@
   "dependencies": {
     "@prisma/client": "^6.18.0",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
@@ -38,9 +40,12 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.9",
-    "stripe": "^17.7.0"
+    "socket.io": "^4.8.1",
+    "stripe": "^17.7.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "jest": "^30.2.0",
     "nodemon": "^3.1.7",
     "prisma": "^6.18.0"
   }

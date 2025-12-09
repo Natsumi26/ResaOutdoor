@@ -79,7 +79,8 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
 
   const handleDownloadPDF = () => {
               const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-              const token = localStorage.getItem('token');
+              const token = localStorage.getItem('accessToken');
+              console.log(token)
               window.open(`${API_URL}/participants/session/${session.id}/print?token=${token}`, '_blank');
               };
 
@@ -136,7 +137,6 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
 
     setSendingEmail(true);
     try {
-      // TODO: Implémenter l'envoi d'emails groupés via l'API
       await new Promise(resolve => setTimeout(resolve, 1500)); // Simulation
       alert(`Email envoyé avec succès à ${confirmedBookings.length} participant(s) !`);
       setEmailSubject('');
@@ -158,7 +158,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
   const fetchAlternativeSessions = async () => {
     setLoadingAlternatives(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}/alternatives`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -245,7 +245,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
     // Sinon, suppression simple
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/sessions/${session.id}`, {
           method: 'DELETE',
           headers: {
@@ -281,7 +281,7 @@ const SessionDetailModal = ({ session, onClose, onEdit, onBookingClick, onDuplic
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const body = {
         action: deleteAction
       };
@@ -1307,7 +1307,7 @@ const ProductEditModal = ({ session, confirmedBookings, onClose, onSuccess }) =>
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const guideId = session.guide?.id;
 
         if (!guideId) return;
@@ -1405,7 +1405,7 @@ const ProductEditModal = ({ session, confirmedBookings, onClose, onSuccess }) =>
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
 
       const payload = {
         productId: selectedProductId,

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
@@ -33,7 +34,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL||"http://localhost:3000", // ton front React/Vue/Next
+  credentials: true                // autorise l'envoi des cookies
+}));
+
+// Middleware pour parser les cookies
+app.use(cookieParser());
+
+app.get("/", (req, res) => {
+  res.send("Backend OK 🚀");
+});
+
 
 // IMPORTANT: Le webhook Stripe doit recevoir le raw body AVANT express.json()
 // On monte la route webhook AVANT les middlewares JSON
@@ -80,6 +92,42 @@ app.use(errorHandler);
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// 🔔 Configuration Socket.io pour les notifications en temps réel
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Initialiser le service de notifications
+initNotificationService(io);
+
+// Gestion des connexions Socket.io
+io.on('connection', (socket) => {
+  console.log('👤 Client connecté:', socket.id);
+
+  // Rejoindre une room selon le rôle de l'utilisateur
+  socket.on('join-room', (data) => {
+    const { role, userId } = data;
+
+    // Super admins, leaders, et employees rejoignent la room admins
+    if (role === 'super_admin' || role === 'leader' || role === 'employee' || role === 'trainee') {
+      socket.join('admins');
+      console.log(`👨‍💼 ${role} ${userId} a rejoint la room admins`);
+    }
+  });
+
+  // Déconnexion
+  socket.on('disconnect', () => {
+    console.log('👋 Client déconnecté:', socket.id);
+  });
+});
+
+// Exporter io pour pouvoir l'utiliser dans les routes
+export { io };
 
 // 🔒 Gérer les arrêts propres pour éviter les conflits de port
 process.on('SIGTERM', () => {

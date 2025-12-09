@@ -423,8 +423,6 @@ export const searchAvailableProducts = async (req, res, next) => {
 // Lister toutes les sessions (avec filtre par date)
 export const getAllSessions = async (req, res, next) => {
   try {
-    console.log('🔍 req.user =', req.user);
-
     const { startDate, endDate, guideId, date, productId } = req.query;
 
     const where = {};
@@ -480,9 +478,6 @@ export const getAllSessions = async (req, res, next) => {
         where.guideId = req.user.userId;
       }
     }
-    // Si pas connecté et aucun filtre → ne pas filtrer par guideId
-console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)');
-
 
     const sessions = await prisma.session.findMany({
       where,
@@ -520,7 +515,6 @@ console.log('🔍 Filtre guideId appliqué:', where.guideId || 'aucun (public)')
         { startTime: 'asc' }
       ]
     });
-    console.log(sessions)
     // Filtrer par productId si fourni
     let filteredSessions = sessions;
     if (productId) {
@@ -1323,14 +1317,6 @@ export const updateSessionProduct = async (req, res, next) => {
         }
       }
     });
-
-    // 5. Si demandé, envoyer les emails de confirmation aux participants
-    if (sendConfirmationEmail && session.bookings.length > 0) {
-      // TODO: Implémenter l'envoi d'emails de confirmation
-      // Pour l'instant, on log juste que ça devrait être envoyé
-      console.log(`📧 Emails de confirmation à envoyer à ${session.bookings.length} participant(s)`);
-    }
-
     res.json({
       success: true,
       message: 'Produit et statut de la session mis à jour avec succès',

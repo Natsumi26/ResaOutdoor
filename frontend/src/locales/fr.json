@@ -141,6 +141,8 @@
     "BuyOtherBon":"Acheter un autre bon cadeau",
     "MailCode":"Un email de confirmation avec votre code a été envoyé à votre adresse.",
     "SaveInfos":"✅ Informations enregistrées avec succès ! Merci.",
+    "ClosePageMessage": "Vos infos ont été enregistrées, vous pouvez fermer cette page.",
+    "ClosePageButton": "Fermer",
     "SaveInfosFail":"❌ Erreur lors de la sauvegarde. Veuillez réessayer.",
     "InfosGroup":"Informations de votre groupe",
     "Fournir":"Pour vous fournir une ",

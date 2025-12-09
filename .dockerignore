@@ -1,0 +1,7 @@
+# Empêche Docker de copier les dépendances locales
+node_modules
+npm-debug.log
+Dockerfile
+docker-compose.yml
+.git
+.gitignore

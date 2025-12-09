@@ -9,7 +9,7 @@ export const authMiddleware = async (req, res, next) => {
       throw new AppError('Token manquant. Authentification requise.', 401);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -29,7 +29,7 @@ export const optionalAuth = async (req, res, next) => {
 
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
         req.user = decoded;
       } catch (error) {
         // Si le token est invalide, on continue quand même sans user

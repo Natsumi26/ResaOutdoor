@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]  
 }
 
 datasource db {
@@ -370,11 +371,12 @@ model TwoFactorCode {
 model TrustedDevice {
   id          String   @id @default(uuid())
   userId      String
-  deviceToken String   @unique
+  jti         String?   @unique 
   deviceName  String?
   expiresAt   DateTime
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime @default(now())
+  revoked     Boolean  @default(false)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("trusted_devices")
