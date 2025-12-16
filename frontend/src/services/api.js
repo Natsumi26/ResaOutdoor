@@ -97,6 +97,24 @@ export const usersAPI = {
   delete: (id) => api.delete(`/users/${id}`)
 };
 
+// Bookings
+export const bookingsAPI = {
+  getAll: (params) => api.get('/bookings', { params }),
+  getById: (id) => api.get(`/bookings/${id}`),
+  create: (data) => api.post('/bookings', data),
+  update: (id, data) => api.put(`/bookings/${id}`, data),
+  addPayment: (id, data) => api.post(`/bookings/${id}/payment`, data),
+  cancel: (id, data) => api.post(`/bookings/${id}/cancel`, data),
+  move: (id, data) => api.post(`/bookings/${id}/move`, data),
+  markProductDetailsSent: (id) => api.post(`/bookings/${id}/mark-product-details-sent`),
+  delete: (id) => api.delete(`/bookings/${id}`),
+  // Notes
+  getNotes: (id) => api.get(`/bookings/${id}/notes`),
+  addNote: (id, data) => api.post(`/bookings/${id}/notes`, data),
+  updateNote: (id, noteId, data) => api.put(`/bookings/${id}/notes/${noteId}`, data),
+  deleteNote: (id, noteId) => api.delete(`/bookings/${id}/notes/${noteId}`)
+};
+
 // Categories
 export const categoriesAPI = {
   getAll: () => api.get('/categories'),
@@ -124,24 +142,6 @@ export const sessionsAPI = {
   create: (data) => api.post('/sessions', data),
   update: (id, data) => api.put(`/sessions/${id}`, data),
   delete: (id, data) => api.delete(`/sessions/${id}`, { data })
-};
-
-// Bookings
-export const bookingsAPI = {
-  getAll: (params) => api.get('/bookings', { params }),
-  getById: (id) => api.get(`/bookings/${id}`),
-  create: (data) => api.post('/bookings', data),
-  update: (id, data) => api.put(`/bookings/${id}`, data),
-  addPayment: (id, data) => api.post(`/bookings/${id}/payment`, data),
-  cancel: (id, data) => api.post(`/bookings/${id}/cancel`, data),
-  move: (id, data) => api.post(`/bookings/${id}/move`, data),
-  markProductDetailsSent: (id) => api.post(`/bookings/${id}/mark-product-details-sent`),
-  delete: (id) => api.delete(`/bookings/${id}`),
-  // Notes
-  getNotes: (id) => api.get(`/bookings/${id}/notes`),
-  addNote: (id, data) => api.post(`/bookings/${id}/notes`, data),
-  updateNote: (id, noteId, data) => api.put(`/bookings/${id}/notes/${noteId}`, data),
-  deleteNote: (id, noteId) => api.delete(`/bookings/${id}/notes/${noteId}`)
 };
 
 // Gift Vouchers
